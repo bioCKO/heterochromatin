@@ -8,9 +8,19 @@
 library(data.table)
 options(scipen=10)
 setwd("/Users/alice/Desktop/projects/heterochromatin/great_ape_diversity/counts")
-SRR_readC_afterF = read.table(("SRR_readC_afterF"),header=FALSE)
+readC_afterF = read.table(("readC_afterF"),header=FALSE)
+
+#merge with read counts from human
+readC_afterF_human = read.table(("readC_afterF_human"),header=FALSE)
+readC_afterF <- rbind(readC_afterF,readC_afterF_human)
+
+#layout from great ape diversity project
 layout = read.table("full_layout", header=TRUE, sep = ",")
-layout<-layout[layout$Run %in% SRR_readC_afterF$V1,] #keep only those that have successful filtering information
+layout<-layout[layout$Run %in% readC_afterF$V1,] #keep only those that have successful filtering information
+
+#merge with layout from human
+human_layout = read.table("human_layout", header=TRUE, sep = ",")
+layout<-merge(layout,human_layout,all=TRUE)
 
 print(table(layout$ScientificName,layout$Sex))
 #aggregate(layout$bases ~ layout$SampleName + layout$Sex, layout$Sex, FUN=mean)
@@ -30,7 +40,7 @@ getFileNames <- function(sex=NULL,species=NULL,name=NULL){
 
 getFilteredReadCounts <- function(files) {
   SRR_ids<-gsub( "\\|.*$", "", files)
-  merged<-merge(SRR_ids,SRR_readC_afterF,by=1)
+  merged<-merge(SRR_ids,readC_afterF,by=1)
   read_counts<-merged[match(SRR_ids,merged$x),]$V2
   
   if (!length(SRR_ids)==length(read_counts)) {
@@ -47,7 +57,7 @@ files<-do.call(getFileNames, filters)
 @
 
 <<create big table with counts for all individuals, this section can be skipped if the tables are already created>>=
-tables <- lapply(files, function(x) read.table(gsub( "\\|", "_", x), nrows=10, col.names=c("unit", gsub("_1.fastq.counts.sortedFilt", "", x))))
+tables <- lapply(files, function(x) read.table(gsub( "\\|", "_", x), nrows=100, col.names=c("unit", gsub("_1.fastq.counts.sortedFilt", "", x))))
 
 dt_list <- lapply(tables, function(x) {
   out <- as.data.table(x)
@@ -95,7 +105,7 @@ dropLowReadCounts <-function(files,read_count_threshold) {
 
 dropShortReads <-function(files,read_length_threshold) { 
   print(read_length_threshold)
-  SRR_ids_to_exclude<-gsub( "_.*$", "", SRR_read_lengths[SRR_read_lengths$V2<read_length_threshold,]$V1)
+  SRR_ids_to_exclude<-gsub( "_.*$", "", read_lengths[read_lengths$V2<read_length_threshold,]$V1)
   print(paste("excluding this many files:",length(SRR_ids_to_exclude)))
   if (length(SRR_ids_to_exclude)==0) {
       print(paste("returning this many files:",length(files)))
@@ -123,9 +133,12 @@ dropFamilyRelatedFiles <-function(files) {
 
 contaminated = read.table("contaminated_individuals.txt", header=FALSE)
 related = read.table("related_individuals.txt", header=FALSE)
-SRR_read_lengths = read.table("SRR_read_lengths", header=FALSE)
-SRR_read_lengths<-SRR_read_lengths[grep("_1.fastq",SRR_read_lengths$V1),] #keep only forward reads
+read_lengths = read.table("read_lengths", header=FALSE)
+read_lengths<-read_lengths[grep("_1.fastq",read_lengths$V1),] #keep only forward reads
 
+#merge with human samples
+read_lengths_human = read.table("read_lengths_human", header=FALSE)
+read_lengths<-rbind(read_lengths,read_lengths_human)
 
 filtered_files<-files
 
@@ -193,6 +206,7 @@ getCandidatesForSpecies <- function(row,species,threshold) {
     sp<-gsub("Gorilla gorilla","Gorilla", sp)
     sp<-gsub("Pongo pygmaeus","Orangutan", sp)
     sp<-gsub("Pongo abelii","Orangutan", sp)
+    sp<-gsub("Homo sapiens","Human", sp)
     
     transposed$name<-names
     transposed$FullSpecies<-Fsp
@@ -218,8 +232,14 @@ getCandidatesForSpecies <- function(row,species,threshold) {
     #power<-pwr.t2n.test(male_counts,female_counts,abs(d),alternative="less")$power
     #effect size needs to be calculated as absolute difference in means divided by the pooled std
     
-    pvalue<-wilcox.test(alternative="less",toPlotAggregated[toPlotAggregated$sex=="F",]$counts,toPlotAggregated[toPlotAggregated$sex=="M",]$counts)$p.value
-    return(c(as.character(row$unit),as.numeric(pvalue),round(mean_cumulative_length)))
+    pvalue<-NaN
+    #we can only run statistical test if we have positive number of male and female samples
+    if (sum(toPlotAggregated$sex=="M")>0 & sum(toPlotAggregated$sex=="F")>0) {
+      pvalue<-wilcox.test(alternative="less",toPlotAggregated[toPlotAggregated$sex=="F",]$counts,toPlotAggregated[toPlotAggregated$sex=="M",]$counts)$p.value 
+      pvalue<-as.numeric(pvalue)
+      }
+    
+    return(c(as.character(row$unit),pvalue,round(mean_cumulative_length)))
     }
 }
 
@@ -239,6 +259,8 @@ Candidates_Chimpanzee<-getTopCandidatesForSpecies("Chimpanzee",threshold)
 Candidates_Bonobo<-getTopCandidatesForSpecies("Bonobo",threshold)
 Candidates_Gorilla<-getTopCandidatesForSpecies("Gorilla",threshold)
 Candidates_Orangutan<-getTopCandidatesForSpecies("Orangutan",threshold)
+Candidates_Human<-getTopCandidatesForSpecies("Human",threshold)
+
 
 save(Candidates_Chimpanzee,file="/Users/alice/Desktop/projects/heterochromatin/great_ape_diversity/counts/Candidates_Chimpanzee.Rda")
 save(Candidates_Bonobo,file="/Users/alice/Desktop/projects/heterochromatin/great_ape_diversity/counts/Candidates_Bonobo.Rda")
@@ -249,6 +271,7 @@ print(Candidates_Chimpanzee)
 print(Candidates_Bonobo)
 print(Candidates_Gorilla)
 print(Candidates_Orangutan)
+print(Candidates_Human)
 
 top_candidates_uniq<-unique(c(as.vector(Candidates_Chimpanzee$unit),as.vector(Candidates_Bonobo$unit),as.vector(Candidates_Gorilla$unit),as.vector(Candidates_Orangutan$unit)))
 print(top_candidates_uniq)
@@ -258,6 +281,7 @@ print(top_candidates_uniq)
 <<create plots for the candidates>>=
 library(vioplot)
 library(locfit)
+library(gsubfn)
 options(scipen=10)
 
 unitList=top_candidates_uniq
@@ -290,13 +314,66 @@ plotFigure <- function(toPlot) {
   
   j<-jitter(rep(1,dim(toPlotAggregated)[1]),amount=0.05)
   symb<-14+as.numeric(factor(as.character(toPlotAggregated$species)))
+  col_leg<-factor(toPlotAggregated$fullSpecies)
   
-  plot(rep(0,dim(toPlotAggregated)[1])+j,toPlotAggregated$counts,col=factor(toPlotAggregated$fullSpecies),main=unit,pch=symb,ylab="repeat counts normalized to 1 million reads",cex.main=0.8,xlim=c(0,2),xaxt='n',xlab="",cex=1.8)
+  #plot(rep(0,dim(toPlotAggregated)[1])+j,toPlotAggregated$counts,col=col_leg,main=unit,pch=symb,ylab="repeat counts normalized to 1 million reads",cex.main=0.8,xlim=c(0,2),xaxt='n',xlab="",cex=1.8,ylim=c(0,max(toPlotAggregated$counts)))
+  
+  females<-toPlotAggregated[toPlotAggregated$sex=="F",]
+  males<-toPlotAggregated[toPlotAggregated$sex=="M",]
+  
+  females_pch<-females$species
+  females_pch<-gsub("Gorilla","17", females_pch)
+  females_pch<-gsub("Bonobo","15", females_pch)
+  females_pch<-gsub("Chimpanzee","16", females_pch)
+  females_pch<-gsub("Orangutan","18", females_pch)
+  females_pch<-gsub("Homo","14", females_pch)
+  females_pch<-as.numeric(females_pch)
+  
+  females_col_leg<-females$fullSpecies
+  females_col_leg<-gsub("Gorilla_beringei_graueri","#d7191c", females_col_leg)
+  females_col_leg<-gsub("Gorilla_gorilla_diehli","orange", females_col_leg)
+  females_col_leg<-gsub("Gorilla_gorilla_gorilla","gold", females_col_leg)
+  females_col_leg<-gsub("Pan_paniscus","#2c7bb6", females_col_leg)
+  females_col_leg<-gsub("Pan_troglodytes_ellioti","#41b6c4", females_col_leg)
+  females_col_leg<-gsub("Pan_troglodytes_schweinfurthii","#c2e699", females_col_leg)
+  females_col_leg<-gsub("Pan_troglodytes_troglodytes","#31a354", females_col_leg)
+  females_col_leg<-gsub("Pan_troglodytes_verus","#006837", females_col_leg)
+  females_col_leg<-gsub("Pan_troglodytes_verus_x_troglodytes","cyan2", females_col_leg)
+  females_col_leg<-gsub("Pongo_abelii","#c994c7", females_col_leg)
+  females_col_leg<-gsub("Pongo_pygmaeus","#dd1c77", females_col_leg)
+  females_col_leg<-gsub("Homo_sapiens","black", females_col_leg)
+  
+  males_col_leg<-males$fullSpecies
+  males_col_leg<-gsub("Gorilla_beringei_graueri","#d7191c", males_col_leg)
+  males_col_leg<-gsub("Gorilla_gorilla_diehli","orange", males_col_leg)
+  males_col_leg<-gsub("Gorilla_gorilla_gorilla","gold", males_col_leg)
+  males_col_leg<-gsub("Pan_paniscus","#2c7bb6", males_col_leg)
+  males_col_leg<-gsub("Pan_troglodytes_ellioti","#41b6c4", males_col_leg)
+  males_col_leg<-gsub("Pan_troglodytes_schweinfurthii","#c2e699", males_col_leg)
+  males_col_leg<-gsub("Pan_troglodytes_troglodytes","#31a354", males_col_leg)
+  males_col_leg<-gsub("Pan_troglodytes_verus_x_troglodytes","cyan2", males_col_leg)
+  males_col_leg<-gsub("Pan_troglodytes_verus","#006837", males_col_leg)
+  males_col_leg<-gsub("Pongo_abelii","#c994c7", males_col_leg)
+  males_col_leg<-gsub("Pongo_pygmaeus","#dd1c77", males_col_leg)
+  males_col_leg<-gsub("Homo_sapiens","black", males_col_leg)
+  
+  males_pch<-males$species
+  males_pch<-gsub("Gorilla","17", males_pch)
+  males_pch<-gsub("Bonobo","15", males_pch)
+  males_pch<-gsub("Chimpanzee","16", males_pch)
+  males_pch<-gsub("Orangutan","18", males_pch)
+  males_pch<-gsub("Homo","14", males_pch)
+  males_pch<-as.numeric(males_pch)
+  
+  plot(rep(-0.4,dim(females)[1])+jitter(rep(1,dim(females)[1]),amount=0.05),females$counts,col=females_col_leg,main=unit,pch=females_pch,ylab="repeat counts normalized to 1 million reads",cex.main=0.8,xlim=c(0,2),xaxt='n',xlab="",cex=1.8,ylim=c(0,max(toPlotAggregated$counts)))
+  points(rep(0.5,dim(males)[1])+jitter(rep(1,dim(males)[1]),amount=0.05),males$counts,col=males_col_leg,main=unit,pch=males_pch,ylab="repeat counts normalized to 1 million reads",cex.main=0.8,xlim=c(0,2),xaxt='n',xlab="",cex=1.8, ylim=c(0,max(toPlotAggregated$counts)))
+  mtext("FEMALES",at=0.5,side=1)
+  mtext("MALES",at=1.5,side=1)
   #ylim=c(min(toPlotAggregated$counts,0),max(toPlotAggregated$counts,1000))
 
-  #legend(x="topleft", legend = levels(factor(toPlotAggregated$fullSpecies)), col = col.list, pch=as.numeric(c("17","17","17","15","16","16","16","16","16","18","18")), cex=0.6,bty = "n", y.intersp=2,xpd=TRUE)
+  legend(x="topleft", legend = levels(factor(toPlotAggregated$fullSpecies)), col = col.list, pch=as.numeric(c("17","17","17","15","16","16","16","16","16","18","18")), cex=0.6,bty = "n", y.intersp=2,xpd=TRUE)
   
-  my.vioplot(getFemales(toPlotAggregated,"Chimpanzee"),getMales(toPlotAggregated,"Chimpanzee"),getFemales(toPlotAggregated,"Bonobo"),getMales(toPlotAggregated,"Bonobo"),getFemales(toPlotAggregated,"Gorilla"),getMales(toPlotAggregated,"Gorilla"),getFemales(toPlotAggregated,"Orangutan"),getMales(toPlotAggregated,"Orangutan"),col=c("tomato","skyblue","tomato","skyblue","tomato","skyblue","tomato","skyblue"),names=c("Chimpanzee","Chimpanzee","Bonobo","Bonobo","Gorilla","Gorilla","Orangutan","Orangutan"))
+  my.vioplot(getFemales(toPlotAggregated,"Chimpanzee"),getMales(toPlotAggregated,"Chimpanzee"),getFemales(toPlotAggregated,"Bonobo"),getMales(toPlotAggregated,"Bonobo"),getFemales(toPlotAggregated,"Gorilla"),getMales(toPlotAggregated,"Gorilla"),getFemales(toPlotAggregated,"Orangutan"),getMales(toPlotAggregated,"Orangutan"),col=c("tomato","skyblue","tomato","skyblue","tomato","skyblue","tomato","skyblue"),names=c("Chimpanzee","Chimpanzee","Bonobo","Bonobo","Gorilla","Gorilla","Orangutan","Orangutan"),ylim=c(0,max(toPlotAggregated$counts)))
   
   tChimpanzee<-wilcox.test(alternative="less",getFemales(toPlotAggregated,"Chimpanzee"),getMales(toPlotAggregated,"Chimpanzee"))
   tBonobo<-wilcox.test(alternative="less",getFemales(toPlotAggregated,"Bonobo"),getMales(toPlotAggregated,"Bonobo"))
@@ -330,7 +407,7 @@ plotFigure <- function(toPlot) {
     sort(abs(combn(getFemales(toPlotAggregated,"Orangutan"),2,FUN=diff))),
     sort(abs(combn(getMales(toPlotAggregated,"Orangutan"),2,FUN=diff))),
     sort(abs(combn(c(getFemales(toPlotAggregated,"Orangutan"),getMales(toPlotAggregated,"Orangutan")),2,FUN=diff))),
-    col=c("tomato","skyblue","mediumseagreen","tomato","skyblue","mediumseagreen","tomato","skyblue","mediumseagreen","tomato","skyblue","mediumseagreen"),names=c("C","C","P","B","B","P","G","G","P","O","O","P"))
+    col=c("tomato","skyblue","mediumseagreen","tomato","skyblue","mediumseagreen","tomato","skyblue","mediumseagreen","tomato","skyblue","mediumseagreen"),names=c("C","C","P","B","B","P","G","G","P","O","O","P"),ylim=c(0,max(toPlotAggregated$counts)))
   mtext("pariwise differences")
   
 }
@@ -350,12 +427,14 @@ for (unit in unitList) {
     sp<-paste(lapply(strsplit(Fsp,"_"), function(x) x[1]),lapply(strsplit(Fsp,"_"), function(x) x[2]))
     
     #rename to follow convention
-    sp<-gsub("Pan paniscus","Bonobo", sp)
-    sp<-gsub("Pan troglodytes","Chimpanzee", sp)
-    sp<-gsub("Gorilla beringei","Gorilla", sp)
-    sp<-gsub("Gorilla gorilla","Gorilla", sp)
-    sp<-gsub("Pongo pygmaeus","Orangutan", sp)
-    sp<-gsub("Pongo abelii","Orangutan", sp)
+    #sp<-gsub("Pan paniscus","Bonobo", sp)
+    #sp<-gsub("Pan troglodytes","Chimpanzee", sp)
+    #sp<-gsub("Gorilla beringei","Gorilla", sp)
+    #sp<-gsub("Gorilla gorilla","Gorilla", sp)
+    #sp<-gsub("Pongo pygmaeus","Orangutan", sp)
+    #sp<-gsub("Pongo abelii","Orangutan", sp)
+    
+    sp=gsubfn(".", list("Pan paniscus"="Bonobo", "Pan troglodytes"="Chimpanzee", "Gorilla beringei"="Gorilla", "Gorilla gorilla"="Gorilla", "Pongo pygmaeus"="Orangutan", "Pongo abelii"="Orangutan","Homo sapiens"="Homo"), sp)
     
     toPlot$name<-names
     toPlot$FullSpecies<-Fsp
@@ -529,6 +608,7 @@ my.vioplot=function (x, ..., range = 1.5, h = NULL, ylim = NULL, names = NULL,
 
 <<length distribution comparison>>=
 par(mfrow=c(2,1))
+setwd("/Users/alice/Desktop/projects/heterochromatin")
 S100<-read.table("SRR740827_Pan_paniscus_Kombote_F_1.fastq.100bp.counts", header=FALSE, sep = " ")
 S150<-read.table("SRR740827_Pan_paniscus_Kombote_F_1.fastq.counts", header=FALSE, sep = " ")
 
@@ -551,8 +631,8 @@ lines(l,col="blue",lw="2")
 @
 
 <<trf_vs_phobos>>=
-trf<-read.table("/Users/alice/Desktop/projects/heterochromatin/great_ape_diversity/trf_vs_phobos/orangutan_sample.fasta.trf_unitL_totalL_25", header=FALSE, sep = "\t")
-phobos<-read.table("/Users/alice/Desktop/projects/heterochromatin/great_ape_diversity/trf_vs_phobos/orangutan_sample.fasta.out_unitL_totalL_25", header=FALSE, sep = "\t")
+trf<-read.table("/Users/alice/Desktop/projects/heterochromatin/great_ape_diversity/trf_vs_phobos/gorilla_sample.fasta.trf_unitL_totalL_25", header=FALSE, sep = "\t")
+phobos<-read.table("/Users/alice/Desktop/projects/heterochromatin/great_ape_diversity/trf_vs_phobos/gorilla_sample.fasta.out_unitL_totalL_25", header=FALSE, sep = "\t")
 
 par(mfrow=c(3,2),cex=1.2,mar=c(4,4,2,2))
 
@@ -562,6 +642,10 @@ h32trf<-as.numeric(trf[trf$V1==32,]$V2)
 h32phobos<-as.numeric(phobos[phobos$V1==32,]$V2)
 
 
+#plot(phobos$V1,phobos$V2,xlab="unit length",ylab="array length",col=rgb(1,0,0,0.5),pch=4,xlim=c(0,50),xaxt='n')
+#axis(side=1,at=c(seq(from=0,to=50,by=5)))
+#plot(trf$V1,trf$V2,xlab="unit length",ylab="array length",col=rgb(0,0,1,0.5),pch=4,xlim=c(0,50),xaxt='n')
+#axis(side=1,at=c(seq(from=0,to=50,by=5)))
 plot(trf$V1,trf$V2,xlab="unit length",ylab="array length",col=rgb(0,0,1,0.5),pch=4,xlim=c(0,50),xaxt='n')
 axis(side=1,at=c(seq(from=0,to=50,by=5)))
 points(phobos$V1,phobos$V2,xlab="unit length",ylab="array length",col=rgb(1,0,0,0.5),pch=3)
@@ -584,6 +668,77 @@ box()
 plot(table(trf$V1),col=rgb(0,0,1,0.5),xlim=c(0,50),ylim=c(0,max(table(trf$V1),table(phobos$V1))),xaxt='n',ylab="counts",xlab="unit length")
 axis(side=1,at=c(seq(from=0,to=50,by=5)))
 legend(x="top", legend = c("TRF"), col = c(rgb(0,0,1,0.5)), pch=c(20),bty = "n")
+@
+
+<<sequence composition>>=
+library("seqinr")
+
+slidingwindowplot <- function(windowsize, inputseq)
+{
+   starts <- seq(1, length(inputseq)-windowsize, by = windowsize)
+   n <- length(starts)    # Find the length of the vector "starts"
+   chunkGCs <- numeric(n) # Make a vector of the same length as vector "starts", but just containing zeroes
+   for (i in 1:n) {
+        chunk <- inputseq[starts[i]:(starts[i]+windowsize-1)]
+        chunkGC <- GC(chunk)
+        print(chunkGC)
+        chunkGCs[i] <- chunkGC
+   }
+   plot(starts,chunkGCs,type="b",xlab="Nucleotide start position",ylab="GC content")
+}
+
+DYZ19<- seqinr::read.fasta(file = "/Users/alice/Desktop/projects/heterochromatin/human_heterochromatin/DYZ19.fasta")
+DYZ19seq<-DYZ19[[1]]
+table(DYZ19seq)
+plot(count(DYZ19seq, 2))
+slidingwindowplot(10, DYZ19seq)
+@
+
+<<analyze most abundant repeats>>=
+#par(mfrow=c(2,1))
+require("dendextend")
+#val<-as.numeric(top[1,2:ncol(top)])
+
+#plot(val)
+
+#dist=as.dist(1-cor(top[,2:ncol(top)]))
+#plot(hclust(dist),labels=FALSE)
+
+####################
+## MAYBE PLOT MALES AND FEMALES SEPARATELY
+top<-abundant[1:2137171,]
+
+sample = top[,2:ncol(top)]
+
+#sample<-sample[,grepl("\\|F",colnames(sample))==TRUE] #PICK ONLY FEMALES
+sample<-t(sample)
+
+l<-rownames(sample)
+l[grepl("Pan_paniscus",l)==TRUE]<-"Bonobo"
+l[grepl("Pan",l)==TRUE]<-"Chimpanzee"
+l[grepl("Gorilla",l)==TRUE]<-"Gorilla"
+l[grepl("Pongo",l)==TRUE]<-"Orangutan"
+
+
+#groupCodes <- c(rep("Cont",25), rep("Tre1",25), rep("Tre2",25), rep("Tre3",25))
+#rownames(sample) <- make.unique(groupCodes)
+
+#rownames(sample) <- l
+groupCodes <-l
+rownames(sample)<-l
+colorCodes <- c(Bonobo="blue", Chimpanzee="darkgreen", Gorilla="red", Orangutan="orange")
+
+distSamples <- dist(sample)
+hc <- hclust(distSamples,method="ward.D2")
+dend <- as.dendrogram(hc,center=TRUE)
+
+# loading the package
+library(dendextend)
+# Assigning the labels of dendrogram object with new colors:
+labels_colors(dend) <- colorCodes[groupCodes][order.dendrogram(dend)]
+# Plotting the new dendrogram
+plot(dend)
+
 @
 
 
