@@ -200,13 +200,7 @@ getCandidatesForSpecies <- function(row,species,threshold) {
     sp<-paste(lapply(strsplit(Fsp,"_"), function(x) x[1]),lapply(strsplit(Fsp,"_"), function(x) x[2]))
     
     #rename to follow convention
-    sp<-gsub("Pan paniscus","Bonobo", sp)
-    sp<-gsub("Pan troglodytes","Chimpanzee", sp)
-    sp<-gsub("Gorilla beringei","Gorilla", sp)
-    sp<-gsub("Gorilla gorilla","Gorilla", sp)
-    sp<-gsub("Pongo pygmaeus","Orangutan", sp)
-    sp<-gsub("Pongo abelii","Orangutan", sp)
-    sp<-gsub("Homo sapiens","Human", sp)
+    sp=gsubfn(".", list("Pan paniscus"="Bonobo", "Pan troglodytes"="Chimpanzee", "Gorilla beringei"="Gorilla", "Gorilla gorilla"="Gorilla", "Pongo pygmaeus"="Orangutan", "Pongo abelii"="Orangutan","Homo sapiens"="Homo"), sp)
     
     transposed$name<-names
     transposed$FullSpecies<-Fsp
@@ -322,48 +316,18 @@ plotFigure <- function(toPlot) {
   males<-toPlotAggregated[toPlotAggregated$sex=="M",]
   
   females_pch<-females$species
-  females_pch<-gsub("Gorilla","17", females_pch)
-  females_pch<-gsub("Bonobo","15", females_pch)
-  females_pch<-gsub("Chimpanzee","16", females_pch)
-  females_pch<-gsub("Orangutan","18", females_pch)
-  females_pch<-gsub("Homo","14", females_pch)
+  females_pch=gsubfn(".*", list("Gorilla"="17", "Bonobo"="15", "Chimpanzee"="16", "Orangutan"="18", "Homo"="14"), females_pch)
   females_pch<-as.numeric(females_pch)
   
+  males_pch<-males$species
+  males_pch=gsubfn(".*", list("Gorilla"="17", "Bonobo"="15", "Chimpanzee"="16", "Orangutan"="18", "Homo"="14"), males_pch)
+  males_pch<-as.numeric(males_pch)
+  
   females_col_leg<-females$fullSpecies
-  females_col_leg<-gsub("Gorilla_beringei_graueri","#d7191c", females_col_leg)
-  females_col_leg<-gsub("Gorilla_gorilla_diehli","orange", females_col_leg)
-  females_col_leg<-gsub("Gorilla_gorilla_gorilla","gold", females_col_leg)
-  females_col_leg<-gsub("Pan_paniscus","#2c7bb6", females_col_leg)
-  females_col_leg<-gsub("Pan_troglodytes_ellioti","#41b6c4", females_col_leg)
-  females_col_leg<-gsub("Pan_troglodytes_schweinfurthii","#c2e699", females_col_leg)
-  females_col_leg<-gsub("Pan_troglodytes_troglodytes","#31a354", females_col_leg)
-  females_col_leg<-gsub("Pan_troglodytes_verus","#006837", females_col_leg)
-  females_col_leg<-gsub("Pan_troglodytes_verus_x_troglodytes","cyan2", females_col_leg)
-  females_col_leg<-gsub("Pongo_abelii","#c994c7", females_col_leg)
-  females_col_leg<-gsub("Pongo_pygmaeus","#dd1c77", females_col_leg)
-  females_col_leg<-gsub("Homo_sapiens","black", females_col_leg)
+  females_col_leg=gsubfn(".*", list("Gorilla_beringei_graueri"="#d7191c", "Gorilla_gorilla_diehli"="orange", "Gorilla_gorilla_gorilla"="gold", "Pan_paniscus"="#2c7bb6", "Pan_troglodytes_ellioti"="#41b6c4", "Pan_troglodytes_schweinfurthii"="#c2e699", "Pan_troglodytes_troglodytes"="#31a354", "Pan_troglodytes_verus"="#006837", "Pan_troglodytes_verus_x_troglodytes"="cyan2", "Pongo_abelii"="#c994c7", "Pongo_pygmaeus"="#dd1c77", "Homo_sapiens"="#blank"), females_col_leg)
   
   males_col_leg<-males$fullSpecies
-  males_col_leg<-gsub("Gorilla_beringei_graueri","#d7191c", males_col_leg)
-  males_col_leg<-gsub("Gorilla_gorilla_diehli","orange", males_col_leg)
-  males_col_leg<-gsub("Gorilla_gorilla_gorilla","gold", males_col_leg)
-  males_col_leg<-gsub("Pan_paniscus","#2c7bb6", males_col_leg)
-  males_col_leg<-gsub("Pan_troglodytes_ellioti","#41b6c4", males_col_leg)
-  males_col_leg<-gsub("Pan_troglodytes_schweinfurthii","#c2e699", males_col_leg)
-  males_col_leg<-gsub("Pan_troglodytes_troglodytes","#31a354", males_col_leg)
-  males_col_leg<-gsub("Pan_troglodytes_verus_x_troglodytes","cyan2", males_col_leg)
-  males_col_leg<-gsub("Pan_troglodytes_verus","#006837", males_col_leg)
-  males_col_leg<-gsub("Pongo_abelii","#c994c7", males_col_leg)
-  males_col_leg<-gsub("Pongo_pygmaeus","#dd1c77", males_col_leg)
-  males_col_leg<-gsub("Homo_sapiens","black", males_col_leg)
-  
-  males_pch<-males$species
-  males_pch<-gsub("Gorilla","17", males_pch)
-  males_pch<-gsub("Bonobo","15", males_pch)
-  males_pch<-gsub("Chimpanzee","16", males_pch)
-  males_pch<-gsub("Orangutan","18", males_pch)
-  males_pch<-gsub("Homo","14", males_pch)
-  males_pch<-as.numeric(males_pch)
+  males_col_leg=gsubfn(".*", list("Gorilla_beringei_graueri"="#d7191c", "Gorilla_gorilla_diehli"="orange", "Gorilla_gorilla_gorilla"="gold", "Pan_paniscus"="#2c7bb6", "Pan_troglodytes_ellioti"="#41b6c4", "Pan_troglodytes_schweinfurthii"="#c2e699", "Pan_troglodytes_troglodytes"="#31a354", "Pan_troglodytes_verus"="#006837", "Pan_troglodytes_verus_x_troglodytes"="cyan2", "Pongo_abelii"="#c994c7", "Pongo_pygmaeus"="#dd1c77", "Homo_sapiens"="#blank"), males_col_leg)
   
   plot(rep(-0.4,dim(females)[1])+jitter(rep(1,dim(females)[1]),amount=0.05),females$counts,col=females_col_leg,main=unit,pch=females_pch,ylab="repeat counts normalized to 1 million reads",cex.main=0.8,xlim=c(0,2),xaxt='n',xlab="",cex=1.8,ylim=c(0,max(toPlotAggregated$counts)))
   points(rep(0.5,dim(males)[1])+jitter(rep(1,dim(males)[1]),amount=0.05),males$counts,col=males_col_leg,main=unit,pch=males_pch,ylab="repeat counts normalized to 1 million reads",cex.main=0.8,xlim=c(0,2),xaxt='n',xlab="",cex=1.8, ylim=c(0,max(toPlotAggregated$counts)))
@@ -434,7 +398,7 @@ for (unit in unitList) {
     #sp<-gsub("Pongo pygmaeus","Orangutan", sp)
     #sp<-gsub("Pongo abelii","Orangutan", sp)
     
-    sp=gsubfn(".", list("Pan paniscus"="Bonobo", "Pan troglodytes"="Chimpanzee", "Gorilla beringei"="Gorilla", "Gorilla gorilla"="Gorilla", "Pongo pygmaeus"="Orangutan", "Pongo abelii"="Orangutan","Homo sapiens"="Homo"), sp)
+    sp=gsubfn(".*", list("Pan paniscus"="Bonobo", "Pan troglodytes"="Chimpanzee", "Gorilla beringei"="Gorilla", "Gorilla gorilla"="Gorilla", "Pongo pygmaeus"="Orangutan", "Pongo abelii"="Orangutan","Homo sapiens"="Homo"), sp)
     
     toPlot$name<-names
     toPlot$FullSpecies<-Fsp
