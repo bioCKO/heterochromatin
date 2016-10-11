@@ -1,0 +1,52 @@
+\documentclass{article}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+<<>>=
+library("seqinr")
+par(mfrow = c(5, 1))
+
+bases <- c('A','C','G','T')
+
+options(scipen=10)
+length_variable<-35000 
+repeat_distribution<-rexp(n=10000, rate=1/5000)
+background_distribution<-runif(n=10000)*length_variable
+
+x <- seq(1, 3500, len=10000)
+plot(x, dexp(x, rate=1/5000), type = 'l',main="exponential",col="gold")
+plot(sort(runif(n=3500),decreasing=TRUE), type = 'l',main="uniform",col="darkcyan")
+
+#pick random number from both distributions
+
+Rvector<-NULL
+Bvector<-NULL
+n<-1000 #number of reads
+constant<-1000
+
+file.out<-"/Users/alice/Desktop/projects/kinetics/simulations/reference.fasta"
+file.remove(file.out) #remove before writing
+
+for (i in 1:n) {
+  r_length<-sample(repeat_distribution,1)+constant
+  b_length<-sample(background_distribution,1)+constant
+  Rvector <- c(Rvector, r_length)
+  Bvector <- c(Bvector, b_length)
+  
+  rfasta<-strrep("GGAAT",r_length/5)
+  write.fasta(rfasta, paste("r_",round(r_length),sep=""), file.out, open = "a", nbchar = 60, as.string = FALSE)
+  
+  bfasta<-paste(sample(bases, b_length,replace=TRUE), collapse = '')
+  write.fasta(bfasta, paste("b_",round(b_length),sep=""), file.out, open = "a", nbchar = 60, as.string = FALSE)
+}
+
+#Rvector
+hist(Rvector,xlab="simulated read length",ylab="counts",breaks=100,main="Generating length of repeat reads",col="gold",xlim=c(0,max(max(Bvector),max(Rvector))))
+hist(Bvector,xlab="simulated read length",ylab="counts",breaks=100,main="Generating length of background reads",col="cyan",xlim=c(0,max(max(Bvector),max(Rvector))))
+hist(c(Bvector,Rvector),xlab="simulated read length",ylab="counts",breaks=100,main="Generating length of all reads",col="green",xlim=c(0,max(max(Bvector),max(Rvector))))
+@
+
+
+
+\end{document}
