@@ -15,18 +15,19 @@ repeat_distribution<-rexp(n=10000, rate=1/5000)
 background_distribution<-runif(n=10000)*length_variable
 
 x <- seq(1, 3500, len=10000)
-plot(x, dexp(x, rate=1/5000), type = 'l',main="exponential",col="gold")
-plot(sort(runif(n=3500),decreasing=TRUE), type = 'l',main="uniform",col="darkcyan")
+#plot(x, dexp(x, rate=1/5000), type = 'l',main="exponential",col="gold")
+#plot(sort(runif(n=3500),decreasing=TRUE), type = 'l',main="uniform",col="darkcyan")
 
 #pick random number from both distributions
 
 Rvector<-NULL
 Bvector<-NULL
+final<-NULL
 n<-1000 #number of reads
 constant<-1000
 
-file.out<-"/Users/alice/Desktop/projects/kinetics/simulations/reference.fasta"
-file.remove(file.out) #remove before writing
+file.out<-"/Users/alice/Desktop/projects/heterochromatin/simulations/reference.fasta"
+#file.remove(file.out) #remove before writing
 
 for (i in 1:n) {
   r_length<-sample(repeat_distribution,1)+constant
@@ -42,9 +43,70 @@ for (i in 1:n) {
 }
 
 #Rvector
-hist(Rvector,xlab="simulated read length",ylab="counts",breaks=100,main="Generating length of repeat reads",col="gold",xlim=c(0,max(max(Bvector),max(Rvector))))
-hist(Bvector,xlab="simulated read length",ylab="counts",breaks=100,main="Generating length of background reads",col="cyan",xlim=c(0,max(max(Bvector),max(Rvector))))
 hist(c(Bvector,Rvector),xlab="simulated read length",ylab="counts",breaks=100,main="Generating length of all reads",col="green",xlim=c(0,max(max(Bvector),max(Rvector))))
+hist(Bvector,xlab="simulated read length",ylab="counts",breaks=100,main="Generating length of background reads",col="cyan",xlim=c(0,max(max(Bvector),max(Rvector))))
+hist(Rvector,xlab="simulated read length",ylab="counts",breaks=100,main="Generating length of repeat reads",col="gold",xlim=c(0,max(max(Bvector),max(Rvector))))
+
+@
+
+RUN SIMULATION SCRIPT AND THEN CONTINUE
+
+<<>>=
+setwd("/Users/alice/Desktop/projects/heterochromatin/simulations")
+library(DescTools)
+#TODO: plot PacBio read length distribution
+par(mfrow=c(5,4),cex.main=1.3,cex.sub=1.4,cex.axis=1.2)
+library("plyr")
+setwd("/Users/alice/Desktop/projects/heterochromatin/simulations/")
+filenames <- SortMixed(list.files(pattern="Strict|Lenient", full.names=FALSE))
+
+hist(Rvector,xlab="simulated read length",ylab="counts",main="Generated length of repeats",col="gold",sub=paste("n: ",length(Rvector)))
+par(mfg=c(2,1))
+
+for (file in (filenames)) {
+  tryCatch({
+    if (file.size(file) > 0){
+      de_novo<-as.data.frame(read.table(file),header=F)
+      name<-gsub(".pacbio.reads", "", gsub(".fasta", "", file))
+      hist(de_novo$V1,xlab="simulated read length",ylab="counts",main=NULL,col=ifelse(grepl("14000",file)==TRUE,'green','orange'),sub=paste("n: ",length(de_novo$V1)))
+      title(main=name, col.main=ifelse(grepl("Lenient",file)==TRUE,'darkslategrey','brown'))
+
+    }
+  }, error = function(err) {
+    # error handler picks up where error was generated
+    print(paste("Read.table didn't work!:  ",err))
+  })
+}
+
+
+@
+
+<<>>=
+par(mfrow = c(5, 1),cex.sub=1.3,cex.lab=1.1)
+setwd("/Users/alice/Desktop/projects/heterochromatin/simulations")
+#TODO: plot PacBio read length distribution
+
+#read repeats identified by Bob's script
+de_novo<-read.table("/Users/alice/Desktop/projects/heterochromatin/simulations/concatenated.fasta.de_novo_identified_repeat_lengths")
+de_novo_pacbio_cov1<-read.table("/Users/alice/Desktop/projects/heterochromatin/simulations/cov1.pacbio.reads.fasta.de_novo_identified_repeat_lengths")
+de_novo_pacbio_cov2<-read.table("/Users/alice/Desktop/projects/heterochromatin/simulations/cov2.pacbio.reads.fasta.de_novo_identified_repeat_lengths")
+de_novo_pacbio_cov3<-read.table("/Users/alice/Desktop/projects/heterochromatin/simulations/cov3.pacbio.reads.fasta.de_novo_identified_repeat_lengths")
+
+lengths<-de_novo$V1
+lengths_pacbio_cov1<-de_novo_pacbio_cov1$V1
+lengths_pacbio_cov2<-de_novo_pacbio_cov2$V1
+lengths_pacbio_cov3<-de_novo_pacbio_cov3$V1
+
+hist(Rvector,xlab="simulated read length",ylab="counts",breaks=70,main="Generated length of repeats",col="gold",xlim=c(0,50000),ylim=c(0,100),sub=paste("n: ",length(Rvector)))
+abline(v=5750,col="blue")
+hist(lengths,xlab="simulated read length",ylab="counts",breaks=400,main="DE NOVO",col="red",xlim=c(0,50000),ylim=c(0,100),sub=paste("n: ",length(lengths)))
+abline(v=5750,col="blue")
+hist(lengths_pacbio_cov1,xlab="simulated read length COVERAGE 1x",ylab="counts",breaks=100,main="DE NOVO COVERAGE 1x PacBio",col="purple",xlim=c(0,50000),ylim=c(0,200),sub=paste("n: ",length(lengths_pacbio_cov1)))
+abline(v=5750,col="blue")
+hist(lengths_pacbio_cov2,xlab="simulated read length COVERAGE 2x",ylab="counts",breaks=50,main="DE NOVO COVERAGE 2x PacBio",col="purple",xlim=c(0,50000),ylim=c(0,400),sub=paste("n: ",length(lengths_pacbio_cov2)))
+abline(v=5750,col="blue")
+hist(lengths_pacbio_cov3,xlab="simulated read length COVERAGE 3x",ylab="counts",breaks=50,main="DE NOVO COVERAGE 3x PacBio",col="purple",xlim=c(0,50000),ylim=c(0,600),sub=paste("n: ",length(lengths_pacbio_cov3)))
+abline(v=5750,col="blue")
 @
 
 
