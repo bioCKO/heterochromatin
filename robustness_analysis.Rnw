@@ -10,11 +10,11 @@ par(mfrow = c(5, 1))
 bases <- c('A','C','G','T')
 
 options(scipen=10)
-length_variable<-35000 
-repeat_distribution<-rexp(n=10000, rate=1/5000)
+length_variable<-140000 
+repeat_distribution<-rexp(n=10000, rate=1/20000) #rate=1/5000 for length_variable<-35000
 background_distribution<-runif(n=10000)*length_variable
 
-x <- seq(1, 3500, len=10000)
+#x <- seq(1, 3500, len=10000)
 #plot(x, dexp(x, rate=1/5000), type = 'l',main="exponential",col="gold")
 #plot(sort(runif(n=3500),decreasing=TRUE), type = 'l',main="uniform",col="darkcyan")
 
@@ -60,7 +60,8 @@ library("plyr")
 setwd("/Users/alice/Desktop/projects/heterochromatin/simulations/")
 filenames <- SortMixed(list.files(pattern="Strict|Lenient", full.names=FALSE))
 
-hist(Rvector,xlab="simulated read length",ylab="counts",main="Generated length of repeats",col="gold",sub=paste("n: ",length(Rvector)))
+hist(Rvector,xlab="simulated read length",ylab="counts",main="Generated length of repeats",col="gold",sub=paste("n: ",length(Rvector)),breaks=seq(0,200000,1000),xlim=c(0,50000))
+abline(v=1000,col="red")
 par(mfg=c(2,1))
 
 for (file in (filenames)) {
@@ -68,13 +69,14 @@ for (file in (filenames)) {
     if (file.size(file) > 0){
       de_novo<-as.data.frame(read.table(file),header=F)
       name<-gsub(".pacbio.reads", "", gsub(".fasta", "", file))
-      hist(de_novo$V1,xlab="simulated read length",ylab="counts",main=NULL,col=ifelse(grepl("14000",file)==TRUE,'green','orange'),sub=paste("n: ",length(de_novo$V1)))
+      hist(de_novo$V1,xlab="simulated read length",ylab="counts",main=NULL,col=ifelse(grepl("14000",file)==TRUE,'green','orange'),sub=paste("n: ",length(de_novo$V1)),breaks=seq(0,200000,1000),xlim=c(0,50000))
       title(main=name, col.main=ifelse(grepl("Lenient",file)==TRUE,'darkslategrey','brown'))
+      abline(v=1000,col="red")
 
     }
   }, error = function(err) {
     # error handler picks up where error was generated
-    print(paste("Read.table didn't work!:  ",err))
+    print(paste(file,"Read.table didn't work!:  ",err))
   })
 }
 
