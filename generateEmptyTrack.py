@@ -6,7 +6,7 @@ import itertools
 from itertools import izip
 
 ######################################
-#python extract_IPDs_to_windows.py path_to_tract path_to_pickle_file
+#python generateEmptyTrack.py motifFile
 motifFile=str(sys.argv[1])
 ######################################
 
@@ -20,22 +20,14 @@ outputEmpty=motifFile + "EmptyTmp"
 bashCommand = "shuf -n " + str(num_lines) + " " + "Empty"
 print bashCommand
 
-#write them to the file with suffix 'EmptyTmp'
 p = sp.Popen(bashCommand.split(), stdin = sp.PIPE, stdout = sp.PIPE, stderr = sp.PIPE)
+mf = open(motifFile,'r').readlines()
+ef = p.stdout.read() #keep reshuffled empty lines
+eff=ef.split('\n')
+
+f = open(outputEmpty, 'w') #write results here
 
 #read at the same time motifFile and EmptyTmp file and generate an output which will represent appropriate modeling of the empty windows with lengths mirroring lengths in feature files
-#print motifFile
-#print outputEmpty
-
-mf = open(motifFile,'r').readlines()
-ef = p.stdout.read()
-#print ef
-
-eff=ef.split('\n')
-#print eff
-
-f = open(outputEmpty, 'w')
-
 print "looping"
 for i in range(0,num_lines):
 	#print i
