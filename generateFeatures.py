@@ -23,25 +23,27 @@ with open(motifFile, "r") as ifile:
 
 		m_array=m.split('\t')
 
-		print (m_array[0:3])
+		print (m_array[0:4])
 
 		window_start=int(m_array[1])
 		window_end=int(m_array[2])
 		length=int(m_array[3])
-		length=len(m_array)
-		tail=m_array[3:length]
+		tail=m_array[4:len(m_array)]
+		#print ("tail: " + str(tail))
 
-		print ("motif length: " + str(length))
+		#print ("motif length: " + str(length))
 
 		if (length % 2 == 0): #even 
 			print "even"
-			feature_start = window_start + 50 - math.trunc(length / 2) 
-			feature_stop = window_start + 50 + math.trunc(length / 2) -1
+			feature_start = window_start + (50 - math.trunc(length / 2))
+			feature_stop = window_start + (50 + math.trunc(length / 2)-1)
+			IPDsubset = tail[(50 - math.trunc(length / 2)):(50 + math.trunc(length / 2))]
 		else: #odd
 			print "odd"
-			feature_start = window_start + 50 - trunc(length / 2)
-			feature_stop = window_start + 50 + trunc(length / 2)
-		res=(m_array[0] + "\t" + str(feature_start) + "\t" + str(feature_stop) + "\t" + '\t'.join(tail))
-		print res
+			feature_start = window_start + (50 - math.trunc(length / 2))
+			feature_stop = window_start + (50 + math.trunc(length / 2))
+			IPDsubset = tail[(50 - math.trunc(length / 2)):(50 + math.trunc(length / 2))]
+		res=(m_array[0] + "\t" + str(feature_start) + "\t" + str(feature_stop) + "\t" + str(length)+ "\t" + '\t'.join(IPDsubset))
+		#print res
 		f.write(res+"\n")
-		print "***"
+		#print "***"
