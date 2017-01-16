@@ -12,8 +12,8 @@ library("hash")
 library("data.table")
 setwd("/Users/alice/Desktop/projects/kinetics/errors_will")
 filenames <- list.files(pattern = "*mf.txt", full.names = FALSE)
-#filenames <- filenames[grepl("FeatureOnly", filenames)]
-filenames <- filenames[grepl("windows", filenames)]
+filenames <- filenames[grepl("FeatureOnly", filenames)]
+#filenames <- filenames[grepl("windows", filenames)]
 
 set.seed(3)
 
@@ -36,12 +36,12 @@ getPvalue <- function(grp.1, grp.2, comparedTo) {
   
   test.diff <- diff(by(data, groups, mean))
   
-  # one-tailed test
-  pvalue <- (sum(examples > test.diff) + 1) / (max.iter + 1)
+  # two-tailed test
+  pvalue <- (sum(abs(examples) > abs(test.diff)) + 1) / (max.iter + 1) #from http://danielnee.com/tag/p-value/
   
   hist(
     examples,
-    col = ifelse(pvalue <= 0.1, 'red', 'blue'),
+    col = ifelse(pvalue <= 0.05, 'red', 'blue'),
     breaks = 50,
     main = paste("RPerm", main = gsub(".txt", "", gsub(
       "ERRORS", "", gsub("10000.", "", gsub(".mf", "", comparedTo))
@@ -78,7 +78,7 @@ for (file in (filenames)) {
         as.data.frame(setDT(tstrsplit(as.character(data), " ", fixed = TRUE))[]) #split by spaces
       data <- data[complete.cases(data), ]
       values <- as.numeric(as.character(as.vector(data$V8)))
-      row <- cbind(file, as.numeric(as.character(median(values, na.rm = TRUE))))
+      row <- cbind(file, as.numeric(as.character(mean(values, na.rm = TRUE))))
       
       summary <- rbind(summary, row)
     }
