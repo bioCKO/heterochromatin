@@ -77,8 +77,7 @@ for (file in (filenames)) {
       data <-
         as.data.frame(setDT(tstrsplit(as.character(data), " ", fixed = TRUE))[]) #split by spaces
       data <- data[complete.cases(data), ]
-      values <- as.numeric(as.character(as.vector(data$V8)))
-      row <- cbind(file, as.numeric(as.character(median(values, na.rm = TRUE))))
+      row <- cbind(file, as.numeric(as.character(median(as.numeric(as.character(as.vector(data$V8))), na.rm = TRUE))),as.numeric(as.character(median(as.numeric(as.character(as.vector(data$V9))), na.rm = TRUE))),as.numeric(as.character(median(as.numeric(as.character(as.vector(data$V10))), na.rm = TRUE))),as.numeric(as.character(median(as.numeric(as.character(as.vector(data$V11))), na.rm = TRUE))))
       
       summary <- rbind(summary, row)
     }
@@ -90,9 +89,9 @@ for (file in (filenames)) {
 print(summary)
 summary <- summary[complete.cases(summary), ]
 summary <- as.data.frame(summary)
-colnames(summary) <- c("file", "errorRate")
+colnames(summary) <- c("file", "h8", "h9", "h10", "h11") #"total", "insertions", "deletions", "mismatches"
 summary <-
-  plyr::arrange(summary, as.numeric(as.character(summary$errorRate)), decreasing =
+  plyr::arrange(summary, as.numeric(as.character(summary$h8)), decreasing =
                   FALSE)
 print(summary)
 ordered <- summary$file
@@ -204,13 +203,37 @@ for (file in (ordered)) {
 @
 
 <<>>=
-par(
-  mfrow = c(1, 1)
-  )
+par(mfrow = c(1, 1))
 
 errorTypes = c("h8", "h9", "h10", "h11")
 
 for (et in errorTypes) {
+  switch(
+    et,
+    #errorNames = c("TOTAL", "INSERTIONS", "DELETIONS", "MISMATCHES")
+    h8 = {
+      summary <-
+        plyr::arrange(summary, as.numeric(as.character(summary$h8)), decreasing = FALSE)
+      errorName = "TOTAL"
+    },
+    h9 = {
+      summary <-
+        plyr::arrange(summary, as.numeric(as.character(summary$h9)), decreasing = FALSE)
+      errorName = "INSERTIONS"
+    },
+    h10 = {
+      summary <-
+        plyr::arrange(summary, as.numeric(as.character(summary$h10)), decreasing = FALSE)
+      errorName = "DELETIONS"
+    },
+    h11 = {
+      summary <-
+        plyr::arrange(summary, as.numeric(as.character(summary$h11)), decreasing = FALSE)
+      errorName = "MISMATCHES"
+    }
+  )
+  #print(summary)
+  ordered <- summary$file
   names <- gsub("ERRORS", "", gsub(".mf.txt", "", ordered))
   #percErrorTotal
   box = boxplot(
@@ -221,8 +244,6 @@ for (et in errorTypes) {
     axis = FALSE,
     labels = TRUE,
     xaxt = "n",
-    main = "CHR 22 ERRORS percError TOTAL",
-    ylim = c(0, 60),
     outline = FALSE,
     border = "gray",
     ylab = "%",
@@ -244,20 +265,6 @@ for (et in errorTypes) {
   colscale[grep("Empty", annotation)] <-
     "green"  #assign green to empty windows
   
-  switch(et, #errorNames = c("TOTAL", "INSERTIONS", "DELETIONS", "MISMATCHES")
-         h8 = {
-         errorName="TOTAL"
-         },
-         h9 = {
-         errorName="INSERTIONS"
-         },
-         h10 = {
-         errorName="DELETIONS"
-         },
-         h11 = {
-         errorName="MISMATCHES"
-         })
-
   
   bxp(
     box,
@@ -275,13 +282,17 @@ for (et in errorTypes) {
   #mtext(annotation,cex=0.5,srt=90,col="black",side=1,at=1:length(names),las=3)
   text(
     1:length(names),
-    1.8*median(as.numeric(unlist(values(get(et))[names][grep("Empty", names)]))),
+    1.8 * median(as.numeric(unlist(values(
+      get(et)
+    )[names][grep("Empty", names)]))),
     labels = gsub("windows10000", "", annotation),
     srt = 90,
     col = "blue",
     cex = 0.8
   )
-  abline(h=median(as.numeric(unlist(values(get(et))[names][grep("Empty", names)])), na.rm = TRUE),col="black")
+  abline(h = median(as.numeric(unlist(values(
+    get(et)
+  )[names][grep("Empty", names)])), na.rm = TRUE), col = "black")
 }
 @
 
