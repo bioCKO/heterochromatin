@@ -204,36 +204,85 @@ for (file in (ordered)) {
 @
 
 <<>>=
-names<-gsub("ERRORS", "", gsub(".mf.txt", "", ordered))
+par(
+  mfrow = c(1, 1)
+  )
 
-#percErrorTotal
-box=boxplot(values(h8)[names],col="gold",names=TRUE,frame=FALSE,axis=FALSE,labels = TRUE,xaxt = "n",main="CHR 22 ERRORS percError TOTAL",ylim=c(0,60),outline=FALSE,border="gray",ylab="%",plot=FALSE)
+errorTypes = c("h8", "h9", "h10", "h11")
 
-#box=boxplot(values(h8)[names]~factor(names),plot=FALSE)
-#box$stats=as.matrix(Reduce(cbind,tapply(values(h8)[names],factor(names),quantile,probs=c(0.05,0.25,0.5,0.75,0.95),na.rm=TRUE,SIMPLIFY=FALSE))) # change whiskers
+for (et in errorTypes) {
+  names <- gsub("ERRORS", "", gsub(".mf.txt", "", ordered))
+  #percErrorTotal
+  box = boxplot(
+    values(get(et))[names],
+    col = "gold",
+    names = TRUE,
+    frame = FALSE,
+    axis = FALSE,
+    labels = TRUE,
+    xaxt = "n",
+    main = "CHR 22 ERRORS percError TOTAL",
+    ylim = c(0, 60),
+    outline = FALSE,
+    border = "gray",
+    ylab = "%",
+    plot = FALSE
+  )
+  
+  n <- length(box$n)
+  largest_value <- max(box$n)
+  perc = round(box$n / largest_value * 100, 0) # compute sample size percentages (the maximum sample size is 1)
+  
+  annotation <- box$n
+  annotation[annotation != 0] <- names[which(box$n != 0)]
+  
+  colfunc <- colorRampPalette(c("yellow", "red"))
+  col_perc = colfunc(100)[perc] # the maximum sample size has red
+  colscale <- box$n
+  colscale[colscale != 0] <- col_perc
+  
+  colscale[grep("Empty", annotation)] <-
+    "green"  #assign green to empty windows
+  
+  switch(et, #errorNames = c("TOTAL", "INSERTIONS", "DELETIONS", "MISMATCHES")
+         h8 = {
+         errorName="TOTAL"
+         },
+         h9 = {
+         errorName="INSERTIONS"
+         },
+         h10 = {
+         errorName="DELETIONS"
+         },
+         h11 = {
+         errorName="MISMATCHES"
+         })
 
-n <- length(box$n)
-largest_value<-max(box$n)
-perc=round(box$n/largest_value*100,0) # compute sample size percentages (the maximum sample size is 1)
-
-annotation<-box$n
-annotation[annotation!=0]<-names[which(box$n!=0)]
-
-colfunc <- colorRampPalette(c("yellow", "red"))
-plot(rep(1,100),col=colfunc(100),pch=19,cex=3)
-col_perc=colfunc(100)[perc] # the maximum sample size has red
-colscale<-box$n
-colscale[colscale!=0]<-col_perc
-
-colscale[grep("Empty",annotation)]<-"green"  #assign green to empty windows
-
-bxp(box,outline=FALSE,pars=list(whisklty=3,staplewex=0.8,boxfill=colscale),xlab="motif",xaxt='n')
-
-
-#mtext(annotation,cex=0.5,srt=90,col="black",side=1,at=1:length(names),las=3)
-text(1:length(names),23,labels=gsub("windows10000", "", annotation),srt=90,col="blue",cex=0.8)
-abline(h=median(h8[["Empty"]], na.rm = TRUE),col="black")
-
+  
+  bxp(
+    box,
+    outline = FALSE,
+    pars = list(
+      whisklty = 3,
+      staplewex = 0.8,
+      boxfill = colscale
+    ),
+    xlab = "motif",
+    xaxt = 'n',
+    main = errorName
+  )
+  
+  #mtext(annotation,cex=0.5,srt=90,col="black",side=1,at=1:length(names),las=3)
+  text(
+    1:length(names),
+    1.8*median(as.numeric(unlist(values(get(et))[names][grep("Empty", names)]))),
+    labels = gsub("windows10000", "", annotation),
+    srt = 90,
+    col = "blue",
+    cex = 0.8
+  )
+  abline(h=median(as.numeric(unlist(values(get(et))[names][grep("Empty", names)])), na.rm = TRUE),col="black")
+}
 @
 
 <<other hists>>=
