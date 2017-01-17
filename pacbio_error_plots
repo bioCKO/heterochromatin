@@ -1,4 +1,22 @@
 
+<<>>=
+library("vecsets")
+#grp1 <- sort(as.numeric(c(round(rlnorm(10, 1)),1,1,1,1,1)))
+#grp2 <- sort(as.numeric(round(rlnorm(10, 1))))
+
+#getLengthSignificance(valuesEmpty, values, file)
+
+getLengthSignificance <- function(grp2, grp1, comparedTo) { # empty motif
+  common<-vintersect(grp1, grp2, multiple = TRUE)
+  values_not_in_empty_windows<-vsetdiff(grp1, common, multiple = TRUE)
+  leftovers_in_empty_windows<-vsetdiff(grp2, common, multiple = TRUE)
+  pvalue<-ks.test(grp1,grp2)$p.value #perform Kolmogorov-Smirnov Tests
+  #plot(table(values_not_in_empty_windows)[-1],col="darkgreen",main=round(pvalue,2),ylab="gap lengths")
+  return(pvalue)
+}
+@
+
+
 <<plot error profiles for different motifs>>=
 par(
   mfrow = c(4, 4),
@@ -37,7 +55,8 @@ getPvalue <- function(grp.1, grp.2, comparedTo) {
   test.diff <- diff(by(data, groups, mean))
   
   # two-tailed test
-  pvalue <- (sum(abs(examples) > abs(test.diff)) + 1) / (max.iter + 1) #from http://danielnee.com/tag/p-value/
+  pvalue <-
+    (sum(abs(examples) > abs(test.diff)) + 1) / (max.iter + 1) #from http://danielnee.com/tag/p-value/
   
   hist(
     examples,
@@ -66,18 +85,33 @@ for (file in (filenames)) {
   tryCatch({
     if (file.size(file) > 0) {
       #load motif windows
-      data <-
+      dataOriginal <-
         read.table(
           file,
           header = F,
           sep = "$",
           col.names = c("V1", "V2", "V3"),
           fill = TRUE
-        )[, 1] #skip information about insertions and deletions
+        )
       data <-
-        as.data.frame(setDT(tstrsplit(as.character(data), " ", fixed = TRUE))[]) #split by spaces
-      data <- data[complete.cases(data), ]
-      row <- cbind(file, as.numeric(as.character(median(as.numeric(as.character(as.vector(data$V8))), na.rm = TRUE))),as.numeric(as.character(median(as.numeric(as.character(as.vector(data$V9))), na.rm = TRUE))),as.numeric(as.character(median(as.numeric(as.character(as.vector(data$V10))), na.rm = TRUE))),as.numeric(as.character(median(as.numeric(as.character(as.vector(data$V11))), na.rm = TRUE))))
+        as.data.frame(setDT(tstrsplit(as.character(dataOriginal[,1]), " ", fixed = TRUE))[]) #split by spaces
+      data <- data[complete.cases(data),]
+      row <-
+        cbind(
+          file,
+          as.numeric(as.character(median(
+            as.numeric(as.character(as.vector(data$V8))), na.rm = TRUE
+          ))),
+          as.numeric(as.character(median(
+            as.numeric(as.character(as.vector(data$V9))), na.rm = TRUE
+          ))),
+          as.numeric(as.character(median(
+            as.numeric(as.character(as.vector(data$V10))), na.rm = TRUE
+          ))),
+          as.numeric(as.character(median(
+            as.numeric(as.character(as.vector(data$V11))), na.rm = TRUE
+          )))
+        )
       
       summary <- rbind(summary, row)
     }
@@ -87,9 +121,10 @@ for (file in (filenames)) {
   })
 }
 print(summary)
-summary <- summary[complete.cases(summary), ]
+summary <- summary[complete.cases(summary),]
 summary <- as.data.frame(summary)
-colnames(summary) <- c("file", "h8", "h9", "h10", "h11") #"total", "insertions", "deletions", "mismatches"
+colnames(summary) <-
+  c("file", "h8", "h9", "h10", "h11") #"total", "insertions", "deletions", "mismatches"
 summary <-
   plyr::arrange(summary, as.numeric(as.character(summary$h8)), decreasing =
                   FALSE)
@@ -102,19 +137,28 @@ h10 <- hash()
 h11 <- hash()
 
 tryCatch({
-  dataEmpty <-
+  dataEmptyOriginal <-
     read.table(
       "Empty.mf.txt",
       header = F,
       sep = "$",
       col.names = c("V1", "V2", "V3"),
       fill = TRUE
-    )[, 1] #skip information about insertions and deletions
+    )
   dataEmpty <-
-    as.data.frame(setDT(tstrsplit(as.character(dataEmpty), " ", fixed = TRUE))[]) #split by spaces
+    as.data.frame(setDT(tstrsplit(as.character(dataEmptyOriginal[,1]), " ", fixed = TRUE))[]) #split by spaces
   
-  dataEmpty <- dataEmpty[complete.cases(dataEmpty),]
+  dataEmpty <- dataEmpty[complete.cases(dataEmpty), ]
   valuesEmpty <- as.numeric(as.character(as.vector(dataEmpty$V8)))
+  
+  insertionsEmpty <-
+    sort(as.numeric(unlist(strsplit(
+      gsub("c\\(", "", gsub("\\)", "", dataEmptyOriginal$V2)), ", "
+    ))))
+  deletionsEmpty <-
+    sort(as.numeric(unlist(strsplit(
+      gsub("c\\(", "", gsub("\\)", "", dataEmptyOriginal$V3)), ", "
+    ))))
   
 },
 error = function(err) {
@@ -127,21 +171,31 @@ for (file in (ordered)) {
   print(file)
   tryCatch({
     #load motif windows
-    data <-
+    dataOriginal <-
       read.table(
         file,
         header = F,
         sep = "$",
         col.names = c("V1", "V2", "V3"),
         fill = TRUE
-      )[, 1] #skip information about insertions and deletions
+      )
     data <-
-      as.data.frame(setDT(tstrsplit(as.character(data), " ", fixed = TRUE))[]) #split by spaces
+      as.data.frame(setDT(tstrsplit(as.character(dataOriginal[, 1]), " ", fixed = TRUE))[]) #split by spaces
     values <- as.numeric(as.vector(data$V8))
     values <- values[!is.na(values)]
     
+    insertions <-
+      sort(as.numeric(unlist(strsplit(
+        gsub("c\\(", "", gsub("\\)", "", dataOriginal$V2)), ", "
+      ))))
+    deletions <-
+      sort(as.numeric(unlist(strsplit(
+        gsub("c\\(", "", gsub("\\)", "", dataOriginal$V3)), ", "
+      ))))
     
-    if (length(values) >= 30) { #we are only interested in sufficiently populated motifs
+    
+    if (length(values) >= 30) {
+      #we are only interested in sufficiently populated motifs
       #populate hashes
       h8[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = as.numeric(as.vector(data$V8))
       h9[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = as.numeric(as.vector(data$V9))
@@ -167,21 +221,30 @@ for (file in (ordered)) {
         print("empty file exists, will use matching file")
         
         #individial empty files
-        dataEmpty <-
+        dataEmptyOriginal <-
           read.table(
             emptyFile,
             header = F,
             sep = "$",
             col.names = c("V1", "V2", "V3"),
             fill = TRUE
-          )[, 1] #skip information about insertions and deletions
+          )
         dataEmpty <-
           as.data.frame(setDT(tstrsplit(
-            as.character(dataEmpty), " ", fixed = TRUE
+            as.character(dataEmpty[, 1]), " ", fixed = TRUE
           ))[]) #split by spaces
-        dataEmpty <- dataEmpty[complete.cases(dataEmpty), ]
+        dataEmpty <- dataEmpty[complete.cases(dataEmpty),]
         valuesEmpty <-
           as.numeric(as.character(as.vector(dataEmpty$V8)))
+        
+        insertionsEmpty <-
+          sort(as.numeric(unlist(strsplit(
+            gsub("c\\(", "", gsub("\\)", "", dataEmptyOriginal$V2)), ", "
+          ))))
+        deletionsEmpty <-
+          sort(as.numeric(unlist(strsplit(
+            gsub("c\\(", "", gsub("\\)", "", dataEmptyOriginal$V3)), ", "
+          ))))
         
       } else {
         print("empty file does not exist, will use default file")         #one empty file for all
@@ -189,6 +252,8 @@ for (file in (ordered)) {
       }
       #compare to either individual all default file with empty values
       getPvalue(valuesEmpty, values, file)
+      print(getLengthSignificance(insertionsEmpty, insertions, file))
+      print(getLengthSignificance(deletionsEmpty, deletions, file))
     } else {
       print("Too small sample size.")
     }
@@ -199,7 +264,6 @@ for (file in (ordered)) {
     print(paste("Read.table didn't work!:  ", err))
   })
 }
-
 @
 
 <<>>=
@@ -296,55 +360,6 @@ for (et in errorTypes) {
 }
 @
 
-<<other hists>>=
-#percErrorIns
-boxplot(values(h9)[names],col="orange",names=FALSE,frame=FALSE,axis=FALSE,labels = FALSE,xaxt = "n",main="CHR 22 ERRORS percError INSERTIONS",ylim=c(0,30),outline=FALSE,border="gray",ylab="%")
-mtext(names,cex=0.5,srt=90,col="black",side=1,at=1:length(keys(h9)),las=3)
-text(1:length(names),20,labels=names,srt=90,col="blue",cex=0.5)
-abline(h=median(h9[["Empty"]], na.rm = TRUE),col="blue")
-
-#percErrorDel
-boxplot(values(h10)[names],col="cyan",names=FALSE,frame=FALSE,axis=FALSE,labels = FALSE,xaxt = "n",main="CHR 22 ERRORS percError DELETIONS",ylim=c(0,30),outline=FALSE,border="gray",ylab="%")
-mtext(names,cex=0.5,srt=90,col="black",side=1,at=1:length(keys(h10)),las=3)
-text(1:length(names),15,labels=names,srt=90,col="blue",cex=0.5)
-abline(h=median(h10[["Empty"]], na.rm = TRUE),col="blue")
-
-#percErrorMism
-boxplot(values(h11)[names],col="green",names=FALSE,frame=FALSE,axis=FALSE,labels = FALSE,xaxt = "n",main="CHR 22 ERRORS percError MISMATCHES",ylim=c(0,40),outline=FALSE,border="gray",ylab="%")
-mtext(names,cex=0.5,srt=90,col="black",side=1,at=1:length(keys(h11)),las=3)
-text(1:length(names),35,labels=names,srt=90,col="blue",cex=0.5)
-abline(h=median(h11[["Empty"]], na.rm = TRUE),col="blue")
-@
-
-<<>>=
-
-
-summary<-NULL
-for (file in (ordered)) {
-  tryCatch({
-    if (file.size(file) > 0){
-      
-      print(file)
-      #load motif windows
-      data<-as.data.frame(read.table(file, header = F,col.names=c("V1","V2","V3","V4","V5","V6","V7","V8","V9","V10","V11"), fill=TRUE))
-      data<-data[complete.cases(data),]
-      values<-as.numeric(as.character(as.vector(data$V8)))
-      row<-cbind(file,as.numeric(as.character(median(values, na.rm = TRUE))))
-      
-      if (length(values) >= 50) {
-        boxplot(values,col="gold",main=gsub(".ERRORS10000onlyFeature","", file),ylim=c(0,100),frame=F)
-      }
-    }
-  }, error = function(err) {
-    # error handler picks up where error was generated
-    print(paste("Read.table didn't work!:  ",err))
-  })
-}
-@
-
-
-
-
 
 
 \end{document}
@@ -359,8 +374,8 @@ for (file in (filenames)) {
       name<-gsub("22.ERRORS10000onlyFeature.","",gsub(".mf.txt","",file))
       #load motif windows
       data<-as.data.frame(read.table(file, header = F,sep='$'))
-      insertions<-strsplit(gsub(" c\\(","",gsub("\\) ","",data$V2)),", ")
-      deletions<-strsplit(gsub(" c\\(","",gsub("\\) ","",data$V3)),", ")
+      insertions<-sort(as.numeric(unlist(strsplit(gsub("c\\(", "", gsub("\\)", "", data$V2)),", "))))
+      deletions<-sort(as.numeric(unlist(strsplit(gsub("c\\(", "", gsub("\\)", "", data$V3)),", "))))
       print(dim(data))
       plot(table(sort(as.numeric(unlist(insertions)))),col="orange",xlab="insertions length",main=file,freq=TRUE,xlim=c(0,20))
       #abline(v=nchar(name),col="red")
