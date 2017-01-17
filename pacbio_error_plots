@@ -12,8 +12,8 @@ library("hash")
 library("data.table")
 setwd("/Users/alice/Desktop/projects/kinetics/errors_will")
 filenames <- list.files(pattern = "*mf.txt", full.names = FALSE)
-filenames <- filenames[grepl("FeatureOnly", filenames)]
-#filenames <- filenames[grepl("windows", filenames)]
+#filenames <- filenames[grepl("FeatureOnly", filenames)]
+filenames <- filenames[grepl("windows", filenames)]
 
 set.seed(3)
 
@@ -41,7 +41,7 @@ getPvalue <- function(grp.1, grp.2, comparedTo) {
   
   hist(
     examples,
-    col = ifelse(pvalue <= 0.05, 'red', 'blue'),
+    col = ifelse(pvalue < 0.05, 'red', 'blue'),
     breaks = 50,
     main = paste("RPerm", main = gsub(".txt", "", gsub(
       "ERRORS", "", gsub("10000.", "", gsub(".mf", "", comparedTo))
@@ -78,7 +78,7 @@ for (file in (filenames)) {
         as.data.frame(setDT(tstrsplit(as.character(data), " ", fixed = TRUE))[]) #split by spaces
       data <- data[complete.cases(data), ]
       values <- as.numeric(as.character(as.vector(data$V8)))
-      row <- cbind(file, as.numeric(as.character(mean(values, na.rm = TRUE))))
+      row <- cbind(file, as.numeric(as.character(median(values, na.rm = TRUE))))
       
       summary <- rbind(summary, row)
     }
@@ -144,10 +144,10 @@ for (file in (ordered)) {
     
     if (length(values) >= 30) { #we are only interested in sufficiently populated motifs
       #populate hashes
-      h8[gsub("ERRORS.", "", gsub(".mf.txt", "", file))] = as.numeric(as.vector(data$V8))
-      h9[gsub("ERRORS.", "", gsub(".mf.txt", "", file))] = as.numeric(as.vector(data$V9))
-      h10[gsub("ERRORS.", "", gsub(".mf.txt", "", file))] = as.numeric(as.vector(data$V10))
-      h11[gsub("ERRORS.", "", gsub(".mf.txt", "", file))] = as.numeric(as.vector(data$V11))
+      h8[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = as.numeric(as.vector(data$V8))
+      h9[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = as.numeric(as.vector(data$V9))
+      h10[gsub("ERROR.", "", gsub(".mf.txt", "", file))] = as.numeric(as.vector(data$V10))
+      h11[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = as.numeric(as.vector(data$V11))
       
       hist(
         values,
@@ -203,34 +203,36 @@ for (file in (ordered)) {
 
 @
 
-<<big stat>>=
-par(mfrow=c(1,1))
-library("DescTools")
-setwd("/Users/alice/Desktop/projects/kinetics/errors_will/old/November17th/22features")
-filenames <- list.files(pattern="*mf.txt", full.names=FALSE)
-names<-(gsub("22.ERRORS10000onlyFeature.","",gsub(".mf.txt","",ordered)))
-#names<-tail(names,n=10)
-@
-
 <<>>=
+names<-gsub("ERRORS", "", gsub(".mf.txt", "", ordered))
 
 #percErrorTotal
-box=boxplot(values(h8)[names],col="gold",names=FALSE,frame=FALSE,axis=FALSE,labels = FALSE,xaxt = "n",main="CHR 22 ERRORS percError TOTAL",ylim=c(0,60),outline=FALSE,border="gray",ylab="%",plot=FALSE)
+box=boxplot(values(h8)[names],col="gold",names=TRUE,frame=FALSE,axis=FALSE,labels = TRUE,xaxt = "n",main="CHR 22 ERRORS percError TOTAL",ylim=c(0,60),outline=FALSE,border="gray",ylab="%",plot=FALSE)
 
 #box=boxplot(values(h8)[names]~factor(names),plot=FALSE)
 #box$stats=as.matrix(Reduce(cbind,tapply(values(h8)[names],factor(names),quantile,probs=c(0.05,0.25,0.5,0.75,0.95),na.rm=TRUE,SIMPLIFY=FALSE))) # change whiskers
 
 n <- length(box$n)
-second_largest_value<-sort(box$n,partial=n-1)[n-1]
-perc=round(box$n/second_largest_value*100000,0) # compute sample size percentages (the maximum sample size is 1)
+largest_value<-max(box$n)
+perc=round(box$n/largest_value*100,0) # compute sample size percentages (the maximum sample size is 1)
 
-col_perc=rev(heat.colors(100000))[perc] # the maximum sample size has red
-col_perc[which(box$n==max(box$n))]<-"green"  #assign green to empty windows
+annotation<-box$n
+annotation[annotation!=0]<-names[which(box$n!=0)]
 
-bxp(box,outline=FALSE,pars=list(whisklty=3,staplewex=0.8,boxfill=col_perc),xlab="motif",xaxt='n')
-mtext(names,cex=0.5,srt=90,col="black",side=1,at=1:length(keys(h8)),las=3)
-text(1:length(names),50,labels=names,srt=90,col="blue",cex=0.5)
-abline(h=median(h8[["Empty"]], na.rm = TRUE),col="blue")
+colfunc <- colorRampPalette(c("yellow", "red"))
+plot(rep(1,100),col=colfunc(100),pch=19,cex=3)
+col_perc=colfunc(100)[perc] # the maximum sample size has red
+colscale<-box$n
+colscale[colscale!=0]<-col_perc
+
+colscale[grep("Empty",annotation)]<-"green"  #assign green to empty windows
+
+bxp(box,outline=FALSE,pars=list(whisklty=3,staplewex=0.8,boxfill=colscale),xlab="motif",xaxt='n')
+
+
+#mtext(annotation,cex=0.5,srt=90,col="black",side=1,at=1:length(names),las=3)
+text(1:length(names),23,labels=gsub("windows10000", "", annotation),srt=90,col="blue",cex=0.8)
+abline(h=median(h8[["Empty"]], na.rm = TRUE),col="black")
 
 @
 
