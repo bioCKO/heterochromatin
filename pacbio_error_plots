@@ -28,11 +28,11 @@ library("plyr")
 library("dplyr")
 library("hash")
 library("data.table")
-setwd("/Users/alice/Desktop/projects/kinetics/errors_will")
-filenames <- list.files(pattern = "*mf.txt", full.names = FALSE)
+setwd("/Users/alice/Desktop/projects/kinetics/errors_will/merged/formatted")
+filenames <- list.files(pattern = "*mf", full.names = FALSE)
 #filenames <- filenames[grepl("FeatureOnly", filenames)]
-filenames <- filenames[grepl("windows", filenames)]
-
+filenames <- filenames[grep("Feature", filenames,invert=FALSE)]
+filenames <- filenames[grep("EmptyTmp.txt", filenames,invert=TRUE)]
 set.seed(3)
 
 #grp.1 <- round(rlnorm(100, 6)) # With Widget
@@ -139,7 +139,7 @@ h11 <- hash()
 tryCatch({
   dataEmptyOriginal <-
     read.table(
-      "Empty.mf.txt",
+      "merged_Empty.mf",
       header = F,
       sep = "$",
       col.names = c("V1", "V2", "V3"),
@@ -215,7 +215,7 @@ for (file in (ordered)) {
       )
       
       #load empty windows
-      emptyFile <- gsub(".txt", "EmptyTmp.txt", file)
+      emptyFile <- gsub(".mf", ".mfEmptyTmp.txt", file)
       
       if (file.exists(emptyFile)) {
         print("empty file exists, will use matching file")
@@ -231,7 +231,7 @@ for (file in (ordered)) {
           )
         dataEmpty <-
           as.data.frame(setDT(tstrsplit(
-            as.character(dataEmpty[, 1]), " ", fixed = TRUE
+            as.character(dataEmptyOriginal[, 1]), " ", fixed = TRUE
           ))[]) #split by spaces
         dataEmpty <- dataEmpty[complete.cases(dataEmpty),]
         valuesEmpty <-
@@ -339,19 +339,20 @@ for (et in errorTypes) {
       boxfill = colscale
     ),
     xlab = "motif",
+    ylab = "% error rate",
     xaxt = 'n',
-    main = errorName
+    main = errorName,
+    border= "darkgray"
   )
   
   #mtext(annotation,cex=0.5,srt=90,col="black",side=1,at=1:length(names),las=3)
   text(
     1:length(names),
-    1.8 * median(as.numeric(unlist(values(
-      get(et)
-    )[names][grep("Empty", names)]))),
-    labels = gsub("windows10000", "", annotation),
+    25,
+    #1 * median(as.numeric(unlist(values(get(et))[names][grep("Empty", names)]))),
+    labels = gsub("merged_", "", gsub(".mf", "", annotation)),
     srt = 90,
-    col = "blue",
+    col = "black",
     cex = 0.8
   )
   abline(h = median(as.numeric(unlist(values(
