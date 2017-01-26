@@ -77,6 +77,7 @@ getPvalue <- function(grp.1, grp.2, comparedTo) {
     )
   )
   abline(v = test.diff, col = "black", lwd = 4)
+  return(pvalue)
 }
 
 summary <- NULL
@@ -135,6 +136,7 @@ h8 <- hash()
 h9 <- hash()
 h10 <- hash()
 h11 <- hash()
+hpvalue <- hash()
 
 tryCatch({
   dataEmptyOriginal <-
@@ -251,7 +253,8 @@ for (file in (ordered)) {
         
       }
       #compare to either individual all default file with empty values
-      getPvalue(valuesEmpty, values, file)
+      #getPvalue(valuesEmpty, values, file)
+      hpvalue[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = round(as.numeric(getPvalue(valuesEmpty, values, file),2)) #save pvalue and plot histogram
       print(getLengthSignificance(insertionsEmpty, insertions, file))
       print(getLengthSignificance(deletionsEmpty, deletions, file))
     } else {
@@ -269,7 +272,8 @@ for (file in (ordered)) {
 <<>>=
 par(mfrow = c(1, 1))
 
-errorTypes = c("h8", "h9", "h10", "h11")
+#errorTypes = c("h8", "h9", "h10", "h11")
+errorTypes = c("h8")
 
 for (et in errorTypes) {
   switch(
@@ -314,17 +318,23 @@ for (et in errorTypes) {
     plot = FALSE
   )
   
-  n <- length(box$n)
-  largest_value <- max(box$n)
-  perc = round(box$n / largest_value * 100, 0) # compute sample size percentages (the maximum sample size is 1)
-  
   annotation <- box$n
   annotation[annotation != 0] <- names[which(box$n != 0)]
+  annotation[annotation == 0] <- NA
   
-  colfunc <- colorRampPalette(c("yellow", "red"))
-  col_perc = colfunc(100)[perc] # the maximum sample size has red
+  significance <- as.numeric(values(hpvalue)[names])
+  
+  n <- length(box$n)
+  largest_value <- max(box$n)
+  #perc = round(box$n / largest_value * 100, 0) # compute sample size percentages (the maximum sample size is 1)
+  perc = round(significance / 1 * 100, 0) # compute pvalue percentages <0,1>
+  perc<-as.numeric(na.omit(perc))
+  
+  colfunc <- colorRampPalette(c("firebrick1","white","white","white","white","white","white","white","white","white"))
+  col_perc = colfunc(101)[perc+1] # the maximum sample size has red, indexed from 1
   colscale <- box$n
-  colscale[colscale != 0] <- col_perc
+  colscale[colscale == 0] <-NA
+  colscale[!is.na(colscale)] <- col_perc
   
   colscale[grep("Empty", annotation)] <-
     "green"  #assign green to empty windows
@@ -338,22 +348,49 @@ for (et in errorTypes) {
       staplewex = 0.8,
       boxfill = colscale
     ),
-    xlab = "motif",
+    xlab = "Motif",
     ylab = "% error rate",
     xaxt = 'n',
     main = errorName,
     border= "darkgray"
   )
   
+  library("SDMTools")
+  #points for the gradient legend
+#pnts = cbind(x =c(0.8,20,20,0.8), y =c(20,20,0.8,0.8))
+
+xl <- 92
+yb <- 10
+xr <- 93
+yt <- 20
+
+rect(
+     xl,
+     head(seq(yb,yt,(yt-yb)/100),-1),
+     xr,
+     tail(seq(yb,yt,(yt-yb)/100),-1),
+     col=colfunc(101),
+     lwd=0.075
+    )
+mtext(seq(from=0,to=1,by=0.1),side=4,at=tail(seq(yb-1,yt,(yt-yb)/10),-1)+0.1,las=2,cex=0.7)
+  
+#create the gradient legend
+#legend.gradient(pnts,colfunc(101),c("Low","High"))
+
+#legend_image <- as.raster(matrix(colfunc(20), ncol=1))
+#plot(c(0,2),c(0,1),type = 'n', axes = F,xlab = '', ylab = '', main = 'legend title',add=TRUE)
+#text(x=1.5, y = seq(0,1,l=5), labels = seq(0,1,l=5))
+#rasterImage(legend_image, 0, 0, 1,1)
+  
   #mtext(annotation,cex=0.5,srt=90,col="black",side=1,at=1:length(names),las=3)
   text(
     1:length(names),
     25,
     #1 * median(as.numeric(unlist(values(get(et))[names][grep("Empty", names)]))),
-    labels = gsub("merged_", "", gsub(".mf", "", annotation)),
+    labels = gsub("merged_", "", gsub(".mf", "", gsub("FeatureOnly", "", annotation))),
     srt = 90,
     col = "black",
-    cex = 0.8
+    cex = 0.7
   )
   abline(h = median(as.numeric(unlist(values(
     get(et)
@@ -361,6 +398,11 @@ for (et in errorTypes) {
 }
 @
 
+<<>>=
+colfunc <- colorRampPalette(c("white","white", "white", "white","white","white", "white", "white","white","red"))
+plot(1:100,1:100,pch=20,col=colfunc(100))
+abline(h=90,col="black")
+@
 
 
 \end{document}
