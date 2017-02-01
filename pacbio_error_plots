@@ -254,7 +254,7 @@ for (file in (ordered)) {
       }
       #compare to either individual all default file with empty values
       #getPvalue(valuesEmpty, values, file)
-      hpvalue[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = round(as.numeric(getPvalue(valuesEmpty, values, file),2)) #save pvalue and plot histogram
+      hpvalue[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = round(as.numeric(getPvalue(valuesEmpty, values, file)),2) #save pvalue and plot histogram
       print(getLengthSignificance(insertionsEmpty, insertions, file))
       print(getLengthSignificance(deletionsEmpty, deletions, file))
     } else {
