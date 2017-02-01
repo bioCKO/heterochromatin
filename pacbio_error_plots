@@ -411,7 +411,7 @@ mtext(seq(from=0,to=1,by=0.1),side=4,at=seq(from=yb,to=yt,by=(yt-yb)/10),las=2,c
   text(
     1:length(names),
     #19,
-    1.5 * median(as.numeric(unlist(values(get(i))[names][grep("Empty", names)]))),
+    1.55*middle_point,
     labels = gsub("merged_", "", gsub(".mf", "", gsub("FeatureOnly", "", annotation))),
     srt = 90,
     col = "black",
