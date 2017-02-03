@@ -1,0 +1,106 @@
+\documentclass{article}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+<<>>=
+par(mfrow = c(2, 2))
+library("outliers")
+setwd("/Users/alice/Desktop/projects/kinetics/errors_vs_IPD")
+
+calculatePvalue <- function(i) {
+  switch(
+    i,
+    #errorNames = c("TOTAL", "INSERTIONS", "DELETIONS", "MISMATCHES")
+    V8 = {
+      errorName = "TOTAL"
+    },
+    V9 = {
+      errorName = "INSERTIONS"
+    },
+    V10 = {
+      errorName = "DELETIONS"
+    },
+    V11 = {
+      errorName = "MISMATCHES"
+    }
+  )
+  errorPerRow <- as.numeric(as.character(dataErrors[[i]]))
+  #boxplot(errorPerRow,col="gold")
+  
+  df <- data.frame(meanIPDperRow, errorPerRow)
+  plot(
+    errorPerRow,
+    meanIPDperRow,
+    pch = ".",
+    col = "darkgray",
+    main = errorName,
+    sub = file,
+    xlim = c(0, 100),
+    xlab = "% ERROR RATE",
+    ylab = "mean IPD per window"
+  )
+  mylm <- lm(meanIPDperRow ~ errorPerRow, data = df)
+  #plot(mylm)
+  
+  summary(mylm)
+  abline(mylm, col = "red")
+  pvalue <- round(coef(summary(mylm))[, "Pr(>|t|)"][2], 2)
+  mtext(pvalue,
+        col = ifelse(pvalue < 0.05, 'red', 'blue'),
+        side = 4)
+  return(pvalue)
+}
+plotFile <- function(file) {
+  dataOriginal <-
+    read.table(
+      file,
+      header = F,
+      sep = "$",
+      col.names = c("V1", "V2", "V3"),
+      fill = TRUE
+    )
+  dataErrors <-
+    as.data.frame(setDT(tstrsplit(
+      as.character(dataOriginal[, 1]), " ", fixed = TRUE
+    ))[]) #split by spaces
+  dataIPDs <-
+    as.data.frame(setDT(tstrsplit(
+      as.character(dataOriginal[, 3]), "\t", fixed = FALSE
+    ))[])[-(1:4)] #split by spaces and remove columns with region and feature lengths, keep only IPDs
+  dataIPDs <- data.matrix(dataIPDs)
+  meanIPDperRow <-
+    apply(dataIPDs, 1, function(x)
+      mean(x, na.rm = TRUE))
+  
+  
+  pvaluesForMotif<-lapply(names(dataErrors[8:11]),calculatePvalue)
+  return(unlist(pvaluesForMotif))
+  #for (i in names(dataErrors[8:11])) { #iterate through V8-V11
+  #  calculatePvalue(i)
+  #}
+}
+
+filenames <- list.files(pattern = "*mf", full.names = FALSE)
+
+for (file in (filenames)) {
+  tryCatch({
+    if (file.size(file) > 0) {
+      #load motif windows
+      plotFile(file)
+    }
+  }, error = function(err) {
+    # error handler picks up where error was generated
+    print(paste("Initial read.table didn't work!:  ", err))
+  })
+}
+#file <- "OUT"
+#file<-"OUT_CGGGn"
+#file<-"OUT_TnFeatureOnly.mf"
+
+#View(dataIPDs)
+@
+
+
+
+\end{document}
