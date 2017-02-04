@@ -8,7 +8,7 @@ par(mfrow = c(2, 2))
 library("outliers")
 setwd("/Users/alice/Desktop/projects/kinetics/errors_vs_IPD")
 
-calculatePvalue <- function(i) {
+calculatePvalue <- function(i, dataErrors, meanIPDperRow) {
   switch(
     i,
     #errorNames = c("TOTAL", "INSERTIONS", "DELETIONS", "MISMATCHES")
@@ -26,9 +26,11 @@ calculatePvalue <- function(i) {
     }
   )
   errorPerRow <- as.numeric(as.character(dataErrors[[i]]))
+  #print(length(errorPerRow))
   #boxplot(errorPerRow,col="gold")
   
   df <- data.frame(meanIPDperRow, errorPerRow)
+  if (dim(df)[1] >= 30) {
   plot(
     errorPerRow,
     meanIPDperRow,
@@ -50,6 +52,9 @@ calculatePvalue <- function(i) {
         col = ifelse(pvalue < 0.05, 'red', 'blue'),
         side = 4)
   return(pvalue)
+  } else {
+    print("not sufficient sample size")
+  }
 }
 plotFile <- function(file) {
   dataOriginal <-
@@ -73,27 +78,46 @@ plotFile <- function(file) {
     apply(dataIPDs, 1, function(x)
       mean(x, na.rm = TRUE))
   
-  
-  pvaluesForMotif<-lapply(names(dataErrors[8:11]),calculatePvalue)
+  pvaluesForMotif<-lapply(names(dataErrors[8:11]), function(x,y) calculatePvalue(x,dataErrors,meanIPDperRow))
   return(unlist(pvaluesForMotif))
   #for (i in names(dataErrors[8:11])) { #iterate through V8-V11
   #  calculatePvalue(i)
   #}
 }
 
-filenames <- list.files(pattern = "*mf", full.names = FALSE)
+filenames <- list.files(pattern = "*.mf", full.names = FALSE)
+summary<-NULL
 
 for (file in (filenames)) {
   tryCatch({
     if (file.size(file) > 0) {
       #load motif windows
-      plotFile(file)
+      print(file)
+      pvaluesForMotif<-plotFile(file)
+      row <-
+        cbind(
+          file,
+          pvaluesForMotif
+        )
+      
+      summary <- rbind(summary, row)
     }
   }, error = function(err) {
     # error handler picks up where error was generated
     print(paste("Initial read.table didn't work!:  ", err))
   })
 }
+summary<-data.matrix(summary)
+summary<-as.data.frame(summary)
+summary <- summary[!is.na(as.numeric(as.character(summary$pvaluesForMotif))),]
+View(summary)
+
+n <- dim(summary)[1]
+total<-summary[seq(1, n, 4)[1:(n/4)],] 
+total <-
+        plyr::arrange(total, as.numeric(as.character(total$pvaluesForMotif)), decreasing = FALSE)
+View(total)
+
 #file <- "OUT"
 #file<-"OUT_CGGGn"
 #file<-"OUT_TnFeatureOnly.mf"
