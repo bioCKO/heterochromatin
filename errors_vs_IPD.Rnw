@@ -66,7 +66,7 @@ calculatePvalue <- function(i, dataErrors, meanIPDperRow) {
         col = ifelse(pvalue < 0.05, 'red', 'blue'),
         side = 4,
         line=0.5)
-  return(pvalue)
+  return(c(pvalue,slope))
   } else {
     print("not sufficient sample size")
   }
@@ -93,8 +93,11 @@ plotFile <- function(file) {
     apply(dataIPDs, 1, function(x)
       mean(x, na.rm = TRUE))
   
-  pvaluesForMotif<-sapply(names(dataErrors[8:11]), function(x,y) calculatePvalue(x,dataErrors,meanIPDperRow))
-  return(unlist(pvaluesForMotif))
+  pvaluesForMotif<-sapply(names(dataErrors[8:11]), function(x,y) calculatePvalue(x,dataErrors,meanIPDperRow)[1])
+  
+  slopesForMotif<-sapply(names(dataErrors[8:11]), function(x,y) calculatePvalue(x,dataErrors,meanIPDperRow)[2])
+  
+  return(c(pvaluesForMotif,slopesForMotif))
   #for (i in names(dataErrors[8:11])) { #iterate through V8-V11
   #  calculatePvalue(i)
   #}
@@ -102,13 +105,15 @@ plotFile <- function(file) {
 
 filenames <- list.files(pattern = "*.mf", full.names = FALSE)
 summary<-NULL
+slopes<-NULL
 
 for (file in (filenames)) {
   tryCatch({
     if (file.size(file) > 0) {
       #load motif windows
       print(file)
-      pvaluesForMotif<-plotFile(file)
+      pvaluesForMotif<-plotFile(file)[1:4]
+      slopesForMotif<-plotFile(file)[5:8]
       
       if (pvaluesForMotif[1]=="not sufficient sample size") {
         print("skipping") 
@@ -119,10 +124,17 @@ for (file in (filenames)) {
             file,
             pvaluesForMotif
           )
+        rowSlope <-
+          c(
+            file,
+            slopesForMotif      
+          )
         
         row<-as.data.frame(t(row))
+        rowSlope<-as.data.frame(t(rowSlope))
         colnames(row)[1]=c("motif")
         summary <- rbind(summary, row)  
+        slopes <- rbind(slopes, rowSlope)
       }
       
     }
@@ -142,11 +154,18 @@ colnames(toPlot)<-c("TOTAL", "INS", "DEL", "MISM")
 toPlot<-as.matrix(toPlot)
 class(toPlot) <- "numeric" 
 
+annotation<-slopes
+rownames(annotation)<-gsub("OUT_","",gsub("FeatureOnly.mf","",annotation[,1]))
+annotation<-annotation[-1]
+colnames(annotation)<-c("TOTAL", "INS", "DEL", "MISM")
+annotation<-as.matrix(annotation)
+class(annotation) <- "numeric" 
+
 #lmat = rbind(c(0,3),c(2,1),c(0,4))
 lmat = rbind(c(3,4),c(2,1))
 lwid = c(0.4,5)
 my_palette <- colorRampPalette(c("red","white","white","white","white","white","white","white","white","white"))(n = 101)
-heatmap.2(toPlot,dendrogram='none',Rowv=TRUE,Colv=FALSE,col=my_palette,trace="row",tracecol="gray",lmat=lmat,lwid=lwid,margins = c(6.5, 6),key.title ="p-values")
+heatmap.2(toPlot,dendrogram='row',Rowv=TRUE,Colv=FALSE,col=my_palette,trace="row",tracecol="gray",lmat=lmat,lwid=lwid,margins = c(6.5, 6),key.title ="p-values",cellnote=annotation,notecol="black")
 
 @
 
