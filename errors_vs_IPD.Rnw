@@ -134,7 +134,7 @@ par(mfrow=c(1,2),cex.lab=0.5)
 toPlot<-summary
 rownames(toPlot)<-gsub("OUT_","",gsub("FeatureOnly.mf","",toPlot[,1]))
 toPlot<-toPlot[-1]
-colnames(toPlot)<-c("TOTAL", "INSERTIONS", "DELETIONS", "MISMATCHES")
+colnames(toPlot)<-c("TOTAL", "INS", "DEL", "MISM")
 toPlot<-as.matrix(toPlot)
 class(toPlot) <- "numeric" 
 
@@ -142,7 +142,7 @@ class(toPlot) <- "numeric"
 lmat = rbind(c(3,4),c(2,1))
 lwid = c(0.4,5)
 my_palette <- colorRampPalette(c("red","white","white","white","white","white","white","white","white","white"))(n = 101)
-heatmap.2(toPlot,dendrogram='none',Rowv=TRUE,Colv=FALSE,col=my_palette,trace="row",tracecol="gray",lmat=lmat,lwid=lwid,margins = c(12, 6))
+heatmap.2(toPlot,dendrogram='none',Rowv=TRUE,Colv=FALSE,col=my_palette,trace="row",tracecol="gray",lmat=lmat,lwid=lwid,margins = c(6.5, 6))
 
 @
 
