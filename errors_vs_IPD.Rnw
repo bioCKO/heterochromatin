@@ -8,6 +8,17 @@ par(mfrow = c(2, 2))
 library("outliers")
 setwd("/Users/alice/Desktop/projects/kinetics/errors_vs_IPD")
 
+if (!require("gplots")) {
+   install.packages("gplots", dependencies = TRUE)
+   library(gplots)
+   }
+if (!require("RColorBrewer")) {
+   install.packages("RColorBrewer", dependencies = TRUE)
+   library(RColorBrewer)
+   }
+
+
+
 calculatePvalue <- function(i, dataErrors, meanIPDperRow) {
   switch(
     i,
@@ -47,7 +58,7 @@ calculatePvalue <- function(i, dataErrors, meanIPDperRow) {
   
   summary(mylm)
   abline(mylm, col = "red")
-  pvalue <- round(coef(summary(mylm))[, "Pr(>|t|)"][2], 2)
+  pvalue <- as.numeric(round(coef(summary(mylm))[, "Pr(>|t|)"][2], 2))
   mtext(pvalue,
         col = ifelse(pvalue < 0.05, 'red', 'blue'),
         side = 4)
@@ -78,7 +89,7 @@ plotFile <- function(file) {
     apply(dataIPDs, 1, function(x)
       mean(x, na.rm = TRUE))
   
-  pvaluesForMotif<-lapply(names(dataErrors[8:11]), function(x,y) calculatePvalue(x,dataErrors,meanIPDperRow))
+  pvaluesForMotif<-sapply(names(dataErrors[8:11]), function(x,y) calculatePvalue(x,dataErrors,meanIPDperRow))
   return(unlist(pvaluesForMotif))
   #for (i in names(dataErrors[8:11])) { #iterate through V8-V11
   #  calculatePvalue(i)
@@ -94,29 +105,74 @@ for (file in (filenames)) {
       #load motif windows
       print(file)
       pvaluesForMotif<-plotFile(file)
-      row <-
-        cbind(
-          file,
-          pvaluesForMotif
-        )
       
-      summary <- rbind(summary, row)
+      if (pvaluesForMotif[1]=="not sufficient sample size") {
+        print("skipping") 
+      } else { 
+        print("OK, returning values")
+        row <-
+          c(
+            file,
+            pvaluesForMotif
+          )
+        
+        row<-as.data.frame(t(row))
+        colnames(row)[1]=c("motif")
+        summary <- rbind(summary, row)  
+      }
+      
     }
   }, error = function(err) {
     # error handler picks up where error was generated
     print(paste("Initial read.table didn't work!:  ", err))
   })
 }
-summary<-data.matrix(summary)
-summary<-as.data.frame(summary)
-summary <- summary[!is.na(as.numeric(as.character(summary$pvaluesForMotif))),]
-View(summary)
+@
 
-n <- dim(summary)[1]
-total<-summary[seq(1, n, 4)[1:(n/4)],] 
-total <-
-        plyr::arrange(total, as.numeric(as.character(total$pvaluesForMotif)), decreasing = FALSE)
-View(total)
+<<>>=
+par(mfrow=c(1,2),cex.lab=0.5)
+toPlot<-summary
+rownames(toPlot)<-gsub("OUT_","",gsub("FeatureOnly.mf","",toPlot[,1]))
+toPlot<-toPlot[-1]
+colnames(toPlot)<-c("TOTAL", "INSERTIONS", "DELETIONS", "MISMATCHES")
+toPlot<-as.matrix(toPlot)
+class(toPlot) <- "numeric" 
+
+#lmat = rbind(c(0,3),c(2,1),c(0,4))
+lmat = rbind(c(3,4),c(2,1))
+lwid = c(0.4,5)
+my_palette <- colorRampPalette(c("red","white","white","white","white","white","white","white","white","white"))(n = 101)
+heatmap.2(toPlot,dendrogram='none',Rowv=TRUE,Colv=FALSE,col=my_palette,trace="row",tracecol="gray",lmat=lmat,lwid=lwid,margins = c(12, 6))
+
+@
+
+<<>>=
+
+library(gplots)
+ 
+myCol <- c("gray15", "gray25", "blue", "green", "yellow", "orange", "gray25", "gray15")
+# Defining breaks for the color scale
+myBreaks <- c(-1, -0.06, -0.05, -0.001, 0, 0.001, 0.05, 0.06, 1)
+# pdf("result_heatmap.pdf", width = 30, height = 30)
+ 
+hm <- heatmap.2(toPlot, scale="none", Rowv=T, Colv=T,
+col = myCol, ## using your colors
+breaks = myBreaks, ## using your breaks
+#                 dendrogram = "none",  ## to suppress warnings
+margins=c(8,8), cexRow=0.8, cexCol=0.8, key=FALSE, keysize=1.5,
+trace="none")
+legend("topleft", fill = myCol, cex=0.6,
+legend = c(">0.6", "0.6 to 0.05", "0.049 to 0.001 (OR <1)", "0.001 to 0 (OR <1)", "0 to 0.001 (OR >1)", "0.001 to 0.049 (OR >1)", "0.05 to 0.6", ">0.6"))
+
+#summary <- summary[!is.na(as.numeric(as.character(summary$pvaluesForMotif))),]
+#View(summary)
+
+#n <- dim(summary)[1]
+#total<-summary[seq(1, n, 4)[1:(n/4)],] 
+#total <-
+#        plyr::arrange(total, as.numeric(as.character(total$pvaluesForMotif)), decreasing = FALSE)
+#View(total)
+
 
 #file <- "OUT"
 #file<-"OUT_CGGGn"
