@@ -1,3 +1,4 @@
+
 \documentclass{article}
 
 \begin{document}
@@ -174,7 +175,7 @@ cumstat$cummulative<-unit_lengths*cumstat$mean
 cumstat<-arrange(cumstat,desc(cummulative))
 
 plot(cumstat$unit_lengths,cumstat$cummulative,ylab="cummulative length",xlab="unit length",col="blue",pch=1)
-head(cumstat) #candidates for FISH
+head(cumstat,n=11) #candidates for FISH
 
 @
 
@@ -222,7 +223,7 @@ getCandidatesForSpecies <- function(row,species,threshold) {
     toPlotAggregated<-aggregate(counts ~ name + sex + species + fullSpecies, data=transposed, FUN=mean)
     #print(table(toPlotAggregated$sex))
     #male_counts<-nrow(toPlotAggregated[toPlotAggregated$sex=="M",])
-    #female_counts<-nrow(toPlotAggregated[toPlotAggregated$sex=="F",])
+    #female_counts<-nrow(toPlotAggregated[toPlotAggregated$samsex=="F",])
     #d<-mean(toPlotAggregated[toPlotAggregated$sex=="F",]$counts)-mean(toPlotAggregated[toPlotAggregated$sex=="M",]$counts)
     #power<-pwr.t2n.test(male_counts,female_counts,abs(d),alternative="less")$power
     #effect size needs to be calculated as absolute difference in means divided by the pooled std
@@ -254,7 +255,7 @@ Candidates_Chimpanzee<-getTopCandidatesForSpecies("Chimpanzee",threshold)
 Candidates_Bonobo<-getTopCandidatesForSpecies("Bonobo",threshold)
 Candidates_Gorilla<-getTopCandidatesForSpecies("Gorilla",threshold)
 Candidates_Orangutan<-getTopCandidatesForSpecies("Orangutan",threshold)
-Candidates_Human<-getTopCandidatesForSpecies("Human",threshold)
+Candidates_Human<-getTopCandidatesForSpecies("Homo",threshold)
 
 
 save(Candidates_Chimpanzee,file="/Users/alice/Desktop/projects/heterochromatin/great_ape_diversity/counts/Candidates_Chimpanzee.Rda")
@@ -279,8 +280,8 @@ library(locfit)
 library(gsubfn)
 options(scipen=10)
 
-#unitList=top_candidates_uniq #***MALE SKEWED
-unitList=head(abundant[,1],n=10) #***MOST ABUNDANT
+unitList=top_candidates_uniq #***MALE SKEWED
+#unitList=head(abundant[,1],n=10) #***MOST ABUNDANT
 
 getMales <- function(toPlotAggregated,species) {
   return(toPlotAggregated[toPlotAggregated$species==species & toPlotAggregated$sex=="M",5])
@@ -343,20 +344,23 @@ plotFigure <- function(toPlot) {
   
   my.vioplot(getFemales(toPlotAggregated,"Homo"),getMales(toPlotAggregated,"Homo"),getFemales(toPlotAggregated,"Chimpanzee"),getMales(toPlotAggregated,"Chimpanzee"),getFemales(toPlotAggregated,"Bonobo"),getMales(toPlotAggregated,"Bonobo"),getFemales(toPlotAggregated,"Gorilla"),getMales(toPlotAggregated,"Gorilla"),getFemales(toPlotAggregated,"Orangutan"),getMales(toPlotAggregated,"Orangutan"),col=c("tomato","skyblue","tomato","skyblue","tomato","skyblue","tomato","skyblue","tomato","skyblue"),names=c("Homo","Homo","Chimpanzee","Chimpanzee","Bonobo","Bonobo","Gorilla","Gorilla","Orangutan","Orangutan"),ylim=c(0,max(toPlotAggregated$counts)))
   
+  tHomo<-wilcox.test(alternative="less",getFemales(toPlotAggregated,"Homo"),getMales(toPlotAggregated,"Homo"))
   tChimpanzee<-wilcox.test(alternative="less",getFemales(toPlotAggregated,"Chimpanzee"),getMales(toPlotAggregated,"Chimpanzee"))
   tBonobo<-wilcox.test(alternative="less",getFemales(toPlotAggregated,"Bonobo"),getMales(toPlotAggregated,"Bonobo"))
   tGorilla<-wilcox.test(alternative="less",getFemales(toPlotAggregated,"Gorilla"),getMales(toPlotAggregated,"Gorilla"))
   tOrangutan<-wilcox.test(alternative="less",getFemales(toPlotAggregated,"Orangutan"),getMales(toPlotAggregated,"Orangutan"))
   
+  print(tHomo)
   print(tChimpanzee)
   print(tBonobo)
   print(tGorilla)
   print(tOrangutan)
   
-  mtext(as.character(round(tChimpanzee$p.value,2)),col=ifelse(tChimpanzee$p.value<0.05,"red","black"),at=2)
-  mtext(as.character(round(tBonobo$p.value,2)),col=ifelse(tBonobo$p.value<0.05,"red","black"),at=4)
-  mtext(as.character(round(tGorilla$p.value,2)),col=ifelse(tGorilla$p.value<0.05,"red","black"),at=6)
-  mtext(as.character(round(tOrangutan$p.value,2)),col=ifelse(tOrangutan$p.value<0.05,"red","black"),at=8)
+  mtext(as.character(round(tHomo$p.value,2)),col=ifelse(tHomo$p.value<0.05,"red","black"),at=2)
+  mtext(as.character(round(tChimpanzee$p.value,2)),col=ifelse(tChimpanzee$p.value<0.05,"red","black"),at=4)
+  mtext(as.character(round(tBonobo$p.value,2)),col=ifelse(tBonobo$p.value<0.05,"red","black"),at=6)
+  mtext(as.character(round(tGorilla$p.value,2)),col=ifelse(tGorilla$p.value<0.05,"red","black"),at=8)
+  mtext(as.character(round(tOrangutan$p.value,2)),col=ifelse(tOrangutan$p.value<0.05,"red","black"),at=10)
   
   #vioplot(toPlotAggregated[toPlotAggregated$species=="Gorilla",4],toPlotAggregated[toPlotAggregated$species=="Pan",4],toPlotAggregated[toPlotAggregated$species=="Pongo",4],names=c("Gorilla","Pan","Pongo"),col=c("darkseagreen1"),ylim=c(min(toPlotAggregated$counts,0),max(toPlotAggregated$counts,1000)))
   #mtext(as.character(pvalue),col=ifelse(pvalue<0.05,"red","black"))
@@ -381,7 +385,7 @@ plotFigure <- function(toPlot) {
 }
 
 
-par(mfrow=c(1,2),cex=1.1,oma = c(5,4,0,0) + 0.1, mar = c(0,0,2.2,2.2) + 0.1)
+par(mfrow=c(1,2),cex=1.1,cex.lab=2,oma = c(5,4,0,0) + 0.1, mar = c(0,0,2.2,2.2) + 0.1)
 for (unit in unitList) {
   toPlot<-t(abundant[abundant$unit==unit,2:ncol(abundant)])
   
@@ -454,7 +458,7 @@ getPvalue <- function(row) {
     colnames(toPlot)<-c("counts","name","fullSpecies","species","sex")
     toPlot<-toPlot[order(-toPlot$counts), , drop = FALSE]
     toPlotAggregated<-aggregate(counts ~ name + species + fullSpecies, data=toPlot, FUN=mean)
-    View(toPlot)
+    #View(toPlot)
     
     #run ANOVA
     fit <- aov(counts ~ species, data=toPlotAggregated)
@@ -463,7 +467,7 @@ getPvalue <- function(row) {
     return(pvalue)
 }
 
-n=1
+n=100
 pvalues<-as.numeric(invisible(by(abundant[1:n,], 1:n, function(row) getPvalue(row))))
 abundancy<-rowSums(abundant[1:n,2:ncol(abundant)])
 plot(log(abundancy),pvalues,col=ifelse(pvalues<0.05,"red","black"),main=n)
@@ -660,13 +664,14 @@ DYZ19<- seqinr::read.fasta(file = "/Users/alice/Desktop/projects/heterochromatin
 DYZ19seq<-DYZ19[[1]]
 table(DYZ19seq)
 plot(count(DYZ19seq, 2))
-slidingwindowplot(10, DYZ19seq)
+slidingwindowplot(5, DYZ19seq)
 @
 
 <<analyze most abundant repeats>>=
-#par(mfrow=c(2,1))
+par(mfrow=c(1,1))
 require("dendextend")
 library(reshape)
+library(hexbin)
 #val<-as.numeric(top[1,2:ncol(top)])
 
 #plot(val)
@@ -676,12 +681,14 @@ library(reshape)
 
 ####################
 ## MAYBE PLOT MALES AND FEMALES SEPARATELY
-top<-abundant[1:100000,]
+top<-abundant
+#top<-abundant[1:10,]
+#top<-abundant[abundant$unit %in% top_candidates_uniq,]
 
 ####################
 ## merge technical replicates, keep only one sample per individual
 #top<-top[,grepl("\\|M\\|",colnames(top))==TRUE] #PICK ONLY FEMALES OR MALES
-colnames(top)<-paste(lapply(strsplit(colnames(top),"\\|"), function(x) paste(x[3],x[2])))
+colnames(top)<-paste(lapply(strsplit(colnames(top),"\\|"), function(x) paste(x[3],x[2],x[4])))
 #top<-lapply(unique(colnames(top[,2:ncol(top)])), function(x) rowMeans(top[,colnames(top) == x,drop=FALSE]))
 
 unique_col_names <- unique(colnames(top))
@@ -703,7 +710,8 @@ new_dfr<-new_dfr[,-1]
 sample<-new_dfr
 sample<-t(sample)
 
-l<-rownames(sample)
+sampleToCluster<-sample
+l<-rownames(sampleToCluster)
 l[grepl("Pan_paniscus",l)==TRUE]<-"Bonobo"
 l[grepl("Pan",l)==TRUE]<-"Chimpanzee"
 l[grepl("Gorilla",l)==TRUE]<-"Gorilla"
@@ -716,11 +724,18 @@ l[grepl("Homo",l)==TRUE]<-"Homo"
 
 #rownames(sample) <- l
 groupCodes <-l
-rownames(sample)<-l
+rownames(sampleToCluster)<-l
 colorCodes <- c(Bonobo="blue", Chimpanzee="darkgreen", Gorilla="red", Orangutan="orange", Homo="black")
 
-distSamples <- dist(sample)
-hc <- hclust(distSamples,method="ward.D") #method="ward.D", "ward.D2", "single", "complete", "average" (= UPGMA), "mcquitty" (= WPGMA), "median" (= WPGMC) or "centroid" (= UPGMC).
+dist<-as.dist(1-cor((t(sampleToCluster)))) #distance based on correlation
+#dist<-dist(scale(sampleToCluster),method="euclidean")
+
+distOriginal=as.dist(1-cor(new_dfr))
+
+hc <- hclust(dist,method="average") #method="ward.D", "ward.D2", "single", "complete", "average" (= UPGMA), "mcquitty" (= WPGMA), "median" (= WPGMC) or "centroid" (= UPGMC).
+hcOriginal <- hclust(distOriginal,method="single") 
+plot(hcOriginal)
+
 dend <- as.dendrogram(hc,center=TRUE)
 
 # loading the package
@@ -728,15 +743,264 @@ library(dendextend)
 # Assigning the labels of dendrogram object with new colors:
 labels_colors(dend) <- colorCodes[groupCodes][order.dendrogram(dend)]
 # Plotting the new dendrogram
+
 plot(dend)
+#hexplom(sample)
+
+km.out=kmeans(sampleToCluster,5,nstart=20)
+#plot(sampleToCluster,col=(km.out$cluster+1))
+#sample<-as.data.frame(sample)
+#sex<-paste(lapply(strsplit(rownames(sample)," "), function(x) x[3]))
+#species<-paste(lapply(strsplit(rownames(sample)," "), function(x) x[2]))
+#sample$sex<-sex
+#sample$species<-species
+
+#hexplom(sample[,1:10],groups=sample[,11])
+@
+
+<<>>=
+#EXPLORATORY ANALYSIS
+library(lattice)
+library(randomcoloR)
+par(mfrow=c(2,1))
+n<-length(levels(as.factor(sample$species)))
+n<-14
+coloring<-rainbow(n,start=0)
+#coloring<-distinctColorPalette(n)
+palette(coloring)
+plot(sample[,1:10],col=factor(sample$species))
+#legend("bottomright",legend=levels(as.factor(sample$species)),col=coloring,lty=1, cex=1.5)
+
+palette(c("red","blue"))
+plot(sample[,1:10],col=as.factor(sample$sex))
+#legend("topright",legend=levels(as.factor(sample$sex)),col=c("red","blue"), lty=1, cex=1.5)
+
+#most abundant repeats are very highly correlated
+plot(cor(sample[,1:10]))
+
+#correlation plot
+corTable<-t(sample)
+#rownames(corTable)<-corTable[,1]
+#corTable<-corTable[,-1]
+#rownames(corTable) <- NULL
+corTable<-as.matrix(corTable)
+class(corTable) <- "numeric"
+
+#REMOVE BOTTOM 25% OF THE DATA
+corTable<-corTable[1:522,]
+cor(t(corTable))
+
+#HOW ARE INDIVIDUAL REPEATS CORRELATED?
+View(cor(t(corTable)))
+source("http://www.sthda.com/upload/rquery_cormat.r")
+rquery.cormat(t(corTable[1:50,]), type="upper")
 
 @
+
+<<>>=
+par(mfrow=c(2,1))
+
+plot(sort(as.vector(unlist(cor(t(corTable))))),ylab="correlation coefficient",ylim=c(-1,1),pch=20,main="Correlation table vs random data",xlim=c(0,500000))
+abline(h=0,col="red")
+
+randomMatrix<-matrix(runif(484416, 0, 95000), ncol=696)
+points(sort(as.vector(unlist(cor(randomMatrix)))),ylab="correlation coefficient",ylim=c(-1,1),col="red",pch=20)
+
+cor(dfr[,1:n],use="complete.obs")
+
+#devtools::install_github("drsimonj/corrr")
+#package corrr? https://cran.r-project.org/web/packages/corrr/corrr.pdf
+
+#http://stackoverflow.com/questions/19113181/removing-na-in-correlation-matrix
+library(corrr)
+df<-t(corTable)
+zv <- apply(df, 2, function(x) length(unique(x)) == 1)
+dfr <- df[, !zv]
+n=length(colnames(dfr))
+correlationMatrix <- dfr
+library(caret)
+highlyCorrelated <- findCorrelation(correlationMatrix, cutoff=(0.9),verbose = TRUE)
+print(highlyCorrelated)
+important_var=colnames(df[,-highlyCorrelated])
+print(important_var)
+
+x <- rearrange(correlate(correlationMatrix),absolute = FALSE)
+x <- shave(x)
+rplot(x,colors=c("blue","red"))
+#SHOW SPECIFICALLY NEGATIVE CORRELATION VALUES
+@
+
+<<>>=
+#.pardefault <- par(no.readonly = T)
+par(mfrow=c(2,3),cex.lab=1.5,cex=1.5)
+#DIVIDE BY SPECIES
+setwd("/Users/alice/Desktop/projects/heterochromatin/phylogeny")
+myList=c("Homo","Pan_paniscus","Pan_troglodytes","Gorilla","Pongo")
+#myList=c("Pongo")
+
+length(chimpRep) #chimpRep<-colnames(subset)
+length(bonoboRep) #bonoboRep<-colnames(subset)
+panRep<-intersect(chimpRep,bonoboRep)
+length(panRep)
+
+for (ape in myList) {
+  print(ape)
+  t<-dfr[grepl(ape,rownames(dfr))==TRUE,]
+  print(dim(t))
+  
+  #zerocounts <- apply(t, 2, function(x) as.numeric(table(x==0)["TRUE"]))
+  
+  #identify data for which correlation cannot be calculated
+  x<-correlate(t)
+  tolerated<-length(colnames(x))-1
+  NAcounts <- apply(x, 1, function(x) as.numeric(table(is.na(x))["TRUE"]))
+  keep<-NAcounts<(tolerated)
+  print(as.numeric(table(keep)["TRUE"]))
+  
+  #keep only data for which correlation CAN be calculated
+  subset<-t[,keep]
+  print(dim(subset))
+  ?#colkeep<-c("TRUE",keep)
+  #x<-subset(x,keep==TRUE,colkeep==TRUE)
+  
+  #x <- rearrange(correlate(subset),absolute = FALSE)
+  x <- correlate(subset) #TODO !!!
+  #x <- correlate(subset[,panRep])
+  x <- shave(x)
+  
+  #pdf(paste(ape,".pdf",sep=""))
+  #rplot(x,legend=TRUE,colors = c("blue", "red")) #TODO
+  #dev.off
+  #device="RStudioGD"
+  #par(.pardefault)
+  
+  source("http://www.sthda.com/upload/rquery_cormat.r")
+  #rquery.cormat(subset, type="lower")
+  #rquery.cormat(subset, graphType="heatmap")
+  #rquery.cormat(subset, type="flatten", graph=FALSE)
+  
+  reordered<-subset[,order(colSums(-subset,na.rm=TRUE))]
+  boxplot(reordered[,1:15],col="gold",las=2,main=paste(ape,"most abundant rep"),cex.axis=0.45)
+  
+  #boxplot(colSums(reordered),outline=FALSE,col="cyan",main=paste(ape,"variation in repeat counts"))
+  corValues<-as.vector(as.numeric(unlist(x)))
+  corValues<-corValues[!is.na(corValues)]
+  plot(sort(corValues),ylab="correlation coefficient",ylim=c(-1,1),pch=20,main=ape,xlim=c(0,length(corValues)))
+  #abline(h=0,col="red")
+  
+  l<-round(sqrt(length(corValues)))
+  randomMatrix<-matrix(runif(l*l, min(subset), max(subset)), ncol=l)
+points(sort(as.vector(unlist(cor(randomMatrix)))),ylab="correlation coefficient",ylim=c(-1,1),col="red",pch=20)
+}
+
+@
+
+<<>>=
+par(mfrow=c(2,1))
+uniq_names<-c("Homo_sapiens","Pan_troglodytes_schweinfurthii","Pan_troglodytes_troglodytes","Pan_troglodytes_ellioti","Pan_troglodytes_verus","Pan_troglodytes_verus_x_troglodytes","Pan_paniscus","Gorilla_gorilla_gorilla","Gorilla_gorilla_diehli","Gorilla_beringei_graueri","Pongo_pygmaeus","Pongo_abelii")
+repVariability<-lapply(uniq_names, function(x) rowMeans(sample[sample$species == x,1:(ncol(sample)-2)]))
+boxplot(repVariability,names=paste(uniq_names,lengths(repVariability)),las=2,col=c(rep("blue",1),rep("coral",5),rep("skyblue2",1),rep("orange",3),rep("yellow",2)),outline=TRUE)
+
+uniq_names<-c("Homo","Pan_troglodytes","Pan_paniscus","Gorilla","Pongo")
+repVariabilityBig<-lapply(uniq_names, function(x) rowMeans(sample[grepl(x,sample$species)==TRUE,1:(ncol(sample)-2)]))
+boxplot(repVariabilityBig,names=paste(uniq_names,lengths(repVariabilityBig)),las=2,col=c("blue","coral","skyblue2","orange","yellow"),outline=TRUE)
+
+
+@
+
+<<>>=
+library(msa)
+s<-1
+e<-115  #115 means only blue
+subset <- x[s:e,(s+1):(e+1)]
+#subset<-x
+#rplot(subset)
+# Common use is following rearrange and shave
+#x <- rearrange(x, absolute = FALSE)
+rplot(subset)
+#rplot(subset, print_cor = TRUE)
+#rplot(x, shape = 20, colors = c("red", "green"), legend = TRUE)
+
+plotFasta<-function(path_to_fasta) {
+ mySequenceFile <- path_to_fasta
+ mySequences <- readAAStringSet(mySequenceFile)
+ mySequences
+ myFirstAlignment <- msa(mySequences)
+ msaPrettyPrint(myFirstAlignment, output="pdf", paperHeight=20, showLogo="top",
+                logoColors="rasmol", shadingMode="similar",
+                askForOverwrite=FALSE)
+ 
+ system2('open', args = c('-a Preview.app', 'myFirstAlignment.pdf'), wait = FALSE)
+}
+
+plotFasta("/Users/alice/Desktop/projects/heterochromatin/phylogeny/blue_cor.fasta")
+
+source("http://www.sthda.com/upload/rquery_cormat.r")
+top_blue<-colnames(x)[2:30]
+#show first 50
+rquery.cormat(t(corTable[1:50,]), type="upper")
+#show top_blue
+top_blue_data<-t(corTable)[,top_blue]
+rquery.cormat(top_blue_data, type="upper")
+@
+
+
+
+<<mantel>>=
+library(vegan)
+library(spaMM)
+## Is vegetation related to environment?
+data(varespec)
+data(varechem)
+veg.dist <- vegdist(varespec) # Bray-Curtis
+env.dist <- vegdist(scale(varechem), "euclid")
+mantel(veg.dist, env.dist)
+mantel(veg.dist, env.dist, method="spear")
+@
+
+
+<<>>=
+correlationMatrix %>% 
+  correlate() %>% 
+  rearrange()
+
+correlationMatrix[1:5,1:5] %>% 
+  correlate() %>% 
+  network_plot(min_cor = .2, legend = TRUE)
+
+rquery.cormat(correlationMatrix[1:200,1:200], type="upper")
+@
+
+
+<<>>=
+
+if (!require("gplots")) {
+  install.packages("gplots", dependencies = TRUE)
+  library(gplots)
+}
+if (!require("RColorBrewer")) {
+  install.packages("RColorBrewer", dependencies = TRUE)
+  library(RColorBrewer)
+}
+mycol<-colorRampPalette(c("white","#054662" ), bias=1) ##054662
+heatmap.2(correlationMatrix, Rowv=NA, Colv=NA, col=mycol(10), scale="none", 
+                          key=FALSE, trace="none", tracecol="#054662",
+                          dendrogram="none", cexRow=1, cexCol=1,
+                          offsetCol = 0.01,  
+                          sepwidth=c(0.00001,0.00001),
+                          sepcolor="white",
+                          colsep=0:ncol(correlationMatrix),
+                          rowsep=0:nrow(correlationMatrix),
+                          notecol="#054662"
+                          )
+@
+
 
 <<>>=
 #PCA ANALYSIS
 library(rgl)
 par(mfrow=c(2,1))
-pca_data<-as.data.frame(na.omit(sample[,1:3]))
+pca_data<-as.data.frame(na.omit(sampleToCluster[,1:10]))
 #rn<-unlist(lapply(strsplit(rownames(sample)," "), function(x) x[2]))
 #pca$rn<-gsubfn(".*", list("Pan_paniscus"="B", "Pan_troglodytes"="C", "Gorilla_beringei"="G", "Gorilla_gorilla"="G", "Pongo_pygmaeus"="O", "Pongo_abelii"="O","Homo_sapiens"="H"), rn)
 #pca_data$species<-rn
@@ -745,7 +1009,7 @@ pca_data<-pca_data[with(pca_data, order(species)), ]
 
 pca_data$species<-factor(pca_data$species)
 
-View(pca_data)
+#View(pca_data)
 pc <- princomp(pca_data[,1:(ncol(pca_data)-1)], cor=TRUE, scores=TRUE)
 summary(pc)
 plot(pc,type="lines")
@@ -756,10 +1020,89 @@ plot3d(pc$scores[,1:3],col=as.numeric(pca_data$species))
 plot.new()
 legend(x="topleft", legend = levels(pca_data$species), col = unique(as.numeric(pca_data$species)),lty=1,bty = "n")
 
+
+pca_data_sex<-sample[,] #SUBSAMPLE ONLY TO CHIMPANZEES #grepl("Gorilla|Pan_troglodytes",sample$species)
+pca_data_sex$sex<-factor(pca_data_sex$sex)
+rownames(pca_data_sex)<- make.names(pca_data_sex$sex, unique=TRUE)
+pca_data_sex<-pca_data_sex[,c(1:10,ncol(pca_data_sex)-1)] #subsample
+
+pc_sex <- princomp(pca_data_sex[,1:(ncol(pca_data_sex)-1)], cor=TRUE,scores=TRUE)
+summary(pc_sex)
+plot(pc_sex,type="lines")
+biplot(pc_sex)
+
+palette(c("black","deeppink"))
+plot3d(pc_sex$scores[,1:3],col=as.numeric(pca_data_sex$sex))
+plot.new()
+legend(x="topleft", legend = levels(pca_data_sex$sex), col = unique(as.numeric(pca_data_sex$sex)),lty=1,bty = "n")
+
 #library("corrplot")
 #source("http://www.sthda.com/upload/rquery_cormat.r")
 #rquery.cormat(t(pca_data[,1:(ncol(pca_data)-1)]), type="upper")
 @
 
+<<species by species>>=
+library(hexbin)
+par(mfrow=c(2,2))
+explData<-new_dfr
+Fsp<-paste(lapply(strsplit(colnames(explData)," "), function(x) x[2]))
+colnames(explData)<-Fsp
+
+for (ape in unique(colnames(explData))) {
+  print(ape)
+  t<-explData[,grepl(ape,colnames(explData))==TRUE]
+  print(dim(t))
+  n<-dim(t)[2]
+  if (!is.null(n) && n>1) {
+    t<-as.data.frame(t)
+    t <-t[order(rowSums(t),decreasing = TRUE), , drop = FALSE]
+    t<-head(t,n=10)
+    print(t)
+    coloring<-rainbow(max(nchar(rownames(t))),start=0)
+    palette(coloring)
+    plot(log(t),col=nchar(rownames(t)),main=ape)
+    #hexplom(log(t))
+    print("---")
+    trans<-t(t)
+    plot(as.data.frame(trans),col=rainbow(nrow(trans)),main=ape)
+    print(rowSums(t))
+  }
+}
+@
+
+
+<<lda>>=
+library(MASS)
+
+lda.fit=lda(pca_data_sex$sex~.,data=pca_data_sex[,1:(ncol(pca_data_sex)-1)],CV=TRUE)
+tab <- table(pca_data_sex$sex, lda.fit$class)
+conCV1 <- rbind(tab[1, ]/sum(tab[1, ]), tab[2, ]/sum(tab[2, ]))
+dimnames(conCV1) <- list(Actual = c("F", "M"), "Predicted (cv)" = c("F","M"))
+print(round(conCV1, 3))
+
+par(mfrow=c(3,3))
+#plot.new()
+#plot.window(xlim = c(0, 10), ylim = c(0, 100))
+box()
+axis(1)
+axis(4)
+
+for (i in seq(2, 10, 1)) {
+  lda.fit=lda(pca_data$species~.,data=pca_data[,1:i],CV=TRUE) #[,1:(ncol(pca_data)-1)]
+  tab <- table(pca_data$species, lda.fit$class)
+  accuracy<-sum(diag(tab))/sum(tab)*100
+  print(paste(i,accuracy))
+  #points(i,accuracy)
+  print(tab)
+  plot(t(tab),main=paste("number of repeats",i))
+}
+#print(tab)
+
+
+#library (randomForest)
+#rf=randomForest(pca_data$species~.,data=pca_data[,1:(ncol(pca_data)-1)],importance=TRUE)
+#importance(rf) #textual representation of how important the variables were
+#varImpPlot(rf) #graphical representation
+@
 
 \end{document}
