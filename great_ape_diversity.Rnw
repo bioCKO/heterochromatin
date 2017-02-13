@@ -1060,13 +1060,25 @@ for (ape in unique(colnames(explData))) {
     print(t)
     coloring<-rainbow(max(nchar(rownames(t))),start=0)
     palette(coloring)
-    plot(log(t),col=nchar(rownames(t)),main=ape)
+    #plot(log(t),col=nchar(rownames(t)),main=ape)
     #hexplom(log(t))
     print("---")
     trans<-t(t)
-    plot(as.data.frame(trans),col=rainbow(nrow(trans)),main=ape)
-    print(rowSums(t))
-  }
+    #plot(as.data.frame(trans),col=rainbow(nrow(trans)),main=ape)
+    print(colSums(t))
+    colnames(t)<-make.unique(colnames(t))
+    #apply(t, 1, function(x) paste(names(x)[order(x)], collapse = " "))
+    indivSorted<-as.data.frame(apply(t, 1, function(x) paste(names(x)[order(x)])))
+    
+    par(mfrow=c(3,5))
+    for (c in colnames(t)) {
+      indivOrder<-sort(apply(indivSorted,2,function(x) which(x==c)))
+      plot(indivOrder,col="blue",main=c,sub=ape,ylim=c(0,nrow(indivSorted)),ylab="individual order based on particular repeat")
+      abline(h=median(indivOrder),col="red")
+      text(1:ncol(indivSorted),nrow(indivSorted)/2,labels=colnames(indivSorted),las=1,srt=90,col="darkgreen",cex=0.75)
+    }
+    
+    }
 }
 @
 
