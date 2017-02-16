@@ -72,6 +72,7 @@ data <- Reduce(mydt, dt_list)
 
 data[is.na(data)] <- 0
 colnames(data)<-c("unit",files)
+data<-as.data.frame(data) #convert to dataframe from data table
 
 #RAW DATA
 save(data,file="/Users/alice/Desktop/projects/heterochromatin/great_ape_diversity/counts/data.Rda")
@@ -668,7 +669,7 @@ slidingwindowplot(5, DYZ19seq)
 @
 
 <<analyze most abundant repeats>>=
-par(mfrow=c(1,1))
+par(mfrow=c(1,1),cex=0.9)
 require("dendextend")
 library(reshape)
 library(hexbin)
@@ -724,28 +725,48 @@ l[grepl("Homo",l)==TRUE]<-"Homo"
 
 #rownames(sample) <- l
 groupCodes <-l
-rownames(sampleToCluster)<-l
+rownames(sampleToCluster)<-groupCodes
 colorCodes <- c(Bonobo="blue", Chimpanzee="darkgreen", Gorilla="red", Orangutan="orange", Homo="black")
 
 dist<-as.dist(1-cor((t(sampleToCluster)))) #distance based on correlation
-#dist<-dist(scale(sampleToCluster),method="euclidean")
+#dist<-dist((sampleToCluster),method="euclidean")
+
+m1 <- as.matrix(dist)
+m1[upper.tri(m1)] <- 0
+library(reshape2)
+m2 <- subset(melt(m1), value!=0)
+m2$X1<-gsub(pattern='(.*)[.](.*)','\\1',m2$X1)
+m2$X2<-gsub(pattern='(.*)[.](.*)','\\1',m2$X2)
+m2<-m2[!m2$X1==m2$X2,] #remove same species comparisons
+m2<-(m2[order(m2$value),3:1])
+
 
 distOriginal=as.dist(1-cor(new_dfr))
 
-hc <- hclust(dist,method="average") #method="ward.D", "ward.D2", "single", "complete", "average" (= UPGMA), "mcquitty" (= WPGMA), "median" (= WPGMC) or "centroid" (= UPGMC).
+hc <- hclust(dist,method="complete") #method="ward.D", "ward.D2", "single", "complete", "average" (= UPGMA), "mcquitty" (= WPGMA), "median" (= WPGMC) or "centroid" (= UPGMC).
+hcSingle <- hclust(dist,method="single") #method="ward.D", "ward.D2", "single", "complete", "average" (= UPGMA), "mcquitty" (= WPGMA), "median" (= WPGMC) or "centroid" (= UPGMC).
 hcOriginal <- hclust(distOriginal,method="single") 
 plot(hcOriginal)
 
-dend <- as.dendrogram(hc,center=TRUE)
-
 # loading the package
 library(dendextend)
+
+dend <- as.dendrogram(hc)
+dendSingle <- as.dendrogram(hcSingle)
+
+names_and_sexes<-paste(lapply(strsplit(rownames(sample)," "), function(x) x[1]),lapply(strsplit(rownames(sample)," "), function(x) x[3]))
+
 # Assigning the labels of dendrogram object with new colors:
 labels_colors(dend) <- colorCodes[groupCodes][order.dendrogram(dend)]
-# Plotting the new dendrogram
+labels(dend)<-names_and_sexes[order.dendrogram(dend)]
+labels_colors(dendSingle) <- colorCodes[groupCodes][order.dendrogram(dendSingle)]
+labels(dendSingle)<-names_and_sexes[order.dendrogram(dendSingle)]
 
-plot(dend)
+plot(dend, main = "dend")
+plot(dendSingle, main = "dendSingle")
 #hexplom(sample)
+dendrograms <- dendlist(dend, dendSingle)
+#tanglegram(dendrograms,common_subtrees_color_branches = TRUE)
 
 km.out=kmeans(sampleToCluster,5,nstart=20)
 #plot(sampleToCluster,col=(km.out$cluster+1))
@@ -1000,7 +1021,7 @@ heatmap.2(correlationMatrix, Rowv=NA, Colv=NA, col=mycol(10), scale="none",
 #PCA ANALYSIS
 library(rgl)
 par(mfrow=c(2,1))
-pca_data<-as.data.frame(na.omit(sampleToCluster[,1:10]))
+pca_data<-as.data.frame(na.omit(sampleToCluster[,1:80]))
 #rn<-unlist(lapply(strsplit(rownames(sample)," "), function(x) x[2]))
 #pca$rn<-gsubfn(".*", list("Pan_paniscus"="B", "Pan_troglodytes"="C", "Gorilla_beringei"="G", "Gorilla_gorilla"="G", "Pongo_pygmaeus"="O", "Pongo_abelii"="O","Homo_sapiens"="H"), rn)
 #pca_data$species<-rn
@@ -1013,7 +1034,7 @@ pca_data$species<-factor(pca_data$species)
 pc <- princomp(pca_data[,1:(ncol(pca_data)-1)], cor=TRUE, scores=TRUE)
 summary(pc)
 plot(pc,type="lines")
-biplot(pc)
+#biplot(pc)
 
 palette(c("red","orange","gold","blue","darkcyan"))
 plot3d(pc$scores[,1:3],col=as.numeric(pca_data$species))
@@ -1021,20 +1042,20 @@ plot.new()
 legend(x="topleft", legend = levels(pca_data$species), col = unique(as.numeric(pca_data$species)),lty=1,bty = "n")
 
 
-pca_data_sex<-sample[,] #SUBSAMPLE ONLY TO CHIMPANZEES #grepl("Gorilla|Pan_troglodytes",sample$species)
-pca_data_sex$sex<-factor(pca_data_sex$sex)
-rownames(pca_data_sex)<- make.names(pca_data_sex$sex, unique=TRUE)
-pca_data_sex<-pca_data_sex[,c(1:10,ncol(pca_data_sex)-1)] #subsample
+#pca_data_sex<-sample[,] #SUBSAMPLE ONLY TO CHIMPANZEES #grepl("Gorilla|Pan_troglodytes",sample$species)
+#pca_data_sex$sex<-factor(pca_data_sex$sex)
+#rownames(pca_data_sex)<- make.names(pca_data_sex$sex, unique=TRUE)
+#pca_data_sex<-pca_data_sex[,c(1:10,ncol(pca_data_sex)-1)] #subsample
 
-pc_sex <- princomp(pca_data_sex[,1:(ncol(pca_data_sex)-1)], cor=TRUE,scores=TRUE)
-summary(pc_sex)
-plot(pc_sex,type="lines")
-biplot(pc_sex)
+#pc_sex <- princomp(pca_data_sex[,1:(ncol(pca_data_sex)-1)], cor=TRUE,scores=TRUE)
+#summary(pc_sex)
+#plot(pc_sex,type="lines")
+#biplot(pc_sex)
 
-palette(c("black","deeppink"))
-plot3d(pc_sex$scores[,1:3],col=as.numeric(pca_data_sex$sex))
-plot.new()
-legend(x="topleft", legend = levels(pca_data_sex$sex), col = unique(as.numeric(pca_data_sex$sex)),lty=1,bty = "n")
+#palette(c("black","deeppink"))
+#plot3d(pc_sex$scores[,1:3],col=as.numeric(pca_data_sex$sex))
+#plot.new()
+#legend(x="topleft", legend = levels(pca_data_sex$sex), col = unique(as.numeric(pca_data_sex$sex)),lty=1,bty = "n")
 
 #library("corrplot")
 #source("http://www.sthda.com/upload/rquery_cormat.r")
@@ -1056,15 +1077,17 @@ for (ape in unique(colnames(explData))) {
   if (!is.null(n) && n>1) {
     t<-as.data.frame(t)
     t <-t[order(rowSums(t),decreasing = TRUE), , drop = FALSE]
+    t <-t[,order(colSums(t),decreasing = TRUE), drop = FALSE]
+    #NOTE: SORTED BY BOTH ROWSUMS (repeat abundances) and COLSUMS (individual abundances)
     t<-head(t,n=10)
     print(t)
     coloring<-rainbow(max(nchar(rownames(t))),start=0)
     palette(coloring)
-    #plot(log(t),col=nchar(rownames(t)),main=ape)
+    plot(log(t),col=nchar(rownames(t)),main=ape)
     #hexplom(log(t))
     print("---")
     trans<-t(t)
-    #plot(as.data.frame(trans),col=rainbow(nrow(trans)),main=ape)
+    plot(as.data.frame(trans),col=rainbow(nrow(trans)),main=ape)
     print(colSums(t))
     colnames(t)<-make.unique(colnames(t))
     #apply(t, 1, function(x) paste(names(x)[order(x)], collapse = " "))
