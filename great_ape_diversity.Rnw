@@ -669,7 +669,7 @@ slidingwindowplot(5, DYZ19seq)
 @
 
 <<analyze most abundant repeats>>=
-par(mfrow=c(1,1),cex=0.9)
+par(mfrow=c(2,1),cex=0.9)
 require("dendextend")
 library(reshape)
 library(hexbin)
@@ -683,7 +683,7 @@ library(hexbin)
 ####################
 ## MAYBE PLOT MALES AND FEMALES SEPARATELY
 top<-abundant
-#top<-abundant[1:10,]
+#top<-abundant[1:100,]
 #top<-abundant[abundant$unit %in% top_candidates_uniq,]
 
 ####################
@@ -697,7 +697,7 @@ new_dfr <- sapply(unique_col_names, function(name)
 {
   subs <- top[, colnames(top) == name]
   if(is.data.frame(subs))
-    rowSums(subs)
+    apply(subs,1,mean)
   else
     subs
 })
@@ -708,7 +708,7 @@ new_dfr<-new_dfr[,-1]
 
 #sample = top[,2:ncol(top)]
 
-sample<-new_dfr
+sample<-new_dfr #[,33:41]
 sample<-t(sample)
 
 sampleToCluster<-sample
@@ -746,7 +746,7 @@ distOriginal=as.dist(1-cor(new_dfr))
 hc <- hclust(dist,method="complete") #method="ward.D", "ward.D2", "single", "complete", "average" (= UPGMA), "mcquitty" (= WPGMA), "median" (= WPGMC) or "centroid" (= UPGMC).
 hcSingle <- hclust(dist,method="single") #method="ward.D", "ward.D2", "single", "complete", "average" (= UPGMA), "mcquitty" (= WPGMA), "median" (= WPGMC) or "centroid" (= UPGMC).
 hcOriginal <- hclust(distOriginal,method="single") 
-plot(hcOriginal)
+#plot(hcOriginal)
 
 # loading the package
 library(dendextend)
@@ -906,28 +906,63 @@ for (ape in myList) {
   #boxplot(colSums(reordered),outline=FALSE,col="cyan",main=paste(ape,"variation in repeat counts"))
   corValues<-as.vector(as.numeric(unlist(x)))
   corValues<-corValues[!is.na(corValues)]
-  plot(sort(corValues),ylab="correlation coefficient",ylim=c(-1,1),pch=20,main=ape,xlim=c(0,length(corValues)))
+  #plot(sort(corValues),ylab="correlation coefficient",ylim=c(-1,1),pch=20,main=ape,xlim=c(0,length(corValues)))
   #abline(h=0,col="red")
   
   l<-round(sqrt(length(corValues)))
   randomMatrix<-matrix(runif(l*l, min(subset), max(subset)), ncol=l)
-points(sort(as.vector(unlist(cor(randomMatrix)))),ylab="correlation coefficient",ylim=c(-1,1),col="red",pch=20)
+#points(sort(as.vector(unlist(cor(randomMatrix)))),ylab="correlation coefficient",ylim=c(-1,1),col="red",pch=20)
 }
 
 @
 
 <<>>=
-par(mfrow=c(2,1))
-uniq_names<-c("Homo_sapiens","Pan_troglodytes_schweinfurthii","Pan_troglodytes_troglodytes","Pan_troglodytes_ellioti","Pan_troglodytes_verus","Pan_troglodytes_verus_x_troglodytes","Pan_paniscus","Gorilla_gorilla_gorilla","Gorilla_gorilla_diehli","Gorilla_beringei_graueri","Pongo_pygmaeus","Pongo_abelii")
-repVariability<-lapply(uniq_names, function(x) rowMeans(sample[sample$species == x,1:(ncol(sample)-2)]))
-boxplot(repVariability,names=paste(uniq_names,lengths(repVariability)),las=2,col=c(rep("blue",1),rep("coral",5),rep("skyblue2",1),rep("orange",3),rep("yellow",2)),outline=TRUE)
+par(mfrow=c(1,1))
+library("e1071")
+
+#I think we should maybe first exclude zero counts for each species separately (only there where _all_ individuals have zero counts) and only then calculate variability
+#The results will differ based on whether we only include "red" rows or all of them
+non_zero<-sample
+
+uniq_names<-c("Homo_sapiens","Pan_troglodytes_schweinfurthii","Pan_troglodytes_troglodytes","Pan_troglodytes_ellioti","Pan_troglodytes_verus","Pan_paniscus","Gorilla_gorilla_gorilla","Gorilla_beringei_graueri","Pongo_pygmaeus","Pongo_abelii")
+
+#colSums(non_zero[grepl(x,rownames(non_zero))==TRUE,])!=0
+repVariability<-lapply(uniq_names, function(x) rowMeans(non_zero[grepl(x,rownames(non_zero))==TRUE,colSums(non_zero[grepl(x,rownames(non_zero))==TRUE,])!=0],na.rm = TRUE))
+sd<-unlist(lapply(repVariability, function(x) round(sd(x),2)))
+myColors<-c(rep("gray30",1),rep("firebrick1",4),rep("dodgerblue",1),rep("sandybrown",2),rep("gold",2))
+
+#boxplot(repVariability,names=paste(uniq_names,lengths(repVariability),"sd:",sd),las=2,col=myColors,outline=TRUE)
+
+len <- sapply(repVariability,length)
+n <- max( len )
+len <- n - len
+dt<-mapply( function(x,y) c( x , rep( NA , y ) ) , repVariability , len, SIMPLIFY = TRUE)
+rownames(dt)<-NULL
+colnames(dt)<-uniq_names
+#dt<-as.data.frame(dt)
+dotchart(dt,labels="",gcol=myColors,lcolor=rep(myColors,each=n),xlab="repeat counts per 1 million reads",pch=20,col="gray30")
+
+
+
 
 uniq_names<-c("Homo","Pan_troglodytes","Pan_paniscus","Gorilla","Pongo")
-repVariabilityBig<-lapply(uniq_names, function(x) rowMeans(sample[grepl(x,sample$species)==TRUE,1:(ncol(sample)-2)]))
-boxplot(repVariabilityBig,names=paste(uniq_names,lengths(repVariabilityBig)),las=2,col=c("blue","coral","skyblue2","orange","yellow"),outline=TRUE)
+myColors<-c("black","coral","skyblue2","darkorange","gold")
 
+repVariabilityBig<-lapply(uniq_names, function(x) rowMeans(non_zero[grepl(x,rownames(non_zero))==TRUE,colSums(non_zero[grepl(x,rownames(non_zero))==TRUE,])!=0],na.rm = TRUE))
+#boxplot(repVariabilityBig,names=paste(uniq_names,lengths(repVariabilityBig)),las=2,col=myColors,outline=TRUE)
+
+min<-unlist(lapply(repVariability, function(x) x[which.min(abs(x))]))
+max<-unlist(lapply(repVariability, function(x) x[which.max(abs(x))]))
+skewness<-unlist(lapply(repVariability, function(x) skewness(x)))
+@
+
+<<controls>>=
+read_counts<-getFilteredReadCounts(colnames(abundant))[2:ncol(abundant)]
+abundances<-apply(abundant[,2:ncol(abundant)],2,mean)
+plot(read_counts,abundances,main="No underlying bias in relationship between read counts and abundances",sub=paste("correlation coefficient:",cor(read_counts,abundances)))
 
 @
+
 
 <<>>=
 library(msa)
@@ -1021,7 +1056,7 @@ heatmap.2(correlationMatrix, Rowv=NA, Colv=NA, col=mycol(10), scale="none",
 #PCA ANALYSIS
 library(rgl)
 par(mfrow=c(2,1))
-pca_data<-as.data.frame(na.omit(sampleToCluster[,1:80]))
+pca_data<-as.data.frame(na.omit(sampleToCluster[,1:10]))
 #rn<-unlist(lapply(strsplit(rownames(sample)," "), function(x) x[2]))
 #pca$rn<-gsubfn(".*", list("Pan_paniscus"="B", "Pan_troglodytes"="C", "Gorilla_beringei"="G", "Gorilla_gorilla"="G", "Pongo_pygmaeus"="O", "Pongo_abelii"="O","Homo_sapiens"="H"), rn)
 #pca_data$species<-rn
@@ -1083,11 +1118,11 @@ for (ape in unique(colnames(explData))) {
     print(t)
     coloring<-rainbow(max(nchar(rownames(t))),start=0)
     palette(coloring)
-    plot(log(t),col=nchar(rownames(t)),main=ape)
+    #plot(log(t),col=nchar(rownames(t)),main=ape)
     #hexplom(log(t))
     print("---")
     trans<-t(t)
-    plot(as.data.frame(trans),col=rainbow(nrow(trans)),main=ape)
+    #plot(as.data.frame(trans),col=rainbow(nrow(trans)),main=ape)
     print(colSums(t))
     colnames(t)<-make.unique(colnames(t))
     #apply(t, 1, function(x) paste(names(x)[order(x)], collapse = " "))
@@ -1116,8 +1151,8 @@ dimnames(conCV1) <- list(Actual = c("F", "M"), "Predicted (cv)" = c("F","M"))
 print(round(conCV1, 3))
 
 par(mfrow=c(3,3))
-#plot.new()
-#plot.window(xlim = c(0, 10), ylim = c(0, 100))
+plot.new()
+plot.window(xlim = c(0, 10), ylim = c(0, 100))
 box()
 axis(1)
 axis(4)
@@ -1127,9 +1162,9 @@ for (i in seq(2, 10, 1)) {
   tab <- table(pca_data$species, lda.fit$class)
   accuracy<-sum(diag(tab))/sum(tab)*100
   print(paste(i,accuracy))
-  #points(i,accuracy)
+  points(i,accuracy)
   print(tab)
-  plot(t(tab),main=paste("number of repeats",i))
+  #plot(t(tab),main=paste("number of repeats",i))
 }
 #print(tab)
 
@@ -1140,4 +1175,42 @@ for (i in seq(2, 10, 1)) {
 #varImpPlot(rf) #graphical representation
 @
 
+<<venn diagram>>=
+par(cex=0.5)
+par(mar=c(10,4,4,2))
+binary<-sampleToCluster
+binary[binary>0]<-1
+binary<-as.data.frame(binary)
+
+binary <- sapply(unique(rownames(binary)), function(name) {
+  subs <- binary[rownames(binary) == name,]
+  if(is.data.frame(subs))
+    colSums(subs)
+  else
+    subs
+})
+
+#binary[binary>1]<-1
+library("gplots")
+
+sample_sizes<-c(19,13,27,10,11)
+binary<-sweep(binary, 2, sample_sizes, `/`)
+mycol<-colorRampPalette(c("beige","red" ), bias=1) 
+heatmap.2(binary,dendrogram="none", Colv=FALSE,trace='none',col=mycol,cexRow=0.1,cexCol=0.75)
+#colnames(binary)<-sampleToCluster[,1]
+#binary<-binary[-1,]
+binary<-as.data.frame(binary)
+
+#shared among all species
+dim(binary[binary$Chimpanzee>0 & binary$Bonobo>0 & binary$Gorilla>0 & binary$Orangutan>0 & binary$Homo>0,])
+table(sort(nchar(rownames((binary[binary$Chimpanzee>0 & binary$Bonobo>0 & binary$Gorilla>0 & binary$Orangutan>0 & binary$Homo>0,])))))
+
+#specific to human
+rownames((binary[binary$Chimpanzee==0 & binary$Bonobo==0 & binary$Gorilla==0 & binary$Orangutan==0 & binary$Homo>0,]))
+@
+
+
 \end{document}
+
+
+
