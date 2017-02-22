@@ -72,8 +72,22 @@ with open(motifFile, "r") as ifile:
 		total=insertions+deletions+mismatches
 		total_mean_depth=np.array(total).mean()
 
+		perc_total=(len(total)/l)/total_mean_depth*100
+		perc_ins=(len(insertions)/l)/insertions_mean_depth*100
+		perc_del=(len(deletions)/l)/deletions_mean_depth*100
+		perc_mism=(len(mismatches)/l)/mismatches_mean_depth*100
+
+		if np.isnan(perc_total):
+			perc_total=0
+		if np.isnan(perc_ins):
+			perc_ins=0
+		if np.isnan(perc_del):
+			perc_del=0
+		if np.isnan(perc_mism):
+			perc_mism=0
+
 		#reference,start,end,totalRows,insertionRows,deletionRows,mismatchRows,percErrorTotal,percErrorIns,percErrorDel,percErrorMism,$$
-		out=(chromosome + " " + str(start) + " " + str(end) + " " + str(l) + " " + str(len(total)) + " " + str(len(insertions)) + " " + str(len(deletions)) + " " + str(len(mismatches)) + " " + str((len(total)/l)/total_mean_depth) + " " + str((len(insertions)/l)/insertions_mean_depth) + " " + str((len(deletions)/l)/deletions_mean_depth) + " " + str((len(mismatches)/l)/mismatches_mean_depth) + " " +" $$\n")
+		out=(chromosome + " " + str(start) + " " + str(end) + " " + str(l) + " " + str(len(total)) + " " + str(len(insertions)) + " " + str(len(deletions)) + " " + str(len(mismatches)) + " " + str(perc_total) + " " + str(perc_ins) + " " + str(perc_del) + " " + str(perc_mism) + " " +"$$\n")
 		print(out)
 		f.write(out)
 		INS.clear()
