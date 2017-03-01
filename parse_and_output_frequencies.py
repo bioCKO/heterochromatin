@@ -7,7 +7,7 @@ import numpy as np
 #python checkConsistency.py motifFile
 motifFile=str(sys.argv[1])
 ######################################
-formattedFile=motifFile.replace(".collapsed","")
+formattedFile=motifFile.replace(".collapsed","")+".txt"
 
 print motifFile
 
