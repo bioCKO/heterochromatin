@@ -41,56 +41,57 @@ with open(motifFile, "r") as ifile:
 
 		for var in variants:
 			i=i+1
-			varType_and_depth=var.split('|')
-			length=len(varType_and_depth)
+			varType_and_freq=var.split('|')
+			length=len(varType_and_freq)
 			#print length
 			if (length==1):
 				print "no variants"
 			else:
-				varType=varType_and_depth[0]
-				varDepth=varType_and_depth[1]
+				varType=varType_and_freq[0]
+				varfreq=varType_and_freq[1]
 				#print varType
 				if varType=="INS":
-					INS[i]=float(varDepth)
+					INS[i]=float(varfreq)
 				if varType=="DEL":
-					DEL[i]=float(varDepth)
+					DEL[i]=float(varfreq)
 				if varType=="SNP":
-					MISM[i]=float(varDepth)
+					MISM[i]=float(varfreq)
 		print ("INS"+str(INS))
 		insertions=list(INS.values())
-		insertions_mean_depth=np.array(insertions).mean()
-
+		print insertions
+		insertions_mean_freq=np.array(insertions).mean()
+		
 		print ("DEL"+str(DEL))
 		deletions=list(DEL.values())
-		deletions_mean_depth=np.array(deletions).mean()
-		
+		print deletions
+		deletions_mean_freq=np.array(deletions).mean()
+
 		print ("MISM"+str(MISM))
 		mismatches=list(MISM.values())
 		print mismatches
-		mismatches_mean_depth=np.array(mismatches).mean()
+		mismatches_mean_freq=np.array(mismatches).mean()
 
-		total=insertions+deletions+mismatches
-		total_mean_depth=np.array(total).mean()
+		total=insertions + deletions + mismatches
+		total_mean_freq=np.array(total).mean()
 
-		perc_total=(len(total)/l)/total_mean_depth*100
-		perc_ins=(len(insertions)/l)/insertions_mean_depth*100
-		perc_del=(len(deletions)/l)/deletions_mean_depth*100
-		perc_mism=(len(mismatches)/l)/mismatches_mean_depth*100
+		perc_total=(len(total)/l)*total_mean_freq
+		perc_insertions=(len(insertions)/l)*insertions_mean_freq
+		perc_deletions=(len(deletions)/l)*deletions_mean_freq
+		perc_mism=(len(mismatches)/l)*mismatches_mean_freq
 
 		if np.isnan(perc_total):
 			perc_total=0
-		if np.isnan(perc_ins):
-			perc_ins=0
-		if np.isnan(perc_del):
-			perc_del=0
+		if np.isnan(perc_insertions):
+			perc_insertions=0
+		if np.isnan(perc_deletions):
+			perc_deletions=0
 		if np.isnan(perc_mism):
 			perc_mism=0
 
 		#reference,start,end,totalRows,insertionRows,deletionRows,mismatchRows,percErrorTotal,percErrorIns,percErrorDel,percErrorMism,$$
-		out=(chromosome + " " + str(start) + " " + str(end) + " " + str(l) + " " + str(len(total)) + " " + str(len(insertions)) + " " + str(len(deletions)) + " " + str(len(mismatches)) + " " + str(perc_total) + " " + str(perc_ins) + " " + str(perc_del) + " " + str(perc_mism) + " " +"$$\n")
+		out=(chromosome + " " + str(start) + " " + str(end) + " " + str(l) + " " + str(len(insertions)) + " " + str(len(deletions)) + " " + str(len(mismatches)) + " " + str(perc_total) + " " + str(perc_insertions) + " " + str(perc_deletions) + " " + str(perc_mism) + " " +"$$\n")
 		print(out)
 		f.write(out)
 		INS.clear()
 		DEL.clear()
 		MISM.clear()
-		
