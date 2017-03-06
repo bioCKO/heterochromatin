@@ -6,6 +6,7 @@ import numpy as np
 ######################################
 #python checkConsistency.py motifFile
 motifFile=str(sys.argv[1])
+minAF=float(sys.argv[2])
 ######################################
 formattedFile=motifFile.replace(".collapsed","")
 
@@ -52,13 +53,15 @@ with open(motifFile, "r") as ifile:
 			else:
 				varType=varType_and_freq[0]
 				varfreq=varType_and_freq[1]
-				#print varType
-				if varType=="INS":
-					INS[i]=float(varfreq)
-				if varType=="DEL":
-					DEL[i]=float(varfreq)
-				if varType=="SNP":
-					MISM[i]=float(varfreq)
+
+				if (float(varfreq)>float(minAF)):
+					print(str(varfreq) " passed allele frequency threshold of " + str(minAF))
+					if varType=="INS":
+						INS[i]=float(varfreq)
+					if varType=="DEL":
+						DEL[i]=float(varfreq)
+					if varType=="SNP":
+						MISM[i]=float(varfreq)
 		print ("INS"+str(INS))
 		insertions=list(INS.values())
 		print insertions
