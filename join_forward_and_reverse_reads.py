@@ -19,16 +19,18 @@ f = open(forward)
 r = open(reverse)
 print(f.readline())
 print(r.readline())
-headerF=f.readline()
-print("headerF: " + headerF)
 while True:
+    headerF=f.readline()
     lineR=r.readline()
-    print("lineR: " + lineR)
-    if (headerF==lineR):
-	    last_pos = r.tell()
-	    while ("@" not in lineR):
-	    	lineR=r.readline()
-	    	print lineR
-	    print("match")
-	    break
-r.seek(last_pos)
+    
+    if ("@" in headerF):
+        print("headerF: " + headerF)
+        print("lineR: " + lineR)
+        if (headerF==lineR):
+            last_pos = r.tell()
+            while ("@" not in lineR):
+                lineR=r.readline()
+                print lineR
+            print("match")
+        x
+#r.seek(last_pos)
