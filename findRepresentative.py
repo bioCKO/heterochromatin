@@ -60,6 +60,8 @@ def parseTRF(file):
     for line in open(file):
         analyzeRepeatsFromOneSequence(line.strip()) #analyze repeats from the previous sequence
         i=i+1
+        if (i%100==0):
+            print("processing repeat on line " + str(i))
     return str(i)
                     
 repeat_file = sys.argv[1]
