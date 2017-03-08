@@ -18,18 +18,41 @@ rRepeats=[]
 f = open(forward)
 r = open(reverse)
 print(f.readline())
-lineR=r.readline()
-print("lineR: " + lineR)
+print(r.readline())
+
+#print("lineR: " + lineR)
+headerF=f.readline().rstrip()
+lineR=r.readline().rstrip()
+isHeader=True
 while True:
-    headerF=f.readline()
-    print("headerF: " + headerF)
+    Fnumber=headerF.split(".")[1]
+    print("headerF: " + headerF + " " + Fnumber)
     if ("@" in headerF):
+        #if (headerF==lineR):
+        #print(isHeader)
+        last_pos = r.tell()
+        while (isHeader==False):
+            lineR=r.readline().rstrip()
+            isHeader=("@" in lineR)
+            print("isHeader: " + str(isHeader) + " lineR: " + str(lineR))
+            #Rnumber=lineR.split(".")[1]
+            #print("lineR: " + lineR + " " + Rnumber)
+        #r.seek(last_pos)
+        print("checking for match" + headerF + " and " + lineR)
+        #print("headerF: " + headerF + " " + Fnumber)
+        Fnumber=headerF.split(".")[1]
+        Rnumber=lineR.split(".")[1]
         if (headerF==lineR):
-            last_pos = r.tell()
-            isHeader=("@" not in lineR)
-            print(isHeader)
-            while (isHeader==False):
-                lineR=r.readline()
-                print("lineR: " + lineR)
-            print("match")
+            print "Match, read next forward header."
+            isHeader=False #now we need to iterate again through reverse reads
+            isFHeader=False
+            while (isFHeader==False):
+                headerF=f.readline().rstrip()
+                isFHeader=("@" in headerF)
+                print("isFHeader: " + str(isFHeader))
+            print("We found new forward header: " + headerF)
+        if (Rnumber>Fnumber):
+            print("Reverse has no repeats, we need to read next forward.")
+            headerF=f.readline().rstrip()
+
 #r.seek(last_pos)
