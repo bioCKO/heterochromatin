@@ -4,6 +4,7 @@ from os.path import basename
 import numpy as np
 import collections
 import subprocess
+import operator
 from Bio import SeqIO
 from Bio.Seq import Seq
 from collections import deque
@@ -72,22 +73,19 @@ intersection = keys_f & keys_r # '&' operator is used for set intersection
 print("reads with both sides containing repeats" + str(intersection))
 
 for i in intersection:
-    print i
+    #print i
     repeatF=fDict[i] #list of forward repeats
     repeatR=rDict[i] #list of reverse repeats
 
-    print(repeatF)
-    print(repeatR)
     for f in repeatF:
+        first=f.split(" ")[2]
         for r in repeatR:
-            first=f.split(" ")[2]
             second=r.split(" ")[2]
             if (first==second):
-                print("match")
+                #print("match")
                 matches[first]+=1
-print matches
-
-
+sorted_x = sorted(matches.items(), key=operator.itemgetter(1))
+print sorted_x
 
 
 
