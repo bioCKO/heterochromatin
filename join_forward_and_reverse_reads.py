@@ -9,6 +9,7 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from collections import deque
 from collections import defaultdict
+from sets import Set
 
 ######################################
 #python join_forward_and_reverse_reads.py forwardReads reverseReads
@@ -20,6 +21,7 @@ reverse=sys.argv[2]
 
 f = open(forward)
 r = open(reverse)
+output=open((forward+"joinedRepeatFreq.txt"), 'w')
 
 fDict=collections.OrderedDict()
 rDict=collections.OrderedDict()
@@ -65,12 +67,11 @@ with open(reverse) as r:
     rDict[previousHeader]=rList #last entry
 print("#reads containg reverse repeats:" + str(len(rDict.keys())))
 
-#find intersections
-keys_f = set(fDict.keys())
-keys_r = set(rDict.keys())
-intersection = keys_f & keys_r # '&' operator is used for set intersection
+#print(fDict)
+#print(rDict)
 
-print("reads with both sides containing repeats" + str(intersection))
+intersection = set(fDict.keys()) & set(rDict.keys()) # '&' operator is used for set intersection
+print("reads with both sides containing repeats:" + str(len(intersection)))
 
 for i in intersection:
     #print i
@@ -84,10 +85,12 @@ for i in intersection:
             if (first==second):
                 #print("match")
                 matches[first]+=1
-sorted_x = sorted(matches.items(), key=operator.itemgetter(1))
-print sorted_x
 
-
+#print matches
+sorted_keys = sorted(matches, key=matches.get, reverse=True)
+for s in sorted_keys:
+    print s, matches[s]
+    output.write(s + " " + str(matches[s]) + "\n")
 
 
 
