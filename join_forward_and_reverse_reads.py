@@ -10,7 +10,7 @@ from itertools import izip
 ######################################
 
 forward=sys.argv[1]
-reverse=sys.argv[1]
+reverse=sys.argv[2]
 
 fRepeats=[]
 rRepeats=[]
@@ -34,25 +34,31 @@ while True:
         while (isHeader==False):
             lineR=r.readline().rstrip()
             isHeader=("@" in lineR)
-            print("isHeader: " + str(isHeader) + " lineR: " + str(lineR))
+            #print("isHeader: " + str(isHeader) + " lineR: " + str(lineR))
             #Rnumber=lineR.split(".")[1]
             #print("lineR: " + lineR + " " + Rnumber)
         #r.seek(last_pos)
         print("checking for match" + headerF + " and " + lineR)
+        isHeader=False #now we need to iterate again through reverse reads
         #print("headerF: " + headerF + " " + Fnumber)
-        Fnumber=headerF.split(".")[1]
-        Rnumber=lineR.split(".")[1]
+        Fnumber=int(headerF.split(".")[1])
+        Rnumber=int(lineR.split(".")[1])
         if (headerF==lineR):
             print "Match, read next forward header."
-            isHeader=False #now we need to iterate again through reverse reads
             isFHeader=False
             while (isFHeader==False):
                 headerF=f.readline().rstrip()
                 isFHeader=("@" in headerF)
-                print("isFHeader: " + str(isFHeader))
+                #print("isFHeader: " + str(isFHeader))
             print("We found new forward header: " + headerF)
         if (Rnumber>Fnumber):
-            print("Reverse has no repeats, we need to read next forward.")
-            headerF=f.readline().rstrip()
+            print("Forward has no repeats, we need to read next forward, while keeping old reverse.")
+            r.seek(last_pos) #keep old reverse
+            isFHeader=False
+            while (isFHeader==False):
+                headerF=f.readline().rstrip()
+                isFHeader=("@" in headerF)
+                #print("isFHeader: " + str(isFHeader))
+            print("We found new forward header: " + headerF)
 
 #r.seek(last_pos)
