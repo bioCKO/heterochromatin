@@ -18,19 +18,18 @@ rRepeats=[]
 f = open(forward)
 r = open(reverse)
 print(f.readline())
-print(r.readline())
+lineR=r.readline()
+print("lineR: " + lineR)
 while True:
     headerF=f.readline()
-    lineR=r.readline()
-    
+    print("headerF: " + headerF)
     if ("@" in headerF):
-        print("headerF: " + headerF)
-        print("lineR: " + lineR)
         if (headerF==lineR):
             last_pos = r.tell()
-            while ("@" not in lineR):
+            isHeader=("@" not in lineR)
+            print(isHeader)
+            while (isHeader==False):
                 lineR=r.readline()
-                print lineR
+                print("lineR: " + lineR)
             print("match")
-        x
 #r.seek(last_pos)
