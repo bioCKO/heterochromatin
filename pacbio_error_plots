@@ -28,11 +28,16 @@ library("plyr")
 library("dplyr")
 library("hash")
 library("data.table")
-setwd("/Users/alice/Desktop/projects/kinetics/errors_will/merged/formatted")
+#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/merged/formatted")
+#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/merged/illumina")
+#setwd("/Users/alice/Desktop/projects/kinetics/1kG/")
+setwd("/Users/alice/Desktop/projects/kinetics/illumina/AF0.1")
+
 filenames <- list.files(pattern = "*mf", full.names = FALSE)
-#filenames <- filenames[grepl("FeatureOnly", filenames)]
-filenames <- filenames[grep("Feature", filenames, invert = TRUE)]
-#filenames <- filenames[grep("EmptyTmp.txt", filenames,invert=TRUE)]
+filenames <- filenames[grepl("FeatureOnly", filenames)]
+filenames <- filenames[grep("collapsed", filenames,invert=TRUE)]
+#filenames <- filenames[grep("Feature", filenames, invert = TRUE)]
+filenames <- filenames[grep("EmptyTmp.txt", filenames,invert=TRUE)]
 set.seed(3)
 
 #grp.1 <- round(rlnorm(100, 6)) # With Widget
@@ -68,7 +73,7 @@ getPvalue <- function(grp.1, grp.2, comparedTo) {
     xlab = "",
     sub = paste(
       "pvalue: ",
-      round(pvalue, 2),
+      round(pvalue, 4),
       " | C:",
       length(grp.1),
       " | T:",
@@ -102,16 +107,16 @@ for (file in (filenames)) {
       row <-
         cbind(
           file,
-          as.numeric(as.character(median(
+          as.numeric(as.character(mean(
             as.numeric(as.character(as.vector(data$V8))), na.rm = TRUE
           ))),
-          as.numeric(as.character(median(
+          as.numeric(as.character(mean(
             as.numeric(as.character(as.vector(data$V9))), na.rm = TRUE
           ))),
-          as.numeric(as.character(median(
+          as.numeric(as.character(mean(
             as.numeric(as.character(as.vector(data$V10))), na.rm = TRUE
           ))),
-          as.numeric(as.character(median(
+          as.numeric(as.character(mean(
             as.numeric(as.character(as.vector(data$V11))), na.rm = TRUE
           )))
         )
@@ -129,7 +134,7 @@ summary <- as.data.frame(summary)
 colnames(summary) <-
   c("file", "V8", "V9", "V10", "V11") #"total", "insertions", "deletions", "mismatches"
 summary <-
-  plyr::arrange(summary, as.numeric(as.character(summary$h8)), decreasing =
+  plyr::arrange(summary, as.numeric(as.character(summary$V8)), decreasing =
                   FALSE)
 print(summary)
 ordered <- summary$file
@@ -235,7 +240,7 @@ for (i in names(data[8:11])) {
             "n=",
             length(values),
             " errorRate=",
-            round(mean(values), 2),
+            round(mean(values), 4),
             sep =
               ""
           )
@@ -287,7 +292,7 @@ for (i in names(data[8:11])) {
         pv <- as.numeric(getPvalue(valuesEmpty, values, file))
         
         tmp_data <- get(paste0(i,"pvalue"))
-        tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = round(pv, 2) #save pvalue and plot
+        tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = round(pv, 4) #save pvalue and plot
         assign(paste0(i,"pvalue"), tmp_data)
         
         #print(getLengthSignificance(insertionsEmpty, insertions, file))
@@ -303,11 +308,40 @@ for (i in names(data[8:11])) {
     })
   }
 }
+
+#V8 <- hash()
+#V9 <- hash()
+#V10 <- hash()
+#V11 <- hash()
+
+#V8pvalue <- hash()
+#V9pvalue <- hash()
+#V10pvalue <- hash()
+#V11pvalue <- hash()
+
+save(V8,file="V8.Rda")
+save(V9,file="V9.Rda")
+save(V10,file="V10.Rda")
+save(V11,file="V11.Rda")
+
+save(V8pvalue,file="V8pvalue.Rda")
+save(V9pvalue,file="V9pvalue.Rda")
+save(V10pvalue,file="V10pvalue.Rda")
+save(V11pvalue,file="V11pvalue.Rda")
 @
 
 <<>>=
-par(mfrow = c(1, 1))
+load("V8.Rda")
+load("V9.Rda")
+load("V10.Rda")
+load("V11.Rda")
 
+load("V8pvalue.Rda")
+load("V9pvalue.Rda")
+load("V10pvalue.Rda")
+load("V11pvalue.Rda")
+
+par(mfrow = c(1, 1))
 
 for (i in names(data[8:11])) {
   
@@ -398,27 +432,27 @@ yb <- middle_point
 xr <- 93
 yt <- middle_point*2
 
-rect(
-     xl,
-     head(seq(yb,yt,(yt-yb)/100),-1),
-     xr,
-     tail(seq(yb,yt,(yt-yb)/100),-1),
-     col=colfunc(101),
-     lwd=0.075
-    )
-mtext(seq(from=0,to=1,by=0.1),side=4,at=seq(from=yb,to=yt,by=(yt-yb)/10),las=2,cex=0.7)
+#rect(
+#     xl,
+#     head(seq(yb,yt,(yt-yb)/100#),-1),
+#     xr,
+#     tail(seq(yb,yt,(yt-yb)/100#),-1),
+#     col=colfunc(101),
+#     lwd=0.075
+#    )
+#mtext(seq(from=0,to=1,by=0.1),side=4,at=seq(from=yb,to=yt,by=(yt-yb)/10),las=2,cex=0.7)
   
   text(
     1:length(names),
-    #19,
-    1.55*middle_point,
+    0.004,
+    #1.55*middle_point,
     labels = gsub("merged_", "", gsub(".mf", "", gsub("FeatureOnly", "", annotation))),
     srt = 90,
     col = "black",
     cex = 0.7
   )
   abline(h = median(as.numeric(unlist(values(
-    get(et)
+    get(i)
   )[names][grep("Empty", names)])), na.rm = TRUE), col = "black")
 }
 @
