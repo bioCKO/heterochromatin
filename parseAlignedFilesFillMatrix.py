@@ -20,11 +20,12 @@ alignedFile=sys.argv[1]
 output=open((alignedFile+".txt"), 'w')
 
 hits=["AAACATGGAAATATCTACACCGCTATCTCTAT","AAACATGGAAATATCTACACCGCTATCTGTAT","AAACATGGAAATATCTACACAGCCATCTGTAT","AAACATGGAAATATCTACACCGCCATCTGTAT"]
+for i in hits:
+    output.write(str(i) + " ")
+    output.write("\n")
 
-i=0
 with open(alignedFile) as f:
     for line in f:
-        i=i+1
         line=line.rstrip()
         #print(line)
         if ("#" in line):
@@ -40,6 +41,9 @@ with open(alignedFile) as f:
                     lineOfMatrix[index]=count
             #print ("lineOfMatrix: ")
             print(lineOfMatrix)
+            for i in lineOfMatrix:
+                output.write(str(i) + " ")
+            output.write("\n")
     #print s, matches[s]
     #output.write(s + " " + str(matches[s]) + "\n")
 
