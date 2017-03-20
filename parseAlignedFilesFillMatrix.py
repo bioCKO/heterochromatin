@@ -20,24 +20,26 @@ alignedFile=sys.argv[1]
 output=open((alignedFile+".txt"), 'w')
 
 hits=["AAACATGGAAATATCTACACCGCTATCTCTAT","AAACATGGAAATATCTACACCGCTATCTGTAT","AAACATGGAAATATCTACACAGCCATCTGTAT","AAACATGGAAATATCTACACCGCCATCTGTAT"]
-matrix=[[]]
 
 i=0
 with open(alignedFile) as f:
     for line in f:
         i=i+1
         line=line.rstrip()
+        #print(line)
         if ("#" in line):
             array=line.split(" ")
-            print array[3:]
+            #print array[3:]
+            lineOfMatrix=[0] * len(hits)
             for r in array[3:]:
                 repeat=r.split(":")[0]
                 count=r.split(":")[1]
-                print count
-                print repeat
-                if repeat in hits:
-                    print hits.index(element)
-       
+                if repeat.upper() in hits: #check if uppercase string is in the list
+                    #print("HIT")
+                    index=hits.index(repeat.upper())
+                    lineOfMatrix[index]=count
+            #print ("lineOfMatrix: ")
+            print(lineOfMatrix)
     #print s, matches[s]
     #output.write(s + " " + str(matches[s]) + "\n")
 
