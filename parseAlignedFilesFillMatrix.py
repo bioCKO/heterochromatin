@@ -1,55 +1,51 @@
-import sys
-import os
-from os.path import basename
-import numpy as np
-import collections
-import subprocess
-import operator
-from Bio import SeqIO
-from Bio.Seq import Seq
-from collections import deque
-from collections import defaultdict
-from sets import Set
+\documentclass{article}
 
-######################################
-#python parseAlignedFilesFillMatrix.py
-######################################
+\begin{document}
+\SweaveOpts{concordance=TRUE}
 
+<<32mers>>=
+par(mfrow=c(2,2),cex=1.2)
+setwd("/Users/alice/Desktop/projects/heterochromatin/trf/chrUn")
+A<-read.table("A")
+B<-read.table("B")
+D<-read.table("D")
+E<-read.table("E")
+lengthDist<-read.table("chrUn.length_dist")
 
-alignedFile=sys.argv[1]
-output=open((alignedFile+".txt"), 'w')
+plot(table(A$V2),main="A",xlab="repeat length",ylab="counts")
+abline(v=1000,col="red",lw=3)
+plot(table(B$V2),main="B",xlab="repeat length",ylab="counts")
+abline(v=1000,col="red",lw=3)
+plot(table(D$V2),main="D",xlab="repeat length",ylab="counts")
+abline(v=1000,col="red",lw=3)
+plot(table(E$V2),main="E",xlab="repeat length",ylab="counts")
+abline(v=1000,col="red",lw=3)
 
-hits=["AAACATGGAAATATCTACACCGCTATCTCTAT","AAACATGGAAATATCTACACCGCTATCTGTAT","AAACATGGAAATATCTACACAGCCATCTGTAT","AAACATGGAAATATCTACACCGCCATCTGTAT"]
-for i in hits:
-    output.write(str(i) + " ")
-output.write("\n")
+plot(table(lengthDist$V2),main="chrUn of chimp female",xlab="contig length distribution",ylab="counts")
+abline(v=1000,col="red",lw=3)
+@
 
-with open(alignedFile) as f:
-    for line in f:
-        line=line.rstrip()
-        #print(line)
-        if ("#" in line):
-            array=line.split(" ")
-            #print array[3:]
-            lineOfMatrix=[0] * len(hits)
-            for r in array[3:]:
-                repeat=r.split(":")[0]
-                count=r.split(":")[1]
-                if repeat.upper() in hits: #check if uppercase string is in the list
-                    #print("HIT")
-                    index=hits.index(repeat.upper())
-                    lineOfMatrix[index]=count
-            #print ("lineOfMatrix: ")
-            print(lineOfMatrix)
-            for i in lineOfMatrix:
-                output.write(str(i) + " ")
-            output.write("\n")
+<<plot heatmap>>=
+if (!require("gplots")) {
+  install.packages("gplots", dependencies = TRUE)
+  library(gplots)
+}
+if (!require("RColorBrewer")) {
+  install.packages("RColorBrewer", dependencies = TRUE)
+  library(RColorBrewer)
+}
+library(heatmap3)
 
-
-
-
+data<-as.data.frame(read.table("/Users/alice/Desktop/projects/heterochromatin/32mers/Un.AAACATGGAAATATCTACACCGCTATCTGTAT.nrf.words.aligned.txt",header=TRUE))
+print(dim(data))
+data<-data[rowSums(data)>0, ]
+print(dim(data))
+data<-data[sample(nrow(data), 10000), ]
+print(dim(data))
+data<-data.matrix(data)
+my_palette <- colorRampPalette(c("beige","red"))(n = 10)
+heatmap.2(data,dendrogram='column',Rowv=TRUE,Colv=TRUE,trace="none",col=my_palette,key.title ="occurences",notecol="black")
+@
 
 
-
-
-
+\end{document}
