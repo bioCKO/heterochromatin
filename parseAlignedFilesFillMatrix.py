@@ -36,14 +36,15 @@ if (!require("RColorBrewer")) {
 }
 library(heatmap3)
 
-data<-as.data.frame(read.table("/Users/alice/Desktop/projects/heterochromatin/32mers/Un.AAACATGGAAATATCTACACCGCTATCTGTAT.nrf.words.aligned.txt",header=TRUE))
-print(dim(data))
-data<-data[rowSums(data)>0, ]
+dataOriginal<-as.data.frame(read.table("/Users/alice/Desktop/projects/heterochromatin/32mers/Un.AAACATGGAAATATCTACACCGCTATCTGTAT.nrf.words.aligned.txt",header=TRUE))
+print(dim(dataOriginal))
+plot(table(rowSums(dataOriginal)),ylab="counts",xlab="number of distinct units in one repeat stretch")
+data<-dataOriginal[rowSums(dataOriginal)>1, ] #keep only rows where at least two motifs are found
 print(dim(data))
 data<-data[sample(nrow(data), 10000), ]
 print(dim(data))
 data<-data.matrix(data)
-my_palette <- colorRampPalette(c("beige","red"))(n = 10)
+my_palette <- colorRampPalette(c("beige","red"))(n = 5)
 heatmap.2(data,dendrogram='column',Rowv=TRUE,Colv=TRUE,trace="none",col=my_palette,key.title ="occurences",notecol="black")
 @
 
