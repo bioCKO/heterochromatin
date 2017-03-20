@@ -22,7 +22,7 @@ output=open((alignedFile+".txt"), 'w')
 hits=["AAACATGGAAATATCTACACCGCTATCTCTAT","AAACATGGAAATATCTACACCGCTATCTGTAT","AAACATGGAAATATCTACACAGCCATCTGTAT","AAACATGGAAATATCTACACCGCCATCTGTAT"]
 for i in hits:
     output.write(str(i) + " ")
-    output.write("\n")
+output.write("\n")
 
 with open(alignedFile) as f:
     for line in f:
@@ -44,8 +44,6 @@ with open(alignedFile) as f:
             for i in lineOfMatrix:
                 output.write(str(i) + " ")
             output.write("\n")
-    #print s, matches[s]
-    #output.write(s + " " + str(matches[s]) + "\n")
 
 
 
