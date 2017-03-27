@@ -55,7 +55,7 @@ with open(motifFile, "r") as ifile:
 				varfreq=varType_and_freq[1]
 
 				if (float(varfreq)>float(minAF)):
-					print(str(varfreq) " passed allele frequency threshold of " + str(minAF))
+					print(str(varfreq) + " passed allele frequency threshold of " + str(minAF))
 					if varType=="INS":
 						INS[i]=float(varfreq)
 					if varType=="DEL":
@@ -65,20 +65,20 @@ with open(motifFile, "r") as ifile:
 		print ("INS"+str(INS))
 		insertions=list(INS.values())
 		print insertions
-		insertions_mean_freq=np.array(insertions).mean()
+		insertions_mean_freq=np.nanmean(np.array(insertions))
 		
 		print ("DEL"+str(DEL))
 		deletions=list(DEL.values())
 		print deletions
-		deletions_mean_freq=np.array(deletions).mean()
+		deletions_mean_freq=np.nanmean(np.array(deletions))
 
 		print ("MISM"+str(MISM))
 		mismatches=list(MISM.values())
 		print mismatches
-		mismatches_mean_freq=np.array(mismatches).mean()
+		mismatches_mean_freq=np.nanmean(np.array(mismatches))
 
 		total=insertions + deletions + mismatches
-		total_mean_freq=np.array(total).mean()
+		total_mean_freq=np.nanmean(np.array(total))
 
 		perc_total=(len(total)/l)*total_mean_freq
 		perc_insertions=(len(insertions)/l)*insertions_mean_freq
