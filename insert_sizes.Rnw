@@ -1,0 +1,51 @@
+\documentclass{article}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+<<insert sizes>>=
+setwd(
+  "/Users/alice/Desktop/projects/heterochromatin/great_ape_diversity/insert_sizes/"
+  )
+  is <- read.table("insert_size_info", sep = "\t", header = TRUE)
+  readC_afterF = read.table(("readC_afterF"), header = TRUE)
+  
+  insert_stat <- merge(is, readC_afterF)
+  #we have to merge this with number of reads and plot percentages that are in tandem
+  
+  units <-
+  c(
+  "AATGGrcount",
+  "AAATATCTACACCGCTATCTGTATGAACATGGrcount",
+  "AAACATGGAAATATCTACACCGCTATCTGTATrcount",
+  "AAATATCTACACCGCCATCTGTATGAACATGGrcount",
+  "AAACATGGAAATATCTACACCGCCATCTGTATrcount",
+  "AAACATGGAAATATCTACACCGCTATCTCTATrcount"
+  )
+  
+  for (unit in units) {
+  relativePerc <- unlist(insert_stat[unit] / insert_stat$readCount * 100)
+  plot(
+  insert_stat$insertSize,
+  relativePerc,
+  xlab = "insert size",
+  ylab = "relative %",
+  main = "Gorilla gorilla gorilla",
+  pch = as.numeric(as.factor(insert_stat$sex)),
+  col = as.numeric(as.factor(insert_stat$sex)),
+  sub = gsub("rcount","",unit)
+  )
+  legend(
+  "bottomleft",
+  legend = c("females", "males"),
+  bty = "n",
+  cex = 1.2,
+  col = c("black", "red"),
+  pch = c(1, 2)
+  )
+  }
+@
+
+
+
+\end{document}
