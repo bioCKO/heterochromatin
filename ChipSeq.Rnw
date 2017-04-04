@@ -1,0 +1,137 @@
+\documentclass{article}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+<<load metadata>>=
+library(data.table)
+options(scipen=10)
+setwd("/Users/alice/Desktop/projects/heterochromatin/ChipSeq")
+readC_afterF = read.table("readC_afterF",header=FALSE)
+sample_mapping = read.table("sample_mapping",header=FALSE,sep="\t")
+
+getFilteredReadCounts <- function(files) {
+  ids<-gsub( ".fastq.counts", "", files)
+  merged<-merge(ids,readC_afterF,by=1)
+  read_counts<-merged[match(ids,merged$x),]$V2
+  
+  if (!length(ids)==length(read_counts)) {
+    stop("Discrepancies in the association table.")
+  }
+  
+  return(read_counts)
+}
+
+getSampleTypes <- function(files) {
+  ids<-gsub( ".fastq.counts", "", files)
+  merged<-merge(ids,sample_mapping,by=1)
+  mappings<-merged[match(ids,merged$x),]$V2
+  
+  if (!length(ids)==length(mappings)) {
+    stop("Discrepancies in the association table.")
+  }
+  return(mappings)
+}
+
+files<-list.files("/Users/alice/Desktop/projects/heterochromatin/ChipSeq", pattern=".counts")
+files<-c("ENCFF681NGI.fastq.counts","ENCFF831CFS.fastq.counts","ENCFF837IGE.fastq.counts","ENCFF525RST.fastq.counts","ENCFF696NNL.fastq.counts","ENCFF622ULU.fastq.counts","ENCFF344HWG.fastq.counts","ENCFF797ROW.fastq.counts","ENCFF878EFY.fastq.counts","ENCFF956TXW.fastq.counts","ENCFF496PCJ.fastq.counts","ENCFF869EJQ.fastq.counts","ENCFF054KUT.fastq.counts","ENCFF560OIV.fastq.counts","ENCFF063MOP.fastq.counts")
+@
+
+<<create big table with counts for all individuals, this section can be skipped if the tables are already created>>=
+library(plyr)
+tables <- lapply(files, function(x) read.table(gsub( "\\|", "_", x), col.names=c("unit", gsub(".fastq.counts", "", x))))
+
+dt_list <- lapply(tables, function(x) {
+  out <- as.data.table(x)
+  setkey(out, "unit")
+  out
+})
+
+mydt <- function(...) merge(..., by="unit", all=T)
+
+data <- Reduce(mydt, dt_list)
+
+data[is.na(data)] <- 0
+colnames(data)<-c("unit",files)
+data<-as.data.frame(data) #convert to dataframe from data table
+
+#RAW DATA
+#save(data,file="/Users/alice/Desktop/projects/heterochromatin/great_ape_diversity/counts/data.Rda")
+
+rep.row<-function(x,n){
+   matrix(rep(x,each=n),nrow=n) #transforms normalization vector into matrix
+}
+
+normalization_factor=1000000
+normalization_matrix<-rep.row(getFilteredReadCounts(files),dim(data)[1])
+data<-as.data.frame(data) #convert to dataframe from data table
+data[,2:ncol(data)]<-data[2:ncol(data)]/normalization_matrix*normalization_factor #normalization of data by read counts
+
+#View(data)
+#NORMALIZED DATA
+#save(data,file="/Users/alice/Desktop/projects/heterochromatin/great_ape_diversity/counts/normalizedData.Rda")
+
+#sort by abundance
+abundant<-arrange(data,desc(rowSums(data[,2:ncol(data)])))
+dt<-head(abundant)
+dt<-data.frame(dt[,-1], row.names=dt[,1])
+colnames(dt)<-getSampleTypes(colnames(dt))
+dt<-as.matrix(dt)
+
+
+#PLOT
+myColors<-c(rep("gray30",1),rep("darkgreen",1),rep("dodgerblue",1),rep("firebrick1",1),rep("gold",1))
+sex<-grepl("female",colnames(dt))
+sex[sex==TRUE]<-"red"
+sex[sex==FALSE]<-"blue"
+myColors2<-sex
+par(cex=0.6,par(mfrow=c(1,2)))
+dotchart(dt,labels=rownames(dt),gcolor=myColors2,lcolor=myColors,xlab="repeat counts per 1 million reads",pch=20,col="gray30")
+@
+
+<<human abundant>>=
+#todo: Is ChipSeq abundant the same as whole genome abundant??
+human_abundant<-rev(rownames(dt))
+human_ChipSeq<-dt
+human_genomic_dfr<-new_dfr[human_abundant,]
+human_combined<-cbind(human_genomic_dfr,human_ChipSeq)
+#human_combined<-human_combined[,order(colSums(human_combined))]
+
+
+setColors <- function(toPlot) {
+chipseq<-rep("lightgray",times=length(colnames(toPlot)))
+chipseq[grepl("years",colnames(toPlot))]<-"purple"
+chipseq[grepl("Homo",colnames(toPlot))]<-"black"
+chipseq[grepl("Gorilla",colnames(toPlot))]<-"red"
+chipseq[grepl("Pan_troglodytes",colnames(toPlot))]<-"darkgreen"
+chipseq[grepl("Pan_paniscus",colnames(toPlot))]<-"blue"
+chipseq[grepl("Pongo",colnames(toPlot))]<-"orange"
+
+myColors<-chipseq
+
+return(myColors)
+}
+
+setSexColors <- function(toPlot) {
+sex<-grepl("female|F",colnames(toPlot))
+sex[sex==TRUE]<-"brown1"
+sex[sex==FALSE]<-"cyan4"
+
+myColors2<-sex
+
+return(myColors2)
+}
+
+
+
+for (r in (human_abundant)) { 
+    print(r)
+    toPlot<-human_combined[r,order(human_combined[r,]),drop=FALSE]
+    dotchart(toPlot,main=r,lcolor=setSexColors(toPlot),gcolor=setColors(toPlot),cex=0.7, xlab="repeat counts per 1 million reads",pch=20)
+  }
+
+@
+
+
+
+\end{document}
