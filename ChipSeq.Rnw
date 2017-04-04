@@ -91,12 +91,15 @@ dotchart(dt,labels=rownames(dt),gcolor=myColors2,lcolor=myColors,xlab="repeat co
 
 <<human abundant>>=
 #todo: Is ChipSeq abundant the same as whole genome abundant??
-human_abundant<-rev(rownames(dt))
+human_columns<-new_dfr[,70:80]
+human_columns<-human_columns[order(rowSums(human_columns)),]
+
+#human_abundant<-rev(rownames(dt))
+human_abundant<-rownames(tail(human_columns))
 human_ChipSeq<-dt
-human_genomic_dfr<-new_dfr[human_abundant,]
+human_genomic_dfr<-new_dfr[human_abundant,70:80] #either show all species or only human genomic and ChipSeq data
 human_combined<-cbind(human_genomic_dfr,human_ChipSeq)
 #human_combined<-human_combined[,order(colSums(human_combined))]
-
 
 setColors <- function(toPlot) {
 chipseq<-rep("lightgray",times=length(colnames(toPlot)))
@@ -114,7 +117,7 @@ return(myColors)
 
 setSexColors <- function(toPlot) {
 sex<-grepl("female|F",colnames(toPlot))
-sex[sex==TRUE]<-"brown1"
+sex[sex==TRUE]<-"brown3"
 sex[sex==FALSE]<-"cyan4"
 
 myColors2<-sex
@@ -127,7 +130,7 @@ return(myColors2)
 for (r in (human_abundant)) { 
     print(r)
     toPlot<-human_combined[r,order(human_combined[r,]),drop=FALSE]
-    dotchart(toPlot,main=r,lcolor=setSexColors(toPlot),gcolor=setColors(toPlot),cex=0.7, xlab="repeat counts per 1 million reads",pch=20)
+    dotchart(toPlot,main=r,color=setSexColors(toPlot),lcolor=setSexColors(toPlot),gcolor=setColors(toPlot),cex=0.7, xlab="repeat counts per 1 million reads",pch=20,labels=NULL)
   }
 
 @
