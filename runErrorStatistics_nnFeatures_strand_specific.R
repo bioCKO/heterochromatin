@@ -107,10 +107,9 @@ processMotif <- function(motif) {
   print(motif)
   
   filename <-
-    paste(folder,
-          "/",
-          reference,
+    paste(reference,
           ".ERRORS",
+          folder,
           ".",
           basename(motif),
           ".txt",
