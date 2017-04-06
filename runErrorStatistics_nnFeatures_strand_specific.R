@@ -21,13 +21,14 @@ RES <- as.data.table(res)
 setkey(RES, "position", "read", "ref")
 
 
-getWindow <- function(arguments) {
+getWindow <- function(arguments) { #getWindow(unlist(coordinates0[2,]))
   #print(arguments)
   chr <- arguments[1]
   start <- as.numeric(arguments[2])
   end <- as.numeric(arguments[3])
+  strand <- arguments[4]
   
-  rates <- (getErrorRate(start, end))
+  rates <- (getErrorRate(start, end, strand))
   percErrorTotal <- (rates[[2]] + rates[[3]] + rates[[4]]) / rates[[1]] *
     100
   percErrorIns <- (rates[[2]]) / rates[[1]] * 100
@@ -56,13 +57,16 @@ getWindow <- function(arguments) {
   
 }
 
-getErrorRate <- function(start, end) {
+getErrorRate <- function(start, end, refStrand) {
   # start
   # end
   w <-
     RES[position >= start &
           position < end] #cut out relevant portion from the data
-  dim(w)
+  print(dim(w))
+  w<-w[w$strand==refStrand,]
+  print(dim(w))
+  
   if (nrow(w) > 0) {
     totalRows <- nrow(w)
     
@@ -103,9 +107,10 @@ processMotif <- function(motif) {
   print(motif)
   
   filename <-
-    paste(reference,
+    paste(folder,
+          "/",
+          reference,
           ".ERRORS",
-          folder,
           ".",
           basename(motif),
           ".txt",
@@ -116,31 +121,59 @@ processMotif <- function(motif) {
     #.mf file exists
     coordinates <-
       read.table(motifFile,col.names = paste0("V",seq_len(max(count.fields(motifFile)))), fill = TRUE)[, 1:3] #read only first three columns
-    coordinates <- as.data.table(coordinates)
-    setkey(coordinates, "V1", "V2", "V3")
-    print(dim(coordinates))
-    coordinates <-
-      subset(coordinates, V1 == reference) #subset only to specific chromosome #paste("chr",reference,sep="")
-    print(dim(coordinates))
+    
+    coordinates <- subset(coordinates, V1 == reference) #subset only to specific chromosome #paste("chr",reference,sep="")
+    
+    coordinates0 <- as.data.table(c(coordinates,"0"))
+    coordinates1 <- as.data.table(c(coordinates,"1"))
+    
+    colnames(coordinates0)<-c("V1", "V2", "V3","V4")
+    colnames(coordinates1)<-c("V1", "V2", "V3","V4")
+    
+    setkey(coordinates0, "V1", "V2", "V3","V4")
+    setkey(coordinates1, "V1", "V2", "V3","V4")
+    
+    
     
     #rows<-NULL
-    rows <- apply(coordinates, 1, function(x)
-      getWindow(x))
-
-    if (file.exists(filename)) {
-      file.remove(filename) #file with results already exists, remove before writing
+    rows0 <- apply(coordinates0, 1, function(x)
+      getWindow(x)
+    )
+    rows1 <- apply(coordinates1, 1, function(x)
+      getWindow(x)
+    )
+    
+    if (file.exists(paste0(filename,"_0strand.txt"))) {
+      file.remove(paste0(filename,"_0strand.txt")) #file with results already exists, remove before writing
     }
-
+    
+    if (file.exists(paste0(filename,"_1strand.txt"))) {
+      file.remove(paste0(filename,"_1strand.txt")) #file with results already exists, remove before writing
+    }
+    
     system.time(
       write.table(
-        as.matrix(rows),
-        file = filename,
+        as.matrix(rows0),
+        file = paste0(filename,"_0strand.txt"),
         col.names = FALSE,
         row.names = FALSE,
         quote = FALSE,
         sep = "\t",
         append = TRUE
       )
+    )
+
+    system.time(
+      write.table(
+        as.matrix(rows1),
+        file = paste0(filename,"_1strand.txt"),
+        col.names = FALSE,
+        row.names = FALSE,
+        quote = FALSE,
+        sep = "\t",
+        append = TRUE
+      )
+      
     )
   } else {
     print("File does not exist, skipping.")
