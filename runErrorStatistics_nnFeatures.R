@@ -147,7 +147,14 @@ processMotif <- function(motif) {
 }
 
 listMotifs <-
-  c(
+  c("APhasedRepeatsFeatureOnly.mf",
+    "ZDNAMotifsFeatureOnly.mf",
+    "DirectRepeatsFeatureOnly.mf",
+    "GQuadMinusFeatureOnly.mf",
+    "GQuadPlusFeatureOnly.mf",
+    "InvertedRepeatsFeatureOnly.mf",
+    "MirrorRepeatsFeatureOnly.mf",
+    "EmptyFeatureOnly.mf",
     "AAACnFeatureOnly.mf",
     "AAAGnFeatureOnly.mf",
     "AAATnFeatureOnly.mf",
@@ -191,7 +198,6 @@ listMotifs <-
     "AGTnFeatureOnly.mf",
     "AGTTnFeatureOnly.mf",
     "AnFeatureOnly.mf",
-    "APhasedRepeatsFeatureOnly.mf",
     "ATCCnFeatureOnly.mf",
     "ATCnFeatureOnly.mf",
     "ATCTnFeatureOnly.mf",
@@ -227,24 +233,24 @@ listMotifs <-
     "CTTGnFeatureOnly.mf",
     "CTTnFeatureOnly.mf",
     "CTTTnFeatureOnly.mf",
-    "DirectRepeatsFeatureOnly.mf",
-    "EmptyFeatureOnly.mf",
     "GGGTnFeatureOnly.mf",
     "GGTnFeatureOnly.mf",
     "GGTTnFeatureOnly.mf",
     "GnFeatureOnly.mf",
-    "GQuadMinusFeatureOnly.mf",
-    "GQuadPlusFeatureOnly.mf",
     "GTnFeatureOnly.mf",
     "GTTnFeatureOnly.mf",
     "GTTTnFeatureOnly.mf",
-    "InvertedRepeatsFeatureOnly.mf",
-    "MirrorRepeatsFeatureOnly.mf",
-    "TnFeatureOnly.mf",
-    "ZDNAMotifsFeatureOnly.mf"
+    "TnFeatureOnly.mf"
   )
 listEmpty <-
-  c(
+  c("APhasedRepeatsFeatureOnly.mfEmptyTmp",
+    "ZDNAMotifsFeatureOnly.mfEmptyTmp",
+    "DirectRepeatsFeatureOnly.mfEmptyTmp",
+    "GQuadMinusFeatureOnly.mfEmptyTmp",
+    "GQuadPlusFeatureOnly.mfEmptyTmp",
+    "InvertedRepeatsFeatureOnly.mfEmptyTmp",
+    "MirrorRepeatsFeatureOnly.mfEmptyTmp",
+    "EmptyFeatureOnly.mfEmptyTmp",
     "AAACnFeatureOnly.mfEmptyTmp",
     "AAAGnFeatureOnly.mfEmptyTmp",
     "AAATnFeatureOnly.mfEmptyTmp",
@@ -288,7 +294,6 @@ listEmpty <-
     "AGTnFeatureOnly.mfEmptyTmp",
     "AGTTnFeatureOnly.mfEmptyTmp",
     "AnFeatureOnly.mfEmptyTmp",
-    "APhasedRepeatsFeatureOnly.mfEmptyTmp",
     "ATCCnFeatureOnly.mfEmptyTmp",
     "ATCnFeatureOnly.mfEmptyTmp",
     "ATCTnFeatureOnly.mfEmptyTmp",
@@ -324,21 +329,14 @@ listEmpty <-
     "CTTGnFeatureOnly.mfEmptyTmp",
     "CTTnFeatureOnly.mfEmptyTmp",
     "CTTTnFeatureOnly.mfEmptyTmp",
-    "DirectRepeatsFeatureOnly.mfEmptyTmp",
-    "EmptyFeatureOnly.mfEmptyTmp",
     "GGGTnFeatureOnly.mfEmptyTmp",
     "GGTnFeatureOnly.mfEmptyTmp",
     "GGTTnFeatureOnly.mfEmptyTmp",
     "GnFeatureOnly.mfEmptyTmp",
-    "GQuadMinusFeatureOnly.mfEmptyTmp",
-    "GQuadPlusFeatureOnly.mfEmptyTmp",
     "GTnFeatureOnly.mfEmptyTmp",
     "GTTnFeatureOnly.mfEmptyTmp",
     "GTTTnFeatureOnly.mfEmptyTmp",
-    "InvertedRepeatsFeatureOnly.mfEmptyTmp",
-    "MirrorRepeatsFeatureOnly.mfEmptyTmp",
-    "TnFeatureOnly.mfEmptyTmp",
-    "ZDNAMotifsFeatureOnly.mfEmptyTmp"
+    "TnFeatureOnly.mfEmptyTmp"
   )
 
 
