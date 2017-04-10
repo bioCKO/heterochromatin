@@ -29,68 +29,203 @@ setkey(RES, "position","read","ref")
 
 <<>>=
 
-getWindow <-function(arguments) {
+<<toy_test>>=
+
+plotIPDperPASS <- function(chunk,filename) {
+  par(mfrow = c(2, 2))
+  
+  if (length(unique(sort(chunk$idx)))>1) { #if more than one pass is available, then plot
+    myColors <- c("red", "blue")
+    pass = 1
+    chunk<-chunk[order(chunk$rStart)]
+    for (idx_chunk in split(chunk, chunk$idx)) { #for each molecule, go subread by subread in increasing order
+      plot(
+        idx_chunk$position,
+        idx_chunk$elt,
+        ylim = c(0, 5),
+        col = myColors[unique(sort(idx_chunk$strand)) + 1],
+        ylab = "IPD",
+        xlab = "position in reference",
+        main = paste("molecule:",unique(sort(idx_chunk$linkage)),"| PASS:", pass,"|", basename(filename)),
+        sub=paste("idx:",unique(sort(idx_chunk$idx)),"strand:",unique(sort(idx_chunk$strand)),"rStart:",unique(sort(idx_chunk$rStart)),"rEnd:",unique(sort(idx_chunk$rEnd)))
+      )
+      pass = pass + 1
+      #print(head(idx_chunk))
+    }
+  }
+}
+@
+
+
+<<RUN THIS>>=
+
+##get IPDs by template position
+#res = getByTemplatePosition(cmp, f = getIPD)
+#RES <- as.data.table(res)
+#setkey(RES, "position", "read", "ref")
+
+
+getWindow <- function(arguments,filename) { #getWindow(unlist(coordinates0[2,]))
   #print(arguments)
-  chr<-arguments[1]
-  start<-as.numeric(arguments[2])
-  end<-as.numeric(arguments[3])
+  chr <- arguments[1]
+  start <- as.numeric(arguments[2])
+  end <- as.numeric(arguments[3])
+  strand <- arguments[4]
   
-  rates<-(getErrorRate(start,end))
-  percError<-(rates[[2]]+rates[[3]]+rates[[4]])/rates[[1]]*100
-  #print(percError)
+  rates <- (getErrorRate(start, end, strand, filename))
+  percErrorTotal <- (rates[[2]] + rates[[3]] + rates[[4]]) / rates[[1]] *
+    100
+  percErrorIns <- (rates[[2]]) / rates[[1]] * 100
+  percErrorDel <- (rates[[3]]) / rates[[1]] * 100
+  percErrorMism <- (rates[[4]]) / rates[[1]] * 100
   
-  return(paste(reference,start,end,rates[[1]],rates[[2]],rates[[3]],rates[[4]],percError,"$",rates[[5]],"$",rates[[6]],sep=" "))
+  return(
+    paste(
+      reference,
+      start,
+      end,
+      rates[[1]],
+      rates[[2]],
+      rates[[3]],
+      rates[[4]],
+      percErrorTotal,
+      percErrorIns,
+      percErrorDel,
+      percErrorMism,
+      paste0("$", rates[[5]], "$", rates[[6]]),
+      sep = " "
+    )
+  )
   #rows<-rbind(rows,t)
   #write.table(t, file=filename, col.names = FALSE,row.names = FALSE,quote=FALSE,sep="\t",append=TRUE)
   
 }
 
-getErrorRate <-function(start,end) {
+getErrorRate <- function(start, end, refStrand, filename) {
   # start
   # end
-  w<-RES[position>=start & position<end] #cut out relevant portion from the data
-  dim(w)
-  if (nrow(w)>0) {
-    totalRows<-nrow(w)
+  w <-
+    RES[position >= start &
+          position < end] #cut out relevant portion from the data
+  #print(dim(w))
+  
+  for (molecule_chunk in split(w, w$linkage)) { 
+    plotIPDperPASS(molecule_chunk, filename) 
+  }
+  
+  w<-w[w$strand==refStrand,]
+  #print(dim(w))
+  
+  if (nrow(w) > 0) {
+    totalRows <- nrow(w)
     
-    insertion_lengths<-unlist(lapply(unique(w$idx), function(x) (rle(w[idx==x]$ref)$lengths[rle(w[idx==x]$ref)$values=="-"])))
-    if (!length(insertion_lengths)>0) {
-      insertion_lengths<-NA
+    insertion_lengths <-
+      unlist(lapply(unique(w$idx), function(x)
+        (rle(w[idx == x]$ref)$lengths[rle(w[idx == x]$ref)$values == "-"])))
+    if (!length(insertion_lengths) > 0) {
+      insertion_lengths <- NA
     }
-
-    deletion_lengths<-unlist(lapply(unique(w$idx), function(x) (rle(w[idx==x]$read)$lengths[rle(w[idx==x]$read)$values=="-"])))
-    if (!length(deletion_lengths)>0) {
-      deletion_lengths<-NA
+    
+    deletion_lengths <-
+      unlist(lapply(unique(w$idx), function(x)
+        (rle(w[idx == x]$read)$lengths[rle(w[idx == x]$read)$values == "-"])))
+    if (!length(deletion_lengths) > 0) {
+      deletion_lengths <- NA
     }
     
-    insertionRows<-nrow(w[as.character(w$ref)=="-",])
-    deletionRows<-nrow(w[as.character(w$read)=="-",])
-    mismatchRows<-nrow(w[as.character(w$ref)!=as.character(w$read) & (as.character(w$ref)!="-") & (as.character(w$read)!="-"),]) 
+    insertionRows <- nrow(w[as.character(w$ref) == "-", ])
+    deletionRows <- nrow(w[as.character(w$read) == "-", ])
+    mismatchRows <-
+      nrow(w[as.character(w$ref) != as.character(w$read) &
+               (as.character(w$ref) != "-") & (as.character(w$read) != "-"), ])
     
-    return(list(totalRows,insertionRows,deletionRows,mismatchRows,list(insertion_lengths),list(deletion_lengths)))
+    return(list(
+      totalRows,
+      insertionRows,
+      deletionRows,
+      mismatchRows,
+      list(as.numeric(insertion_lengths)),
+      list(as.numeric(deletion_lengths))
+    ))
   }
 }
 
-processMotif <-function(motif) {
+processMotif <- function(motif) {
   print("ITERATION")
   print(reference)
   print(motif)
-  filename<-paste(reference,".ERRORS10000.",basename(motif),".txt",sep="")
   
-  if (file.exists(filename)) file.remove(filename) #remove before writing
+  filename <-
+    paste(folder,
+          "/",
+          reference,
+          ".ERRORS",
+          ".",
+          basename(motif),
+          ".txt",
+          sep = "")
+  motifFile <- paste(folder, "/", motif, sep = "")
   
-  coordinates<-read.table(paste("10000/",motif,sep=""))[ ,1:3] #read only first three columns
-  coordinates<-as.data.table(coordinates)  
-  setkey(coordinates, "V1","V2","V3")
-  print(dim(coordinates))
-  coordinates<-subset(coordinates,V1==reference) #subset only to specific chromosome #paste("chr",reference,sep="")
-  print(dim(coordinates))
-  
-  #rows<-NULL
-  rows<-apply(coordinates, 1, function(x) getWindow(x) ) 
-  system.time(
-    write.table(as.matrix(rows), file=filename, col.names = FALSE,row.names = FALSE,quote=FALSE,sep="\t",append=TRUE)
-  )
+  if (file.exists(motifFile)) {
+    #.mf file exists
+    coordinates <-
+      read.table(motifFile,col.names = paste0("V",seq_len(max(count.fields(motifFile)))), fill = TRUE)[, 1:3] #read only first three columns
+    
+    coordinates <- subset(coordinates, V1 == reference) #subset only to specific chromosome #paste("chr",reference,sep="")
+    
+    coordinates0 <- as.data.table(c(coordinates,"0"))
+    coordinates1 <- as.data.table(c(coordinates,"1"))
+    
+    colnames(coordinates0)<-c("V1", "V2", "V3","V4")
+    colnames(coordinates1)<-c("V1", "V2", "V3","V4")
+    
+    setkey(coordinates0, "V1", "V2", "V3","V4")
+    setkey(coordinates1, "V1", "V2", "V3","V4")
+    
+    
+    
+    #rows<-NULL
+    rows0 <- apply(coordinates0, 1, function(x)
+      getWindow(x,filename)
+    )
+    rows1 <- apply(coordinates1, 1, function(x)
+      getWindow(x,filename)
+    )
+    
+    if (file.exists(paste0(filename,"_0strand.txt"))) {
+      file.remove(paste0(filename,"_0strand.txt")) #file with results already exists, remove before writing
+    }
+    
+    if (file.exists(paste0(filename,"_1strand.txt"))) {
+      file.remove(paste0(filename,"_1strand.txt")) #file with results already exists, remove before writing
+    }
+    
+    system.time(
+      write.table(
+        as.matrix(rows0),
+        file = paste0(filename,"_0strand.txt"),
+        col.names = FALSE,
+        row.names = FALSE,
+        quote = FALSE,
+        sep = "\t",
+        append = TRUE
+      )
+    )
+
+    system.time(
+      write.table(
+        as.matrix(rows1),
+        file = paste0(filename,"_1strand.txt"),
+        col.names = FALSE,
+        row.names = FALSE,
+        quote = FALSE,
+        sep = "\t",
+        append = TRUE
+      )
+    )
+  } else {
+    print("File does not exist, skipping.")
+  }
 }
 
 #list<-c("AAAC","AAAG","AAAT","AACC","AACG","AAC","AACT","AAGC","AAGG","AAG","AAGT","AATC","AATG","AAT","AATT","ACAG","ACAT","ACCC","ACCG","ACC","ACCT","ACGG","ACG","AC","ACTC","ACTG","ACT","ACTract","ACTT","AGAT","AGCC","AGCG","AGC","AGCT","AGGC","AGGG","AGG","AGGT","AG","AGTC","AGTG","AGT","AGTT","A","APhasedRepeats","ATCC","ATC","ATCT","ATGC","ATGG","ATG","ATGT","AT","ATTC","ATTG","ATT","ATTract","ATTT","CCCG","CCCT","CCG","CCTG","CCT","CCTT","CGCT","CGGG","CGG","CGGT","CG","CGT","C","CpGIsland","CTGG","CTG","CTGT","CT","CTTG","CTT","CTTT","DirectRepeats","Empty","GCTract","GGGT","GGT","GGTT","G","GQuadruplexMotifs","GT","GTT","GTTT","InvertedRepeats","MirrorRepeats","PuPy","PuTract","PyTract","TGTract","T","ZDNAMotifs")
