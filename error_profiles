@@ -30,28 +30,59 @@ setkey(RES, "position","read","ref")
 <<>>=
 
 <<toy_test>>=
+library("qpcR")
 
 plotIPDperPASS <- function(chunk,filename) {
   par(mfrow = c(2, 2))
   
-  if (length(unique(sort(chunk$idx)))>1) { #if more than one pass is available, then plot
+  
+  if (length(unique(sort(chunk$idx)))>1) { #if more than one subread is available, then plot
     myColors <- c("red", "blue")
     pass = 1
     chunk<-chunk[order(chunk$rStart)]
-    for (idx_chunk in split(chunk, chunk$idx)) { #for each molecule, go subread by subread in increasing order
+    l<-unique(sort(chunk$linkage))
+    bind<-NULL
+    
+    for (idx_chunk in split(chunk, by=c("idx"))) { #for each molecule, go subread by subread in increasing order
+      i<-unique(idx_chunk$idx) #idx
+      print(i)#}
+      
+      s<-unique(sort(idx_chunk$strand))
+      
+      #bind<-qpcR:::cbind.na(bind,paste(idx_chunk$position,idx_chunk$elt))
+      IPDbyPOS<-as.data.frame(cbind(idx_chunk$position,idx_chunk$elt))
+      
+      if (is.null(bind)) {
+        bind<-IPDbyPOS
+      } else {
+        bind<-merge(bind,IPDbyPOS,by="V1",all=TRUE)
+      }
+      
+      colnames(bind)[ncol(bind)]<-paste(i,pass,s)
+      #
+      
       plot(
         idx_chunk$position,
         idx_chunk$elt,
-        ylim = c(0, 5),
-        col = myColors[unique(sort(idx_chunk$strand)) + 1],
+        ylim = c(0, 10),
+        col = myColors[s + 1],
         ylab = "IPD",
         xlab = "position in reference",
-        main = paste("molecule:",unique(sort(idx_chunk$linkage)),"| PASS:", pass,"|", basename(filename)),
-        sub=paste("idx:",unique(sort(idx_chunk$idx)),"strand:",unique(sort(idx_chunk$strand)),"rStart:",unique(sort(idx_chunk$rStart)),"rEnd:",unique(sort(idx_chunk$rEnd)))
+        main = paste("molecule:",l,"| PASS:", pass,"|", basename(filename)),
+        sub=paste("idx:",unique(sort(idx_chunk$idx)),"strand:",s,"rStart:",unique(sort(idx_chunk$rStart)),"rEnd:",unique(sort(idx_chunk$rEnd)))
       )
       pass = pass + 1
       #print(head(idx_chunk))
     }
+      write.table( #only plot if molecule has multiple subreads
+        as.matrix(bind),
+        file = paste0(filename,"_",l,".IPDs.txt"),
+        col.names = TRUE,
+        row.names = FALSE,
+        quote = FALSE,
+        sep = "\t",
+        append = TRUE
+      )
   }
 }
 @
@@ -113,7 +144,7 @@ getErrorRate <- function(start, end, refStrand, filename) {
     plotIPDperPASS(molecule_chunk, filename) 
   }
   
-  w<-w[w$strand==refStrand,]
+  #w<-w[w$strand==refStrand,]
   #print(dim(w))
   
   if (nrow(w) > 0) {
@@ -173,6 +204,10 @@ processMotif <- function(motif) {
     
     coordinates <- subset(coordinates, V1 == reference) #subset only to specific chromosome #paste("chr",reference,sep="")
     
+    rows <- apply(coordinates, 1, function(x)
+      getWindow(x,filename)
+    )
+    
     coordinates0 <- as.data.table(c(coordinates,"0"))
     coordinates1 <- as.data.table(c(coordinates,"1"))
     
@@ -185,44 +220,44 @@ processMotif <- function(motif) {
     
     
     #rows<-NULL
-    rows0 <- apply(coordinates0, 1, function(x)
-      getWindow(x,filename)
-    )
-    rows1 <- apply(coordinates1, 1, function(x)
-      getWindow(x,filename)
-    )
+    #rows0 <- apply(coordinates0, 1, function(x)
+    #  getWindow(x,filename)
+    #)
+    #rows1 <- apply(coordinates1, 1, function(x)
+    #  getWindow(x,filename)
+    #)
     
-    if (file.exists(paste0(filename,"_0strand.txt"))) {
-      file.remove(paste0(filename,"_0strand.txt")) #file with results already exists, remove before writing
-    }
+    #if (file.exists(paste0(filename,"_0strand.txt"))) {
+    #  file.remove(paste0(filename,"_0strand.txt")) #file with results already exists, remove before writing
+    #}
     
-    if (file.exists(paste0(filename,"_1strand.txt"))) {
-      file.remove(paste0(filename,"_1strand.txt")) #file with results already exists, remove before writing
-    }
+    #if (file.exists(paste0(filename,"_1strand.txt"))) {
+    #  file.remove(paste0(filename,"_1strand.txt")) #file with results already exists, remove before writing
+    #}
     
-    system.time(
-      write.table(
-        as.matrix(rows0),
-        file = paste0(filename,"_0strand.txt"),
-        col.names = FALSE,
-        row.names = FALSE,
-        quote = FALSE,
-        sep = "\t",
-        append = TRUE
-      )
-    )
+    #system.time(
+    #  write.table(
+    #    as.matrix(rows0),
+    #    file = paste0(filename,"_0strand.txt"),
+    #    col.names = FALSE,
+    #    row.names = FALSE,
+    #    quote = FALSE,
+    #    sep = "\t",
+    #    append = TRUE
+    #  )
+    #)
 
-    system.time(
-      write.table(
-        as.matrix(rows1),
-        file = paste0(filename,"_1strand.txt"),
-        col.names = FALSE,
-        row.names = FALSE,
-        quote = FALSE,
-        sep = "\t",
-        append = TRUE
-      )
-    )
+    #system.time(
+    #  write.table(
+    #    as.matrix(rows1),
+    #    file = paste0(filename,"_1strand.txt"),
+    #    col.names = FALSE,
+    #    row.names = FALSE,
+    #    quote = FALSE,
+    #    sep = "\t",
+    #    append = TRUE
+    #  )
+    #)
   } else {
     print("File does not exist, skipping.")
   }
@@ -232,301 +267,80 @@ processMotif <- function(motif) {
 
 library(parallel)
 
-list<-c("CGG","CGGT","CG","CGT") #my loooong list of motifs, shortened for illustration purposes
+list<-c("GQuadPlusFeatureOnly.mf","GQuadMinusFeatureOnly.mf","MirrorRepeatsFeatureOnly.mf") #my loooong list of motifs, shortened for illustration purposes
 
 # Calculate the number of cores
-no_cores <- detectCores() - 1
+#no_cores <- detectCores() - 1
 # Initiate cluster
-cl <- makeCluster(no_cores,type="FORK")
+#cl <- makeCluster(no_cores,type="FORK")
 
-print("PARALLEL")
-ptm <- proc.time() #start timer
-parLapply(cl, list,
-          function(motif)
-            processMotif(motif)
-)
-stopCluster(cl)
-proc.time() - ptm
+#print("PARALLEL")
+#ptm <- proc.time() #start timer
+#parLapply(cl, list,
+#          function(motif)
+#            processMotif(motif)
+#)
+#stopCluster(cl)
+#proc.time() - ptm
 
-#print("NON-PARALLEL")
-#ptm <- proc.time()
-#for (motif in list) { 
-#  processMotif(motif) #PROCESS EACH MOTIF INDIVIDUALLY
-#}
-#proc.time() - ptm #stop timer
+print("NON-PARALLEL")
+ptm <- proc.time()
+for (motif in list) { 
+  processMotif(motif) #PROCESS EACH MOTIF INDIVIDUALLY
+}
+proc.time() - ptm #stop timer
 
 print("Done.")
 
 
 @
 
-<<>>=
-library(parallel)
 
-print("NON-PARALLEL")
-ptm <- proc.time()
-lapply(1:10,function(exponent)
-  c(2^exponent))
-proc.time() - ptm #stop timer
+<<PLOT DATA>>=
+par(mfrow = c(2, 1))
 
-# Calculate the number of cores
-no_cores <- detectCores() - 1
-# Initiate cluster
-cl <- makeCluster(no_cores,type="FORK")
+setwd("/Users/alice/Desktop/projects/kinetics/errors_will/old/10000/")
+filenames <- list.files(pattern = "*IPDs.txt", full.names = FALSE)
+filenames<-filenames[grepl("Quad",filenames)]
 
-print("PARALLEL")
-ptm <- proc.time() #start timer
-parLapply(cl, 1:10,
-          function(exponent)
-            2^exponent)
-stopCluster(cl)
-proc.time() - ptm
+myColors<-c("blue","red")
 
-@
-
-
-<<tests>>=
-# Setup the data
-set.seed(3) 
-
-#grp.1 <- round(rlnorm(100, 6)) # With Widget
-#grp.2 <- round(rlnorm(100, 6)) # Original page
-
-getPvalue <-function(grp.1,grp.2,comparedTo) {
-  groups <- c(rep(1, length(grp.1)), rep(2, length(grp.2)))
-  data <- c(grp.1, grp.2)
-  
-  diff(by(data, groups, mean))
-  
-  s <- sample(groups, length(groups), FALSE)
-  diff(by(data, s, mean))
-  
-  max.iter <- 500
-  examples <- unlist(lapply(1:max.iter, function(x) {
-    diff(by(data, sample(groups, length(groups), FALSE), mean))  
-  }))
-  
-  test.diff <- diff(by(data, groups, mean))
-  
-  # one-tailed test
-  pvalue<-(sum(examples > test.diff) + 1) / (max.iter + 1)  
-  
-  hist(examples, col = ifelse(pvalue <= 0.1,'red','blue'), breaks = 50, main=paste("Rand Perm",main=gsub(".txt", "",gsub(".ERRORS10000", "", comparedTo))), xlab="",sub=paste("pvalue: ",round(pvalue,2)," | C:",length(grp.1)," | T:",length(grp.2),sep=""))
-  abline(v = test.diff, col = "black", lwd = 4)
-}
-
-@
-
-<<error_profiles>>=
-library(profr)
-library(ggplot2)
-library(proftools)
-
-Rprof(tmp <- tempfile())
-source("/Users/alice/Desktop/projects/kinetics/errors_will/generateCompleteErrorStatistics.R")
-Rprof()
-summaryRprof(tmp)
-plotProfileCallGraph(readProfileData(tmp),score = "total")
-x = profr(source("/Users/alice/Desktop/projects/kinetics/errors_will/generateCompleteErrorStatistics.R"))
-ggplot(x)
-
-@
-
-<<plot error profiles for different motifs>>=
-par(mfrow=c(4,4),cex.main=1.3,cex.sub=1.4,cex.axis=1.2)
-library("plyr")
-library("hash")
-setwd("/Users/alice/Desktop/projects/kinetics/errors_will/November17th/22features")
-filenames <- list.files(pattern="*mf.txt", full.names=FALSE)
-
-summary<-NULL
-valTable<-NULL
 for (file in (filenames)) {
-  tryCatch({
-    if (file.size(file) > 0){
-      
-      #load motif windows
-      data<-as.data.frame(read.table(file, header = F,col.names=c("V1","V2","V3","V4","V5","V6","V7","V8","V9","V10","V11"), fill=TRUE))
-      data<-data[complete.cases(data),]
-      values<-as.numeric(as.character(as.vector(data$V8)))
-      row<-cbind(file,as.numeric(as.character(median(values))))
-      
-      summary<-rbind(summary,row)
-    }
-  }, error = function(err) {
-    # error handler picks up where error was generated
-    print(paste("Read.table didn't work!:  ",err))
-  })
-}
-print(summary)
-summary<-summary[complete.cases(summary),]
-summary<-as.data.frame(summary)
-colnames(summary)<-c("file","errorRate")
-summary<-plyr::arrange(summary,as.numeric(as.character(summary$errorRate)),decreasing=FALSE)
-print(summary)
-ordered<-summary$file
-
-#remove matching empty files
-ordered<-ordered[!grepl("EmptyTmp",ordered)]
-h8 <- hash()
-h9 <- hash()
-h10 <- hash()
-h11 <- hash()
-
-dataEmpty<-as.data.frame(read.table("Empty.mf.txt", header = F,col.names=c("V1","V2","V3","V4","V5","V6","V7","V8","V9","V10","V11"), fill=TRUE))
-dataEmpty<-dataEmpty[complete.cases(dataEmpty),]
-valuesEmpty<-as.numeric(as.character(as.vector(dataEmpty$V8)))
-
-#PLOT ordered from lowest error rate to highest
-for (file in (ordered)) {
-  tryCatch({
-    
-    #load motif windows
-    data<-as.data.frame(read.table(file, header = F,col.names=c("V1","V2","V3","V4","V5","V6","V7","V8","V9","V10","V11"), fill=TRUE))
-    values<-as.numeric(as.vector(data$V8))
-    values<-values[!is.na(values)]
-                
-    
-    #if (length(values) >= 30) {
-    #populate hashes
-    h8[gsub("22.ERRORS10000onlyFeature.","", gsub(".mf.txt","", file))]=as.numeric(as.vector(data$V8))
-    h9[gsub("22.ERRORS10000onlyFeature.","", gsub(".mf.txt","", file))]=as.numeric(as.vector(data$V9))
-    h10[gsub("22.ERRORS10000onlyFeature.","", gsub(".mf.txt","", file))]=as.numeric(as.vector(data$V10))
-    h11[gsub("22.ERRORS10000onlyFeature.","", gsub(".mf.txt","", file))]=as.numeric(as.vector(data$V11))
-      print(file)
-      
-      hist(values,col="gold",xlab="% error",main=gsub(".txt", "",gsub(".ERRORS10000", "", file)),xlim=c(0,100),sub=paste("n=",length(values)," errorRate=",round(mean(values),2),sep=""))
-      
-      #load empty windows
-      emptyFile<-gsub(".txt","EmptyTmp.txt", file)
-      
-      if(file.exists(emptyFile)) {
-        print("empty file exists")
-        
-        #one empty file for all
-        
-        #individial empty files
-        #dataEmpty<-as.data.frame(read.table(emptyFile, header = F,col.names=c("V1","V2","V3","V4","V5","V6","V7","V8","V9","V10","V11"), fill=TRUE))
-        #dataEmpty<-dataEmpty[complete.cases(dataEmpty),]
-        #valuesEmpty<-as.numeric(as.character(as.vector(dataEmpty$V8)))
-        
-        #compare to the empty windows
-        getPvalue(valuesEmpty,values,file)
-      } else {
-        print("empty file does not exist")
-      }
-    #} 
-  }, error = function(err) {
-    print(file)
-    # error handler picks up where error was generated
-    print(paste("Read.table didn't work!:  ",err))
-  })
-}
-
-@
-
-<<big stat>>=
-par(mfrow=c(1,1))
-library("DescTools")
-setwd("/Users/alice/Desktop/projects/kinetics/errors_will/November17th/22features")
-filenames <- list.files(pattern="*mf.txt", full.names=FALSE)
-names<-(gsub("22.ERRORS10000onlyFeature.","",gsub(".mf.txt","",ordered)))
-#names<-tail(names,n=10)
-
-#percErrorTotal
-box=boxplot(values(h8)[names],col="gold",names=FALSE,frame=FALSE,axis=FALSE,labels = FALSE,xaxt = "n",main="CHR 22 ERRORS percError TOTAL",ylim=c(0,60),outline=FALSE,border="gray",ylab="%",plot=FALSE)
-
-#box=boxplot(values(h8)[names]~factor(names),plot=FALSE)
-#box$stats=as.matrix(Reduce(cbind,tapply(values(h8)[names],factor(names),quantile,probs=c(0.05,0.25,0.5,0.75,0.95),na.rm=TRUE,SIMPLIFY=FALSE))) # change whiskers
-
-n <- length(box$n)
-second_largest_value<-sort(box$n,partial=n-1)[n-1]
-perc=round(box$n/second_largest_value*100000,0) # compute sample size percentages (the maximum sample size is 1)
-
-col_perc=rev(heat.colors(100000))[perc] # the maximum sample size has red
-col_perc[which(box$n==max(box$n))]<-"green"  #assign green to empty windows
-
-bxp(box,outline=FALSE,pars=list(whisklty=3,staplewex=0.8,boxfill=col_perc),xlab="motif")
-mtext(names,cex=0.5,srt=90,col="black",side=1,at=1:length(keys(h8)),las=3)
-text(1:length(names),50,labels=names,srt=90,col="blue",cex=0.5)
-abline(h=median(h8[["Empty"]]),col="blue")
-
-@
-
-<<other hists>>=
-#percErrorIns
-boxplot(values(h9)[names],col="orange",names=FALSE,frame=FALSE,axis=FALSE,labels = FALSE,xaxt = "n",main="CHR 22 ERRORS percError INSERTIONS",ylim=c(0,30),outline=FALSE,border="gray",ylab="%")
-mtext(names,cex=0.5,srt=90,col="black",side=1,at=1:length(keys(h9)),las=3)
-text(1:length(names),20,labels=names,srt=90,col="blue",cex=0.5)
-abline(h=median(h9[["Empty"]]),col="blue")
-
-#percErrorDel
-boxplot(values(h10)[names],col="cyan",names=FALSE,frame=FALSE,axis=FALSE,labels = FALSE,xaxt = "n",main="CHR 22 ERRORS percError DELETIONS",ylim=c(0,30),outline=FALSE,border="gray",ylab="%")
-mtext(names,cex=0.5,srt=90,col="black",side=1,at=1:length(keys(h10)),las=3)
-text(1:length(names),15,labels=names,srt=90,col="blue",cex=0.5)
-abline(h=median(h10[["Empty"]]),col="blue")
-
-#percErrorMism
-boxplot(values(h11)[names],col="green",names=FALSE,frame=FALSE,axis=FALSE,labels = FALSE,xaxt = "n",main="CHR 22 ERRORS percError MISMATCHES",ylim=c(0,40),outline=FALSE,border="gray",ylab="%")
-mtext(names,cex=0.5,srt=90,col="black",side=1,at=1:length(keys(h11)),las=3)
-text(1:length(names),35,labels=names,srt=90,col="blue",cex=0.5)
-abline(h=median(h11[["Empty"]]),col="blue")
-@
-
-<<>>=
-
-
-summary<-NULL
-for (file in (ordered)) {
-  tryCatch({
-    if (file.size(file) > 0){
-      
-      print(file)
-      #load motif windows
-      data<-as.data.frame(read.table(file, header = F,col.names=c("V1","V2","V3","V4","V5","V6","V7","V8","V9","V10","V11"), fill=TRUE))
-      data<-data[complete.cases(data),]
-      values<-as.numeric(as.character(as.vector(data$V8)))
-      row<-cbind(file,as.numeric(as.character(mean(values))))
-      
-      if (length(values) >= 50) {
-        boxplot(values,col="gold",main=gsub(".ERRORS10000onlyFeature","", file),ylim=c(0,100),frame=F)
-        }
-      }
-    }, error = function(err) {
-      # error handler picks up where error was generated
-      print(paste("Read.table didn't work!:  ",err))
-    })
+  d <- read.table(file, sep = "\t", header = TRUE)
+  print(dim(d))
+  
+  strand<-as.numeric((unlist(strsplit(as.character(colnames(d)[2]),"[.]"))[3]))
+  myCol<-myColors[as.numeric(strand+1)]
+  
+  plot(
+    d$V1,
+    d[, 2],
+    pch = '1',
+    col = myCol,
+    ylim = c(0, 10),
+    ylab = "IPD",
+    sub = "position on reference",
+    main=basename(file),
+    xlab="",
+    las=2
+  )
+  
+  for (c in 3:ncol(d)) {
+    print("---")
+    print(c)
+    strand<-as.numeric((unlist(strsplit(as.character(colnames(d)[c]),"[.]"))[3]))
+    print(strand)
+    myCol<-myColors[as.numeric(strand+1)]
+    print(myCol)
+    points(d$V1, d[, c], pch = as.character(c - 1), col=myCol)
   }
-  @
   
+  points(d$V1, rowMeans(d[, 2:ncol(d)], na.rm = TRUE), pch = "*",col="black",cex=2)
   
+  dt <- t(d)
+  colnames(dt) <- dt[1, ]
+  dt <- dt[-1, ]
   
-  
-  
-  
-  \end{document}
-  <<>>=
-par(mfrow=c(6,2))
-setwd("/Users/alice/Desktop/projects/kinetics/errors_will/lengths")
-filenames <- list.files(pattern="*mf.txt", full.names=FALSE)
-
-for (file in (filenames)) {
-  tryCatch({
-    if (file.size(file) > 0){
-      name<-gsub("22.ERRORS10000onlyFeature.","",gsub(".mf.txt","",file))
-      #load motif windows
-      data<-as.data.frame(read.table(file, header = F,sep='$'))
-      insertions<-strsplit(gsub(" c\\(","",gsub("\\) ","",data$V2)),", ")
-      deletions<-strsplit(gsub(" c\\(","",gsub("\\) ","",data$V3)),", ")
-      print(dim(data))
-      plot(table(sort(as.numeric(unlist(insertions)))),col="orange",xlab="insertions length",main=file,freq=TRUE,xlim=c(0,20))
-      #abline(v=nchar(name),col="red")
-      plot(table(sort(as.numeric(unlist(deletions)))),col="cyan",xlab="deletions length",main=file,freq=TRUE,xlim=c(0,20))
-      #abline(v=nchar(name),col="red")
-    }
-  }, error = function(err) {
-    # error handler picks up where error was generated
-    print(paste("Read.table didn't work!:  ",err))
-  })
+  boxplot(dt, las = 2)
 }
 @
