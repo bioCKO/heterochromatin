@@ -21,10 +21,13 @@ with open(motifFile, "r") as ifile:
 		m=line.rstrip() #line from motif file
 		#print m
 		m_array=m.split(' ')
-		
+		chromosome=m_array[0]
 		try:
-			chromosome=int(m_array[0])
-			print chromosome
+			if (chromosome=="X"):
+				print chromosome
+			else:
+				chromosome=int(chromosome)
+				print chromosome
 			if (i!=1):
 				f.write("\n") #write newline, except for reading first line
 			f.write(m)
@@ -33,3 +36,4 @@ with open(motifFile, "r") as ifile:
 			last_entry=m_array[-1]
 			print last_entry
 			f.write(m) #the newline shouldn't be there, it's not chromosome
+f.write("\n")
