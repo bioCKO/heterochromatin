@@ -289,7 +289,7 @@ for (i in names(data[8:11])) {
         }
         #compare to either individual all default file with empty values
         #getPvalue(valuesEmpty, values, file)
-        pv <- as.numeric(getPvalue(valuesEmpty, values, file))
+        pv <- as.numeric(getPvalue(na.omit(valuesEmpty), na.omit(values), file))
         
         tmp_data <- get(paste0(i,"pvalue"))
         tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = round(pv, 4) #save pvalue and plot
