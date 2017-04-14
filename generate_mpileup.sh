@@ -16,7 +16,7 @@ echo "====================================="
 for motif_file in $folder_with_motifs/*.mf; do  
 	motif=`basename $motif_file`
 	echo -n $motif " ";
-	awk -v mtf=$motif '{print $1 "\t mf \t" mtf "\t" ($2) "\t" $3 "\t.\t0\t.\tkinetics"}' $motif_file | sort -k1,1 -k4,4n >${motif}.gff
+	awk -v mtf=$motif '{print "chr" $1 "\t mf \t" mtf "\t" ($2) "\t" $3 "\t.\t0\t.\tkinetics"}' $motif_file | sort -k1,1 -k4,4n >${motif}.gff
 	gff2bed < ${motif}.gff > ${motif}.bed
 done; 
 
@@ -28,7 +28,10 @@ for X in "${array[@]}"; do
 	for motif_file in *.mf.bed; do 
 		echo $motif_file; 
 		out=`basename $motif_file`; 
-		samtools mpileup ${bam_folder}/chr${X}_P6.cmp.h5.sam.sorted.bam -f $reference -l ${motif_file} -uv -t INFO/DPR >mp/${X}_${out}.mp; 
-	done; 
+		samtools mpileup ${bam_folder}/chr${X}_P6.cmp.h5.sam.sorted.bam -f $reference -l ${motif_file} -uv -t INFO/DPR >mp/${X}_${out}.mp &
+	done;
+	wait 
 done;
 
+echo "Parsing mpileup output (.mp files)"
+echo "====================================="
