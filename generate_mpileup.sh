@@ -1,4 +1,6 @@
 #!/bin/bash
+set -e
+#set -x
 export PATH="/nfs/brubeck.bx.psu.edu/scratch5/wilfried/src/samtools-1.3.1:$PATH"
 export PATH="/nfs/brubeck.bx.psu.edu/scratch5/wilfried/src/bedtools2-master/bin:$PATH"
 
@@ -16,8 +18,9 @@ echo "====================================="
 for motif_file in $folder_with_motifs/*.mf; do  
 	motif=`basename $motif_file`
 	echo -n $motif " ";
-	awk -v mtf=$motif '{print "chr" $1 "\t mf \t" mtf "\t" ($2) "\t" $3 "\t.\t0\t.\tkinetics"}' $motif_file | sort -k1,1 -k4,4n >${motif}.gff
+	awk -v mtf=$motif '{print $1 "\t mf \t" mtf "\t" ($2) "\t" $3 "\t.\t0\t.\tkinetics"}' $motif_file | sort -k1,1 -k4,4n >${motif}.gff
 	gff2bed < ${motif}.gff > ${motif}.bed
+	sed -i 's/^/chr/g' ${motif}.bed #bed files should contain "chr" for the compatibility with the reference
 done; 
 
 #CONVERT .mf FILES into .GFF and .BED
