@@ -32,12 +32,17 @@ getPvalue <- function(grp.1, grp.2, comparedTo) {
   groups <- c(rep(1, length(grp.1)), rep(2, length(grp.2)))
   data <- c(grp.1, grp.2)
   
+  #print("Control ==0")
+  #print(table(grp.1==0))
+  #print("Feature ==0")
+  #print(table(grp.2==0))
+  
   diff(by(data, groups, mean))
   
   s <- sample(groups, length(groups), FALSE)
   diff(by(data, s, mean))
   
-  max.iter <- 100 #500
+  max.iter <- 500 #500
   examples <- unlist(lapply(1:max.iter, function(x) {
     diff(by(data, sample(groups, length(groups), FALSE), mean))
   }))
@@ -435,6 +440,8 @@ par(mfrow = c(1, 1))
 
 f<-values(get(i))
 c<-values(get(paste0(i, "controls")))
+
+
 fc<-list(f,c)
 idx <- order(c(seq_along(f), seq_along(c)))
 
