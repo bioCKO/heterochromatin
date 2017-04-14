@@ -1,22 +1,4 @@
 
-<<>>=
-library("vecsets")
-#grp1 <- sort(as.numeric(c(round(rlnorm(10, 1)),1,1,1,1,1)))
-#grp2 <- sort(as.numeric(round(rlnorm(10, 1))))
-
-#getLengthSignificance(valuesEmpty, values, file)
-
-getLengthSignificance <- function(grp2, grp1, comparedTo) { # empty motif
-  common<-vintersect(grp1, grp2, multiple = TRUE)
-  values_not_in_empty_windows<-vsetdiff(grp1, common, multiple = TRUE)
-  leftovers_in_empty_windows<-vsetdiff(grp2, common, multiple = TRUE)
-  pvalue<-ks.test(grp1,grp2)$p.value #perform Kolmogorov-Smirnov Tests
-  #plot(table(values_not_in_empty_windows)[-1],col="darkgreen",main=round(pvalue,2),ylab="gap lengths")
-  return(pvalue)
-}
-@
-
-
 <<plot error profiles for different motifs>>=
 par(
   mfrow = c(4, 4),
@@ -24,14 +6,15 @@ par(
   cex.sub = 1.4,
   cex.axis = 1.2
 )
-library("plyr")
-library("dplyr")
-library("hash")
-library("data.table")
+require("plyr")
+require("dplyr")
+require("hash")
+require("data.table")
 #setwd("/Users/alice/Desktop/projects/kinetics/errors_will/merged/formatted")
 #setwd("/Users/alice/Desktop/projects/kinetics/errors_will/merged/illumina")
 #setwd("/Users/alice/Desktop/projects/kinetics/1kG/")
-setwd("/Users/alice/Desktop/projects/kinetics/illumina/AF0.1")
+#setwd("/Users/alice/Desktop/projects/kinetics/illumina/AF0.1")
+setwd("/Users/alice/Desktop/projects/kinetics/errors_will/april17/all")
 
 filenames <- list.files(pattern = "*mf", full.names = FALSE)
 filenames <- filenames[grepl("FeatureOnly", filenames)]
@@ -43,6 +26,8 @@ set.seed(3)
 #grp.1 <- round(rlnorm(100, 6)) # With Widget
 #grp.2 <- round(rlnorm(100, 6)) # Original page
 
+pdf("histograms.pdf")
+
 getPvalue <- function(grp.1, grp.2, comparedTo) {
   groups <- c(rep(1, length(grp.1)), rep(2, length(grp.2)))
   data <- c(grp.1, grp.2)
@@ -52,7 +37,7 @@ getPvalue <- function(grp.1, grp.2, comparedTo) {
   s <- sample(groups, length(groups), FALSE)
   diff(by(data, s, mean))
   
-  max.iter <- 500 #500
+  max.iter <- 100 #500
   examples <- unlist(lapply(1:max.iter, function(x) {
     diff(by(data, sample(groups, length(groups), FALSE), mean))
   }))
@@ -144,6 +129,11 @@ V9 <- hash()
 V10 <- hash()
 V11 <- hash()
 
+V8controls <- hash()
+V9controls <- hash()
+V10controls <- hash()
+V11controls <- hash()
+
 V8pvalue <- hash()
 V9pvalue <- hash()
 V10pvalue <- hash()
@@ -206,7 +196,8 @@ for (i in names(data[8:11])) {
           as.character(dataOriginal[, 1]), " ", fixed = TRUE
         ))[]) #split by spaces
       values <- as.numeric(as.vector(data[[i]]))
-      values <- values[!is.na(values)]
+      values <- na.omit(values)
+      print(mean(values))
       
       insertions <-
         sort(as.numeric(unlist(strsplit(
@@ -222,7 +213,7 @@ for (i in names(data[8:11])) {
         #we are only interested in sufficiently populated motifs
         #populate hashes
         tmp_data <- get(i)
-        tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = as.numeric(as.vector(data[[i]]))
+        tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = values
         assign(i, tmp_data)
         #h9[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = as.numeric(as.vector(data$V9))
         #h10[gsub("ERROR.", "", gsub(".mf.txt", "", file))] = as.numeric(as.vector(data$V10))
@@ -235,7 +226,7 @@ for (i in names(data[8:11])) {
           main = gsub(".txt", "", gsub(
             "ERRORS", "", gsub("10000.", "", gsub(".mf", "", file))
           )),
-          xlim = c(0, 100),
+          xlim = c(0, 5),
           sub = paste(
             "n=",
             length(values),
@@ -268,6 +259,13 @@ for (i in names(data[8:11])) {
           dataEmpty <- dataEmpty[complete.cases(dataEmpty), ]
           valuesEmpty <-
             as.numeric(as.character(as.vector(dataEmpty[[i]])))
+          valuesEmpty <-na.omit(valuesEmpty)
+          print(mean(valuesEmpty))
+        
+        #populate hash with matching controls  
+        tmp_dataEmpty <- get(paste0(i,"controls"))
+        tmp_dataEmpty[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = valuesEmpty
+        assign(paste0(i,"controls"), tmp_dataEmpty)
           
           insertionsEmpty <-
             sort(as.numeric(unlist(strsplit(
@@ -309,39 +307,14 @@ for (i in names(data[8:11])) {
   }
 }
 
-#V8 <- hash()
-#V9 <- hash()
-#V10 <- hash()
-#V11 <- hash()
+dev.off()
 
-#V8pvalue <- hash()
-#V9pvalue <- hash()
-#V10pvalue <- hash()
-#V11pvalue <- hash()
-
-save(V8,file="V8.Rda")
-save(V9,file="V9.Rda")
-save(V10,file="V10.Rda")
-save(V11,file="V11.Rda")
-
-save(V8pvalue,file="V8pvalue.Rda")
-save(V9pvalue,file="V9pvalue.Rda")
-save(V10pvalue,file="V10pvalue.Rda")
-save(V11pvalue,file="V11pvalue.Rda")
 @
 
 <<>>=
-load("V8.Rda")
-load("V9.Rda")
-load("V10.Rda")
-load("V11.Rda")
-
-load("V8pvalue.Rda")
-load("V9pvalue.Rda")
-load("V10pvalue.Rda")
-load("V11pvalue.Rda")
 
 par(mfrow = c(1, 1))
+
 
 for (i in names(data[8:11])) {
   
@@ -370,7 +343,7 @@ for (i in names(data[8:11])) {
   names <- gsub("ERRORS", "", gsub(".mf.txt", "", ordered))
   #percErrorTotal
   box = boxplot(
-    values(get(i))[names],
+    values(get(paste0(i,"controls")))[names],
     col = "gold",
     names = TRUE,
     frame = FALSE,
@@ -444,8 +417,8 @@ yt <- middle_point*2
   
   text(
     1:length(names),
-    0.004,
-    #1.55*middle_point,
+    #0.004,
+    1.55*middle_point,
     labels = gsub("merged_", "", gsub(".mf", "", gsub("FeatureOnly", "", annotation))),
     srt = 90,
     col = "black",
@@ -457,37 +430,40 @@ yt <- middle_point*2
 }
 @
 
-<<>>=
-colfunc <- colorRampPalette(c("white","white", "white", "white","white","white", "white", "white","white","red"))
-plot(1:100,1:100,pch=20,col=colfunc(100))
-abline(h=90,col="black")
-@
+<<test>>=
+par(mfrow = c(1, 1))
 
+f<-values(get(i))
+c<-values(get(paste0(i, "controls")))
+fc<-list(f,c)
+idx <- order(c(seq_along(f), seq_along(c)))
+
+boxplot(
+  c(f[names],c[names])[idx],
+  las = 2,
+  main = "Features",
+  cex = 0.75,
+  ylim = c(0, 0.12),
+  col = rep(colscale,each=2),
+  outline = FALSE
+)
+
+myLabels<-(gsub("merged_", "", gsub(
+    ".mf", "", gsub("FeatureOnly", "", rep(annotation,each=2)))
+  ))
+
+text(
+  seq(1:(length(names)*2)),
+  0.113,
+  #1.55*middle_point,
+  labels = myLabels,
+  srt = 90,
+  col = "darkgray",
+  cex = 1
+)
+
+
+
+@
 
 \end{document}
-<<>>=
-par(mfrow=c(3,2))
-setwd("/Users/alice/Desktop/projects/kinetics/errors_will/lengths")
-filenames <- list.files(pattern="*mf.txt", full.names=FALSE)
-
-for (file in (filenames)) {
-  tryCatch({
-    if (file.size(file) > 0){
-      name<-gsub("22.ERRORS10000onlyFeature.","",gsub(".mf.txt","",file))
-      #load motif windows
-      data<-as.data.frame(read.table(file, header = F,sep='$'))
-      insertions<-sort(as.numeric(unlist(strsplit(gsub("c\\(", "", gsub("\\)", "", data$V2)),", "))))
-      deletions<-sort(as.numeric(unlist(strsplit(gsub("c\\(", "", gsub("\\)", "", data$V3)),", "))))
-      print(dim(data))
-      plot(table(sort(as.numeric(unlist(insertions)))),col="orange",xlab="insertions length",main=file,freq=TRUE,xlim=c(0,20))
-      #abline(v=nchar(name),col="red")
-      plot(table(sort(as.numeric(unlist(deletions)))),col="cyan",xlab="deletions length",main=file,freq=TRUE,xlim=c(0,20))
-      #abline(v=nchar(name),col="red")
-    }
-  }, error = function(err) {
-    print(file)
-    # error handler picks up where error was generated
-    print(paste("Read.table didn't work!:  ",err))
-  })
-}
-@
