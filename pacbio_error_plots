@@ -10,11 +10,14 @@ require("plyr")
 require("dplyr")
 require("hash")
 require("data.table")
-#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/merged/formatted")
-#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/merged/illumina")
-#setwd("/Users/alice/Desktop/projects/kinetics/1kG/")
-#setwd("/Users/alice/Desktop/projects/kinetics/illumina/AF0.1")
-setwd("/Users/alice/Desktop/projects/kinetics/errors_will/april17/all")
+
+#setwd("~/Documents/Doctoral_Thesis/Dev/Divergence/")
+#setwd("~/Documents/Doctoral_Thesis/Dev/1kG/filtered/")
+#setwd("~/Documents/Doctoral_Thesis/Dev/TCGA/")
+setwd("~/Documents/Doctoral_Thesis/Dev/Illumina/all/")
+#setwd("~/Documents/Doctoral_Thesis/Dev/Illumina/plus/")
+#setwd("~/Documents/Doctoral_Thesis/Dev/Illumina/minus/")
+
 
 filenames <- list.files(pattern = "*mf", full.names = FALSE)
 filenames <- filenames[grepl("FeatureOnly", filenames)]
@@ -28,30 +31,40 @@ set.seed(3)
 
 pdf("histograms.pdf")
 
+getMQuantile <- function(distrib) {
+  MQuantile <- sum(quantile(distrib, c(.05, .25, .5, .75, .95), na.rm=TRUE)**2)
+  return(MQuantile)
+}
+
+
 getPvalue <- function(grp.1, grp.2, comparedTo) {
   groups <- c(rep(1, length(grp.1)), rep(2, length(grp.2)))
   data <- c(grp.1, grp.2)
+  if(length(grp.1)!=length(grp.2))
+    stop('Different sample size in the two groups!')
   
-  #print("Control ==0")
-  #print(table(grp.1==0))
-  #print("Feature ==0")
-  #print(table(grp.2==0))
+  #diff(by(data, groups, getMQuantile))
   
-  diff(by(data, groups, mean))
+  #s<- sample(groups, length(groups), FALSE)
+  #diff(by(data, s, getMQuantile))
   
-  s <- sample(groups, length(groups), FALSE)
-  diff(by(data, s, mean))
-  
-  max.iter <- 500 #500
+  max.iter <- 100-1 #500
   examples <- unlist(lapply(1:max.iter, function(x) {
-    diff(by(data, sample(groups, length(groups), FALSE), mean))
+    perm=which(sample(c(TRUE,FALSE),length(grp.1),replace = TRUE))
+    groups_perm=groups
+    groups_perm[perm]=groups[length(grp.1)+perm]
+    groups_perm[length(grp.1)+perm]=groups[perm]
+    temp=Reduce(cbind,by(data, groups_perm, quantile, probs=c(.05, .25, .5, .75, .95),na.rm=TRUE))
+    temp=sum((temp[,2]-temp[,1])^2)
+    return(temp)
   }))
   
-  test.diff <- diff(by(data, groups, mean))
+  test.diff <- Reduce(cbind,by(data, groups, quantile, probs=c(.05, .25, .5, .75, .95),na.rm=TRUE))
+  test.diff=sum((test.diff[,2]-test.diff[,1])^2)
   
   # two-tailed test
   pvalue <-
-    (sum(abs(examples) > abs(test.diff)) + 1) / (max.iter + 1) #from http://danielnee.com/tag/p-value/
+    (sum(examples >= test.diff) + 1) / (max.iter + 1) #from http://danielnee.com/tag/p-value/
   
   hist(
     examples,
@@ -438,8 +451,8 @@ yt <- middle_point*2
 <<test>>=
 par(mfrow = c(1, 1))
 
-f<-values(get(i))
-c<-values(get(paste0(i, "controls")))
+f<-values(get('V8'))
+c<-values(get(paste0('V8', "controls")))
 
 
 fc<-list(f,c)
