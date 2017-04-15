@@ -325,7 +325,6 @@ for (i in names(data[8:11])) {
   }
 }
 
-dev.off()
 
 @
 
@@ -360,9 +359,14 @@ for (i in names(data[8:11])) {
   ordered <- summary$file
   names <- gsub("ERRORS", "", gsub(".mf.txt", "", ordered))
   #percErrorTotal
+  
+  f<-values(get(i))
+  c<-values(get(paste0(i, "controls")))
+  fc<-list(f,c)
+  idx <- order(c(seq_along(f), seq_along(c)))
+  
   box = boxplot(
-    values(get(paste0(i,"controls")))[names],
-    col = "gold",
+    c(f[names],c[names])[idx],
     names = TRUE,
     frame = FALSE,
     axis = FALSE,
@@ -402,7 +406,7 @@ for (i in names(data[8:11])) {
     pars = list(
       whisklty = 3,
       staplewex = 0.8,
-      boxfill = colscale
+      boxfill = rep(colscale,each=2)
     ),
     xlab = "Motif",
     ylab = "% error rate",
@@ -432,12 +436,16 @@ yt <- middle_point*2
 #     lwd=0.075
 #    )
 #mtext(seq(from=0,to=1,by=0.1),side=4,at=seq(from=yb,to=yt,by=(yt-yb)/10),las=2,cex=0.7)
-  
+
+myLabels<-(gsub("merged_", "", gsub(
+    ".mf", "", gsub("FeatureOnly", "", rep(paste(annotation,significance)[1:length(names)],each=2)))
+  ))  
+
   text(
-    1:length(names),
+    seq(1:(length(names)*2)),
     #0.004,
     1.55*middle_point,
-    labels = gsub("merged_", "", gsub(".mf", "", gsub("FeatureOnly", "", annotation))),
+    labels = myLabels,
     srt = 90,
     col = "black",
     cex = 0.7
