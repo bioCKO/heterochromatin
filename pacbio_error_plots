@@ -29,7 +29,7 @@ set.seed(3)
 #grp.1 <- round(rlnorm(100, 6)) # With Widget
 #grp.2 <- round(rlnorm(100, 6)) # Original page
 
-pdf("histograms.pdf")
+#pdf("histograms.pdf")
 
 getMQuantile <- function(distrib) {
   MQuantile <- sum(quantile(distrib, c(.05, .25, .5, .75, .95), na.rm=TRUE)**2)
@@ -44,6 +44,9 @@ getPvalue <- function(grp.1, grp.2, comparedTo) {
     stop('Different sample size in the two groups!')
   
   #diff(by(data, groups, getMQuantile))
+  
+  print(paste("Control:",sort(table(grp.1))["0"]))
+  print(paste("Feature:",sort(table(grp.2))["0"]))
   
   #s<- sample(groups, length(groups), FALSE)
   #diff(by(data, s, getMQuantile))
@@ -456,42 +459,6 @@ myLabels<-(gsub("merged_", "", gsub(
 }
 @
 
-<<test>>=
-par(mfrow = c(1, 1))
-
-f<-values(get('V8'))
-c<-values(get(paste0('V8', "controls")))
-
-
-fc<-list(f,c)
-idx <- order(c(seq_along(f), seq_along(c)))
-
-boxplot(
-  c(f[names],c[names])[idx],
-  las = 2,
-  main = "Features",
-  cex = 0.75,
-  ylim = c(0, 0.12),
-  col = rep(colscale,each=2),
-  outline = FALSE
-)
-
-myLabels<-(gsub("merged_", "", gsub(
-    ".mf", "", gsub("FeatureOnly", "", rep(annotation,each=2)))
-  ))
-
-text(
-  seq(1:(length(names)*2)),
-  0.113,
-  #1.55*middle_point,
-  labels = myLabels,
-  srt = 90,
-  col = "darkgray",
-  cex = 1
-)
-
-
-
-@
+  
 
 \end{document}
