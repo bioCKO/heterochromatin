@@ -12,9 +12,9 @@ require("hash")
 require("data.table")
 
 #setwd("~/Documents/Doctoral_Thesis/Dev/Divergence/")
-#setwd("~/Documents/Doctoral_Thesis/Dev/1kG/filtered/")
+setwd("~/Documents/Doctoral_Thesis/Dev/1kG/filtered/")
 #setwd("~/Documents/Doctoral_Thesis/Dev/TCGA/")
-setwd("~/Documents/Doctoral_Thesis/Dev/Illumina/all/")
+#setwd("~/Documents/Doctoral_Thesis/Dev/Illumina/all/")
 #setwd("~/Documents/Doctoral_Thesis/Dev/Illumina/plus/")
 #setwd("~/Documents/Doctoral_Thesis/Dev/Illumina/minus/")
 
@@ -29,19 +29,85 @@ set.seed(3)
 #grp.1 <- round(rlnorm(100, 6)) # With Widget
 #grp.2 <- round(rlnorm(100, 6)) # Original page
 
-#pdf("histograms.pdf")
+pdf("histograms.pdf")
 
-getMQuantile <- function(distrib) {
-  MQuantile <- sum(quantile(distrib, c(.05, .25, .5, .75, .95), na.rm=TRUE)**2)
-  return(MQuantile)
+
+getPvalue <- function(grp.1, grp.2, comparedTo,paired=TRUE) {
+ 
+  TwoPart <- function(data, group, test="wilcoxon", point.mass=0){
+  Index1 <- c(group==1)
+  Group1 <- data[Index1]
+  Group0 <- data[!Index1]
+  n1 <- length(Group1)
+  n2 <- length(Group0)
+  obs <- c(n1, n2)
+  success <- c(sum(Group1!=point.mass), sum(Group0!=point.mass))
+  pointmass <- obs-success
+  if (sum(success)==0) {
+    T2 <- 0
+    B2 <- 0
+  } else if ((success[1]==0)|(success[2]==0)) {
+    T2 <- 0
+    B2 <- prop.test(pointmass, obs)$statistic
+  } else if ((success[1]==1)|(success[2]==1)){
+    T2 <- 0
+    B2 <- prop.test(pointmass, obs)$statistic
+  } else {
+    uniq1 <- length(unique(Group1[Group1!=point.mass]))
+    uniq2 <- length(unique(Group0[Group0!=point.mass]))
+    if ((uniq1 < 2) & (uniq2 < 2)){
+      T2 <- 0
+      if (sum(pointmass)==0){
+        B2 <- 0
+      } else {
+        B2 <- prop.test(pointmass, obs)$statistic
+      }
+    } else if (sum(pointmass)==0){
+      B2 <- 0
+      if (test=="t.test")
+        T2 <- t.test(data~group)$statistic^2
+      if (test=="wilcoxon") {
+        W <- wilcox.test(data~group, exact=FALSE)$statistic
+        mu <- (n1*n2)/2
+        sigma <- sqrt((n1*n2*(n1+n2+1))/12)
+        T2 <- ((abs(W-mu)-0.5)/sigma)^2
+      }
+      if (test=="quantiles"){
+        T2 <- Reduce(cbind,by(data, groups, quantile, probs=c(.05, .25, .5, .75, .95),na.rm=TRUE))
+        T2 <- sum((T2[,2]-T2[,1])^2)
+      }
+    } else {
+      B2 <- prop.test(pointmass, obs)$statistic
+      contIndex <- data!=point.mass
+      cont <- data[contIndex]
+      cGroup <- group[contIndex]
+      n1c <- sum(cGroup==1)
+      n2c <- sum(cGroup==0)
+      if (test=="t.test")
+        T2 <- t.test(cont~cGroup)$statistic^2
+      if (test=="wilcoxon") {
+        W <- wilcox.test(cont~cGroup, exact=FALSE)$statistic
+        mu <- (n1c*n2c)/2
+        sigma <- sqrt((n1c*n2c*(n1c+n2c+1))/12)
+        T2 <- ((abs(W-mu)-0.5)/sigma)^2
+      }
+      if (test=="quantiles"){
+        T2 <- Reduce(cbind,by(data, groups, quantile, probs=c(.05, .25, .5, .75, .95),na.rm=TRUE))
+        T2 <- sum((T2[,2]-T2[,1])^2)
+      }
+    }
+  }
+  X2 <- B2+T2
+  statistic=X2
+  return(statistic)
 }
-
-
-getPvalue <- function(grp.1, grp.2, comparedTo) {
-  groups <- c(rep(1, length(grp.1)), rep(2, length(grp.2)))
+ 
+  groups <- c(rep(1, length(grp.1)), rep(0, length(grp.2)))
   data <- c(grp.1, grp.2)
-  if(length(grp.1)!=length(grp.2))
-    stop('Different sample size in the two groups!')
+  
+if((paired)&(length(grp.1)!=length(grp.2)))
+    stop('Different sample size in the two groups, in a paired test!')
+ 
   
   #diff(by(data, groups, getMQuantile))
   
@@ -51,43 +117,49 @@ getPvalue <- function(grp.1, grp.2, comparedTo) {
   #s<- sample(groups, length(groups), FALSE)
   #diff(by(data, s, getMQuantile))
   
-  max.iter <- 100-1 #500
+  max.iter <- 500-1 #500
   examples <- unlist(lapply(1:max.iter, function(x) {
-    perm=which(sample(c(TRUE,FALSE),length(grp.1),replace = TRUE))
-    groups_perm=groups
-    groups_perm[perm]=groups[length(grp.1)+perm]
-    groups_perm[length(grp.1)+perm]=groups[perm]
-    temp=Reduce(cbind,by(data, groups_perm, quantile, probs=c(.05, .25, .5, .75, .95),na.rm=TRUE))
-    temp=sum((temp[,2]-temp[,1])^2)
+    if(paired){
+       perm=which(sample(c(TRUE,FALSE),length(grp.1),replace = TRUE))
+       groups_perm=groups
+       groups_perm[perm]=groups[length(grp.1)+perm]
+       groups_perm[length(grp.1)+perm]=groups[perm]
+    }else{
+       groups_perm=sample(groups)
+    }
+    #temp=Reduce(cbind,by(data, groups_perm, quantile, probs=c(.05, .25, .5, .75, .95),na.rm=TRUE))
+    #temp=sum((temp[,2]-temp[,1])^2)
+    temp=TwoPart(data,groups_perm, test="quantiles")  ###HERE!!!### "wilcoxon" or "quantiles"
     return(temp)
   }))
   
-  test.diff <- Reduce(cbind,by(data, groups, quantile, probs=c(.05, .25, .5, .75, .95),na.rm=TRUE))
-  test.diff=sum((test.diff[,2]-test.diff[,1])^2)
-  
+  #test.diff <- Reduce(cbind,by(data, groups, quantile, probs=c(.05, .25, .5, .75, .95),na.rm=TRUE))
+  #test.diff=sum((test.diff[,2]-test.diff[,1])^2)
+  test.diff=TwoPart(data,groups, test="quantiles")   ###HERE!!!### "wilcoxon" or "quantiles"
+ 
   # two-tailed test
   pvalue <-
     (sum(examples >= test.diff) + 1) / (max.iter + 1) #from http://danielnee.com/tag/p-value/
   
-  hist(
-    examples,
-    col = ifelse(pvalue < 0.05, 'red', 'blue'),
-    breaks = 50,
-    main = paste("RPerm", main = gsub(".txt", "", gsub(
-      "ERRORS", "", gsub("10000.", "", gsub(".mf", "", comparedTo))
-    ))),
-    xlab = "",
-    sub = paste(
-      "pvalue: ",
-      round(pvalue, 4),
-      " | C:",
-      length(grp.1),
-      " | T:",
-      length(grp.2),
-      sep = ""
-    )
-  )
-  abline(v = test.diff, col = "black", lwd = 4)
+  #hist(
+  # examples,
+  #  col = ifelse(pvalue < 0.05, 'red', 'blue'),
+  #  breaks = 50,
+  #  main = paste("RPerm", main = gsub(".txt", "", gsub(
+  #    "ERRORS", "", gsub("10000.", "", gsub(".mf", "", comparedTo))
+  #  ))),
+  #  xlab = "",
+  #  sub = paste(
+  #    "pvalue: ",
+  #    round(pvalue, 4),
+  #    " | C:",
+  #    length(grp.1),
+  #    " | T:",
+  #    length(grp.2),
+  #    sep = ""
+  #  )
+  #)
+  #abline(v = test.diff, col = "black", lwd = 4)
   return(pvalue)
 }
 
@@ -308,7 +380,7 @@ for (i in names(data[8:11])) {
         }
         #compare to either individual all default file with empty values
         #getPvalue(valuesEmpty, values, file)
-        pv <- as.numeric(getPvalue(na.omit(valuesEmpty), na.omit(values), file))
+        pv <- as.numeric(getPvalue(valuesEmpty, values, file,paired=TRUE))
         
         tmp_data <- get(paste0(i,"pvalue"))
         tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = round(pv, 4) #save pvalue and plot
@@ -328,7 +400,7 @@ for (i in names(data[8:11])) {
   }
 }
 
-
+dev.off()
 @
 
 <<>>=
@@ -363,10 +435,19 @@ for (i in names(data[8:11])) {
   names <- gsub("ERRORS", "", gsub(".mf.txt", "", ordered))
   #percErrorTotal
   
+
   f<-values(get(i))
+
+  
+  for (a in names) {f[[a]] <- f[[a]][f[[a]]!=0]}
+  
   c<-values(get(paste0(i, "controls")))
+  for (a in names) {c[[a]] <- c[[a]][c[[a]]!=0]}
+  
+  
   fc<-list(f,c)
   idx <- order(c(seq_along(f), seq_along(c)))
+  
   
   box = boxplot(
     c(f[names],c[names])[idx],
@@ -381,6 +462,8 @@ for (i in names(data[8:11])) {
     plot = FALSE
   )
   
+  box$stats[c(1,5),]=Reduce(cbind,lapply(c(f[names],c[names])[idx],quantile,probs=c(0.05,0.95),na.rm=TRUE,SIMPLIFY=FALSE))
+
   annotation <- box$n
   annotation[annotation != 0] <- names[which(box$n != 0)]
   annotation[annotation == 0] <- NA
@@ -447,7 +530,7 @@ myLabels<-(gsub("merged_", "", gsub(
   text(
     seq(1:(length(names)*2)),
     #0.004,
-    1.55*middle_point,
+    2.55*middle_point,
     labels = myLabels,
     srt = 90,
     col = "black",
@@ -458,7 +541,6 @@ myLabels<-(gsub("merged_", "", gsub(
   )[names][grep("Empty", names)])), na.rm = TRUE), col = "black")
 }
 @
-
   
 
 \end{document}
