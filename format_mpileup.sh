@@ -32,7 +32,8 @@ for infile in $folder_with_motifs/*.mf;
 	then
 		bedtools intersect -wa -wb -b ${folder_with_var_files}/${b}.split.gff -a ${b}.gff -loj > ${folder_with_var_files}/${b}.intersect
 		echo "Collapse variants and output .collapsed files"
-		python parse_intersect.py ${folder_with_var_files}/${b}.intersect > ${b}.collapsed
+		python parse_intersect.py ${folder_with_var_files}/${b}.intersect | sort -k 1,1 -k2,2n > ${b}.collapsed
+		python parse_and_output_frequencies.py ${b}.collapsed
 	else
         echo ${folder_with_var_files}/${b}.split.gff " is empty. Collapsed file won't be created."
 	fi
