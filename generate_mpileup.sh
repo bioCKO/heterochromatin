@@ -5,8 +5,16 @@ export PATH="/nfs/brubeck.bx.psu.edu/scratch5/wilfried/src/samtools-1.3.1:$PATH"
 export PATH="/nfs/brubeck.bx.psu.edu/scratch5/wilfried/src/bedtools2-master/bin:$PATH"
 
 #PACBIO GENERATE MPILEUP
-folder_with_motifs="/nfs/brubeck.bx.psu.edu/scratch6/monika/pac_errors/latest/features10000"
-bam_folder="/nfs/brubeck.bx.psu.edu/scratch6/monika/pac_errors/passes/sam"
+##########################
+# ./generate_mpileup.sh folder_with_motifs bam_folder results_folder
+# example: 
+# ./generate_mpileup.sh "/nfs/brubeck.bx.psu.edu/scratch6/monika/pac_errors/latest/features10000" "/nfs/brubeck.bx.psu.edu/scratch6/monika/pac_errors/passes/sam" "/nfs/brubeck.bx.psu.edu/scratch6/monika/pac_errors/passes/mp"
+##########################
+
+folder_with_motifs=$1			#"/nfs/brubeck.bx.psu.edu/scratch6/monika/pac_errors/latest/features10000"
+bam_folder=$2					#"/nfs/brubeck.bx.psu.edu/scratch6/monika/pac_errors/passes/sam"
+results_folder=$3				#"/nfs/brubeck.bx.psu.edu/scratch6/monika/pac_errors/passes/mp"
+
 array=(1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 X); #chromosomes to use
 
 reference="/nfs/brubeck.bx.psu.edu/scratch5/wilfried/kinetics/data/hg19_formated_by_wil.fa"
@@ -30,7 +38,7 @@ for X in "${array[@]}"; do
 	for motif_file in *.mf.bed; do 
 		echo $motif_file; 
 		out=`basename $motif_file`; 
-		samtools mpileup ${bam_folder}/chr${X}_P6.cmp.h5.bam -f $reference -l ${motif_file} -uv -t INFO/DPR >mp/${X}_${out}.mp &
+		samtools mpileup ${bam_folder}/chr${X}_P6.cmp.h5.bam -f $reference -l ${motif_file} -uv -t INFO/DPR >${results_folder}/${X}_${out}.mp &
 	done;
 	wait 
 done; 
