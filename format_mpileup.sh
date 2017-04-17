@@ -18,6 +18,7 @@ echo "====================================="
 for infile in $folder_with_motifs/*.mf; 
 	do 
 	b=`basename $infile`; 
+	echo "====================================="
 	echo ${b}
 	echo "====================================="
 	echo "Concatenate .bed.mp into single file for each feature"
