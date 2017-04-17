@@ -16,19 +16,26 @@ reference="/nfs/brubeck.bx.psu.edu/scratch5/wilfried/kinetics/data/hg19_formated
 echo "Convertin .mp files into .collapsed"
 echo "====================================="
 for infile in $folder_with_motifs/*.mf; 
-	do b=`basename $infile`; 
+	do 
+	b=`basename $infile`; 
+	echo ${b}
+	echo "====================================="
 	echo "Concatenate .bed.mp into single file for each feature"
-	echo "====================================="
-	echo $b; cat ${folder_with_var_files}/*_${b}.bed.mp >${folder_with_var_files}/${infile}.mp; 
+	echo $b; 
+	cat ${folder_with_var_files}/*_${b}.bed.mp >${folder_with_var_files}/${b}.mp; 
 	echo "Convert .mp files with mpileup output into .gff"
-	echo "====================================="
-	python mpileup2gff.py ${folder_with_var_files}/${infile}.mp > ${folder_with_var_files}/${infile}.split.gff
+	python mpileup2gff.py ${folder_with_var_files}/${b}.mp > ${folder_with_var_files}/${b}.split.gff
 	echo "Intersect resulting .gff with original motif coordinates"
-	echo "====================================="
-	bedtools intersect -wa -wb -b ${folder_with_var_files}/${infile}.split.gff -a ${infile}.gff -loj > ${folder_with_var_files}/${infile}.intersect
-	echo "Collapse variants and output .collapsed files"
-	echo "====================================="
-	python parse_intersect.py ${folder_with_var_files}/${infile}.intersect > ${infile}.collapsed
+
+	if [ -s ${folder_with_var_files}/${b}.split.gff ]
+	then
+		bedtools intersect -wa -wb -b ${folder_with_var_files}/${b}.split.gff -a ${b}.gff -loj > ${folder_with_var_files}/${b}.intersect
+		echo "Collapse variants and output .collapsed files"
+		python parse_intersect.py ${folder_with_var_files}/${b}.intersect > ${b}.collapsed
+	else
+        echo ${folder_with_var_files}/${b}.split.gff " is empty. Collapsed file won't be created."
+	fi
+
 done;
 
 echo "Done."
