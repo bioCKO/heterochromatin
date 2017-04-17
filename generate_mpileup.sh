@@ -38,7 +38,7 @@ for X in "${array[@]}"; do
 	for motif_file in *.mf.bed; do 
 		echo $motif_file; 
 		out=`basename $motif_file`; 
-		samtools mpileup ${bam_folder}/chr${X}_P6.cmp.h5.bam -f $reference -l ${motif_file} -uv -t INFO/DPR >${results_folder}/${X}_${out}.mp &
+		samtools mpileup ${bam_folder}/chr${X}_P6.cmp.h5*.bam -f $reference -l ${motif_file} -uv -t INFO/DPR >${results_folder}/${X}_${out}.mp &
 	done;
 	wait 
 done; 
