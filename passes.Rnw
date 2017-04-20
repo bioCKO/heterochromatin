@@ -1,0 +1,285 @@
+\documentclass{article}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+<<>>=
+library("h5r")
+library("??")
+library("data.table")
+
+setwd("/Users/alice/Desktop/projects/kinetics/errors_will/old")
+args <- commandArgs(trailingOnly = TRUE)
+pathTocmpFile="/Users/alice/Desktop/projects/kinetics/errors_will/old/" #args[1]
+reference="21" #args[2]
+folder<-"/Users/alice/Desktop/projects/kinetics/errors_will/old/10000"
+
+#cmpH5file=paste(pathTocmpFile,"chr",reference,"_P6.cmp.h5",sep="")
+#cmpH5file=paste(pathTocmpFile,"chr21_P6_sorted.cmp.h5",sep="")
+#cmp = PacBioCmpH5( cmpH5file )
+cmpH5 = PacBioCmpH5("/Users/alice/Desktop/projects/kinetics/chr21_P6_sorted.cmp.h5")
+
+##get IPDs by template position
+res = getByTemplatePosition( cmpH5, f = getIPD )
+RES<-as.data.table(res)  
+setkey(RES, "position","read","ref")
+
+#link subreads into reads by linkage column
+linkage<-paste(cmp$movieName,cmp$moleculeID,sep="_")
+association<-as.data.frame(cbind(cmp$ID,as.numeric(factor(linkage))))
+association$movieName<-cmp$movieName
+association$moleculeID<-cmp$moleculeID
+association$alignedStrand<-cmp$alignedStrand
+association$rStart<-cmp$rStart
+association$rEnd<-cmp$rEnd
+colnames(association)<-c("idx","linkage","movieName","moleculeID","strand","rStart","rEnd")
+association<-as.data.table(association)
+
+RES<-as.data.table(res)  
+
+#add information about linkage, movieName, holeNumber and strand
+RES<-merge(RES,association,by=c("idx","strand"),all.x=TRUE)
+RES<-RES[order(linkage,position)]
+
+setkey(RES, "idx","position","elt")
+#RAW DATA
+#save(RES,file="/Users/alice/Desktop/projects/kinetics/errors_will/RES.Rda")
+
+@
+
+<<total statistics of passes for all features>>=
+library("qpcR")
+par(mfrow = c(3, 3))
+
+linkage <-
+  paste(cmp$movieName, cmp$moleculeID, sep = "_") #same linkage points to the same molecule
+
+plot(table(as.numeric(sort(table(
+  linkage
+)))),
+ylab = "frequence",
+xlab = "number of passes",
+main = "All passes in cmp file")
+
+plotIPDperPASS <- function(chunk, filename) {
+  par(mfrow = c(2, 2))
+  
+  
+  if (length(unique(sort(chunk$idx))) > 1) {
+    #if more than one subread is available, then plot
+    myColors <- c("red", "blue")
+    pass = 1
+    chunk <- chunk[order(chunk$rStart)]
+    l <- unique(sort(chunk$linkage))
+    bind <- NULL
+    
+    
+    for (idx_chunk in split(chunk, by = c("idx"))) {
+      #for each molecule, go subread by subread in increasing order
+      i <- unique(idx_chunk$idx) #idx
+      #print(i)#}
+      
+      s <- unique(sort(idx_chunk$strand))
+      
+      #bind<-qpcR:::cbind.na(bind,paste(idx_chunk$position,idx_chunk$elt))
+      IPDbyPOS <-
+        as.data.frame(cbind(idx_chunk$position, idx_chunk$elt))
+      colnames(IPDbyPOS)[1] <- "position"
+      
+      insertionRows <-
+        as.data.frame(idx_chunk[as.character(idx_chunk$ref) == "-", c("position", "read")])
+      deletionRows <-
+        as.data.frame(idx_chunk[as.character(idx_chunk$read) == "-", c("position", "ref")])
+      mismatchRows <-
+        as.data.frame(idx_chunk[as.character(idx_chunk$ref) != as.character(idx_chunk$read) &
+                                  (as.character(idx_chunk$ref) != "-") &
+                                  (as.character(idx_chunk$read) != "-"), c("position", "read")])
+      
+      #add data about insertions, deletions, mismatches
+      IPDbyPOS <-
+        merge(
+          IPDbyPOS,
+          mismatchRows,
+          all.x = TRUE,
+          all.y = TRUE,
+          suffixes = paste(i, pass, s)
+        )
+      IPDbyPOS <-
+        merge(
+          IPDbyPOS,
+          deletionRows,
+          all.x = TRUE,
+          all.y = TRUE,
+          suffixes = paste(i, pass, s)
+        )
+      IPDbyPOS <-
+        merge(
+          IPDbyPOS,
+          insertionRows,
+          all.x = TRUE,
+          all.y = TRUE,
+          suffixes = paste(i, pass, s)
+        )
+      colnames(IPDbyPOS) <-
+        c("position", "insertions", "elt", "deletions")
+      
+      if (is.null(bind)) {
+        bind <- IPDbyPOS
+      } else {
+        bind <- merge(
+          bind,
+          IPDbyPOS,
+          by = "position",
+          all.y = TRUE,
+          all.x = TRUE
+        )
+      }
+      
+      colnames(bind)[(ncol(bind) - 2):ncol(bind)] <-
+        paste(colnames(bind)[(ncol(bind) - 2):ncol(bind)], i, pass, s)
+      #
+      
+      plot(
+        idx_chunk$position,
+        idx_chunk$elt,
+        ylim = c(0, 10),
+        col = myColors[s + 1],
+        ylab = "IPD",
+        xlab = "position in reference",
+        main = paste("molecule:", l, "| PASS:", pass, "|", basename(filename)),
+        sub = paste(
+          "idx:",
+          unique(sort(idx_chunk$idx)),
+          "strand:",
+          s,
+          "rStart:",
+          unique(sort(idx_chunk$rStart)),
+          "rEnd:",
+          unique(sort(idx_chunk$rEnd))
+        )
+      )
+      pass = pass + 1
+      #print(head(idx_chunk))
+    }
+    write.table(
+      #only plot if molecule has multiple subreads
+      as.matrix(bind),
+      file = paste0(filename, "_", l, ".IPDs.txt"),
+      col.names = TRUE,
+      row.names = FALSE,
+      quote = FALSE,
+      sep = "\t",
+      append = TRUE
+    )
+  }
+}
+
+getWindow <-
+  function(arguments, filename) {
+    #getWindow(unlist(coordinates0[2,]))
+    #print(arguments)
+    chr <- arguments[1]
+    start <- as.numeric(arguments[2])
+    end <- as.numeric(arguments[3])
+
+    #start<-9829589
+    #end<-9829616
+    w <-
+      RES[position >= start &
+            position < end] #cut out relevant portion from the data
+    #print(dim(w))
+    
+    if (dim(table(w$linkage)) > 0) {
+      #in this region, how many molecules are there and how many passes are available for those?
+      passes <-
+        table(aggregate(w$idx ~ w$linkage, w, function(x)
+          length(unique(x)))[2])
+      print(as.character(arguments)) #print window coordinates
+      print(passes) #print how many molecules and with how many passes there are
+      plot(
+        passes,
+        ylab = "frequence",
+        xlab = "number of passes",
+        main = paste(basename(filename), start, end)
+      )
+    }
+    
+    #for (molecule_chunk in split(w, w$linkage)) {
+    #  plotIPDperPASS(molecule_chunk, filename)
+    #}
+  }
+
+
+processMotif <- function(motif) {
+  print("ITERATION")
+  print(reference)
+  print(motif)
+  
+  filename <-
+    paste(folder,
+          "/",
+          reference,
+          ".ERRORS",
+          ".",
+          basename(motif),
+          ".txt",
+          sep = "")
+  motifFile <- paste(folder, "/", motif, sep = "")
+  
+  if (file.exists(motifFile)) {
+    #.mf file exists
+    coordinates <-
+      read.table(motifFile,
+                 col.names = paste0("V", seq_len(max(
+                   count.fields(motifFile)
+                 ))),
+                 fill = TRUE)[, 1:3] #read only first three columns
+    
+    coordinates <-
+      subset(coordinates, V1 == reference) #subset only to specific chromosome #paste("chr",reference,sep="")
+    
+    rows <- apply(coordinates, 1, function(x)
+      getWindow(x, filename))
+    
+  } else {
+    print("File does not exist, skipping.")
+  }
+}
+
+list <-
+  c(
+    "GQuadPlusFeatureOnly.mf",
+    "GQuadMinusFeatureOnly.mf",
+    "MirrorRepeatsFeatureOnly.mf"
+  ) 
+
+
+print("NON-PARALLEL")
+ptm <- proc.time()
+for (motif in list) {
+  processMotif(motif) #PROCESS EACH MOTIF INDIVIDUALLY
+}
+proc.time() - ptm #stop timer
+
+print("Done.")
+
+
+@
+
+
+<<passes_stat>>=
+par(cex=1.5)
+Gplus<-read.table("/Users/alice/Desktop/projects/kinetics/passes/GQuadPlus.txt")
+Gminus<-read.table("/Users/alice/Desktop/projects/kinetics/passes/GQuadPlus.txt")
+Control<-read.table("/Users/alice/Desktop/projects/kinetics/passes/Empty.txt")
+
+plot(Control,pch="c",col="green",xlab="number of passes",ylab="counts",ylim=c(0,600),xlim=c(0,30))
+points(Gplus,pch="+",col="red")
+points(Gminus,pch="-",col="blue")
+
+legend("top", legend = c("Control", "Plus", "Minus"), bty = "n", col = c("green", "red", "blue"), pch = c("c", "+", "-"))
+
+
+@
+
+\end{document}
