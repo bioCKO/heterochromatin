@@ -38,6 +38,7 @@ def formatWhitespaces(text):
 	text=re.sub('^ ','',text) #remove leading whitespace
 	return text
 
+print ("chrom start end moleculeID passes")
 with open(motifFile) as f:
     for line in f:
         line = line.rstrip()
@@ -58,7 +59,7 @@ with open(motifFile) as f:
                     passesDict[moleculeID]=count
                 #does the molecule have sufficient number of passes?
                 if ((int(count) >= int(minNumberOfPasses)) & (int(count) <= int(maxNumberOfPasses))):
-                    print (moleculeID + " " + str(count))
+                    print (chrom + " " + start + " " + end + " " + moleculeID + " " + str(count))
 
 
 print("PASSES STATISTICS:")
