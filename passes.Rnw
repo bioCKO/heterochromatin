@@ -282,4 +282,30 @@ legend("top", legend = c("Control", "Plus", "Minus"), bty = "n", col = c("green"
 
 @
 
+<<>>=
+setwd("/Users/alice/Desktop/projects/kinetics/passes")
+cmpH5 = PacBioCmpH5("/Users/alice/Desktop/projects/kinetics/chr21_P6_sorted.cmp.h5")
+passesStat<-read.table("/Users/alice/Desktop/projects/kinetics/passes/21.EmptyFeatureOnly.mf.gff.intersect")
+
+start<-9829589
+end<-9829616
+chromosome<-"chr21"
+
+calculateIPDforWindow <- function(chromosome,start,end) { 
+  for (pass in getReadsInRange(cmpH5, chromosome, start, end)) {
+    print(paste(chromosome,start,end))
+    print(paste("subread idx:",pass))
+  }  
+}
+
+coordinates<-as.data.frame(unique(cbind(passesStat$V1,passesStat$V4,passesStat$V5)))
+by(coordinates, 1:nrow(coordinates), function(row) calculateIPDforWindow(paste0("chr",row[1]),row[2],row[3]))
+
+
+#all_molecules<-unique(passesStat$V12)
+#print(head(all_molecules))
+
+#calculateIPDforWindow(chromosome,start,end)
+
+@
 \end{document}
