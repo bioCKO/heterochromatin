@@ -291,15 +291,19 @@ start<-9829589
 end<-9829616
 chromosome<-"chr21"
 
-calculateIPDforWindow <- function(chromosome,start,end) { 
-  for (pass in getReadsInRange(cmpH5, chromosome, start, end)) {
+calculateIPDforWindow <- function(chromosome,start,end,numberOfPasses) { 
+  subreads<-getReadsInRange(cmpH5, chromosome, start, end)
+  if (length(subreads)==numberOfPasses) {
+    #print(length(subreads))
     print(paste(chromosome,start,end))
-    print(paste("subread idx:",pass))
-  }  
+    for (pass in subreads) {
+      print(paste("subread idx:",pass))
+    }  
+  }
 }
 
 coordinates<-as.data.frame(unique(cbind(passesStat$V1,passesStat$V4,passesStat$V5)))
-by(coordinates, 1:nrow(coordinates), function(row) calculateIPDforWindow(paste0("chr",row[1]),row[2],row[3]))
+by(coordinates, 1:nrow(coordinates), function(row) calculateIPDforWindow(paste0("chr",row[1]),row[2],row[3],6))
 
 
 #all_molecules<-unique(passesStat$V12)
