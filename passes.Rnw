@@ -61,6 +61,7 @@ calculateIPDforWindow <-
       #print(subreads_in_mol)
       #View(getAlignmentBlock(cmpH5, chromosome, start, end))
       if (subreads_in_mol == numberOfPasses) {
+        print("==========")
         print(paste(chromosome, start, end))
         print(paste("sufficient number of passes: ", length(mol$idx)))
         print(chunk$strand)
@@ -81,16 +82,17 @@ calculateIPDforWindow <-
             tposIPD <- as.data.table(tposIPD)
             print(dim(tposIPD))
             idx_chunk <- subset(tposIPD,tposIPD$position >= start & tposIPD$position <= end)
+            print(dim(idx_chunk))
             #print(nrow(idx_chunk))
             
             if (nrow(idx_chunk) == 0) {
-              #print("empty dataframe")
+              print("empty dataframe")
               #break #the whole molecule should be skipped
             } else {
-              print("non-empty dataframe")
+              #print("non-empty dataframe")
               
-              print(head(idx_chunk, n = 1))
-              print(tail(idx_chunk, n = 1))
+              #print(head(idx_chunk, n = 1))
+              #print(tail(idx_chunk, n = 1))
               
               s <- unique(sort(idx_chunk$strand))
               
@@ -193,8 +195,10 @@ calculateIPDforWindow <-
                 sep = "\t",
                 append = TRUE
               )
+              
             }
           }
+          bind<-NULL
         }
       }
     }
