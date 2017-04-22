@@ -61,10 +61,10 @@ calculateIPDforWindow <-
       #print(subreads_in_mol)
       #View(getAlignmentBlock(cmpH5, chromosome, start, end))
       if (subreads_in_mol == numberOfPasses) {
-        print("==========")
+        #print("==========")
         print(paste(chromosome, start, end))
-        print(paste("sufficient number of passes: ", length(mol$idx)))
-        print(chunk$strand)
+        #print(paste("sufficient number of passes: ", length(mol$idx)))
+        #print(chunk$strand)
         ideal_strandness0 <- rep(c(0, 1), length(chunk$strand) / 2)
         ideal_strandness1 <- rep(c(1, 0), length(chunk$strand) / 2)
         
@@ -77,12 +77,12 @@ calculateIPDforWindow <-
           for (id in chunk[order(chunk$rStart)]$idx) {
             i<-sort(unique(id))
             pass <- pass + 1
-            print(paste("subread idx:",i,"pass",pass))
+            #print(paste("subread idx:",i,"pass",pass))
             tposIPD <- getByTemplatePosition(cmpH5, idx = i)
             tposIPD <- as.data.table(tposIPD)
-            print(dim(tposIPD))
+            #print(dim(tposIPD))
             idx_chunk <- subset(tposIPD,tposIPD$position >= start & tposIPD$position <= end)
-            print(dim(idx_chunk))
+            #print(dim(idx_chunk))
             #print(nrow(idx_chunk))
             
             if (nrow(idx_chunk) == 0) {
@@ -218,6 +218,71 @@ by(coordinates, 1:nrow(coordinates), function(row)
 
 #calculateIPDforWindow(chromosome,start,end)
 
+@
+
+<<PLOT DATA>>=
+#par(mfrow = c(2, 1))
+
+setwd("/Users/alice/Desktop/projects/kinetics/passes")
+#pdf(file="/Users/alice/Desktop/projects/kinetics/errors_will/old/10000/molecules.pdf")
+filenames <- list.files(pattern = "*IPDs.txt", full.names = FALSE)
+#filenames<-filenames[grepl("Quad",filenames)]
+
+myColors<-c("blue","red")
+
+for (file in (filenames)) {
+  d <- read.table(file, sep = "\t", header = TRUE)
+  print(dim(d))
+  
+  strand<-as.numeric((unlist(strsplit(as.character(colnames(d)[3]),"[.]"))[4]))
+  myCol<-myColors[as.numeric(strand+1)]
+  
+  plot(
+    d[, 1],
+    d[, 3],
+    pch = '1',
+    col = myCol,
+    ylim = c(0, 60),
+    ylab = "IPD",
+    sub = "position on reference",
+    main=basename(file),
+    xlab="",
+    las=2
+  )
+  
+  for (c in seq(6, ncol(d), 3)) {
+    print("---")
+    print(c)
+    strand<-as.numeric((unlist(strsplit(as.character(colnames(d)[c]),"[.]"))[4]))
+    print(strand)
+    myCol<-myColors[as.numeric(strand+1)]
+    print(myCol)
+    print(colnames(d)[c])
+    mySymbol<-as.character((c/3))
+    print(mySymbol)
+    points(d[, 1], d[, c], pch = mySymbol, col=myCol)
+  }
+  
+  #plot insertions
+  for (c in seq(2, ncol(d), 3)) {
+    points(d[,1],rep(10,length(d[,1])),pch=as.character(d[,c]),col="darkgreen")
+  }
+  
+  #plot deletions
+  for (c in seq(4, ncol(d), 3)) {
+    points(d[,1],rep(9.5,length(d[,1])),pch=as.character(d[,c]),col="orange")
+  }
+  
+  points(d[,1], rowMeans(d[, seq(3, ncol(d), 3)], na.rm = TRUE), pch = "*",col="gray",cex=2)
+  
+  #dt <- t(d)
+  #colnames(dt) <- dt[1, ]
+  #dt <- dt[-1, ]
+  
+  #boxplot(dt, las = 2)
+}
+
+#dev.off()
 @
 
 \end{document}
