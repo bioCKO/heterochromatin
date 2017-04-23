@@ -10,10 +10,8 @@ library("data.table")
 par(mfrow = c(3, 3))
 setwd("/Users/alice/Desktop/projects/kinetics/passes")
 cmpH5 = PacBioCmpH5("/Users/alice/Desktop/projects/kinetics/passes/chr21_P6.cmp.h5")
-passesStat <-
-  read.table(
-    "/Users/alice/Desktop/projects/kinetics/passes/21.EmptyFeatureOnly.mf.gff.intersect"
-  )
+#passesStat <-read.table("/Users/alice/Desktop/projects/kinetics/passes/21.EmptyFeatureOnly.mf.gff.intersect")
+passesStat <-read.table("/Users/alice/Desktop/projects/kinetics/passes/21.GQuadPlusFeatureOnly.mf.gff.intersect")
 
 linkage <- paste(cmpH5$movieName, cmpH5$moleculeID, sep = "_")
 association <-
@@ -33,16 +31,16 @@ colnames(association) <-
     "rEnd")
 association <- as.data.table(association)
 
-start <- 9829589
-end <- 9829616
-chromosome <- "chr21"
+#start <- 9829589
+#end <- 9829616
+#chromosome <- "chr21"
 
 calculateIPDforWindow <-
   function(chromosome, start, end, numberOfPasses) {
     subreads <- getReadsInRange(cmpH5, chromosome, start, end)
     start<-as.integer(start)
     end<-as.integer(end)
-    #print(paste(chromosome,start,end))
+    print(paste(chromosome,start,end))
     #print(subreads)
     #print(paste("number of passes:",numberOfPasses))
     
@@ -58,7 +56,7 @@ calculateIPDforWindow <-
       #print(paste("moleculeID: ",m))
       chunk <- mol[order(mol$rStart)] #sort subreads by rStart
       subreads_in_mol <- length(mol$idx)
-      #print(subreads_in_mol)
+      print(subreads_in_mol)
       #View(getAlignmentBlock(cmpH5, chromosome, start, end))
       if (subreads_in_mol == numberOfPasses) {
         #print("==========")
@@ -179,7 +177,7 @@ calculateIPDforWindow <-
               
               filename <-
                 paste0(paste(chromosome, start, end, sep = "-"),
-                       "_",
+                       "-",
                        m,
                        ".IPDs.txt")
               if (file.exists(filename))
@@ -204,7 +202,7 @@ calculateIPDforWindow <-
     }
   }
 
-calculateIPDforWindow("chr21", 10473900, 10473999, 4)
+#calculateIPDforWindow("chr21", 10473900, 10473999, 4)
 coordinates <-
   as.data.frame(unique(cbind(
     passesStat$V1, as.numeric(passesStat$V4), as.numeric(passesStat$V5)
@@ -235,6 +233,8 @@ IPDlistPASS1 <- list()
 IPDlistPASS2 <- list()
 IPDlistPASS3 <- list()
 IPDlistPASS4 <- list()
+IPDlistPASS5 <- list()
+IPDlistPASS6 <- list()
 
 returnIPDfittedIntoWindow<-function(start,end,values) {
   window_span <-as.data.frame(seq(start,end,1))
@@ -258,11 +258,17 @@ for (file in (filenames)) {
   filled_valuesPASS2<-as.data.frame(unique(na.omit(cbind(d[, 1],d[, 6]))))
   filled_valuesPASS3<-as.data.frame(unique(na.omit(cbind(d[, 1],d[, 9]))))
   filled_valuesPASS4<-as.data.frame(unique(na.omit(cbind(d[, 1],d[, 12]))))
+  #filled_valuesPASS5<-as.data.frame(unique(na.omit(cbind(d[, 1],d[, 15]))))
+  #filled_valuesPASS6<-as.data.frame(unique(na.omit(cbind(d[, 1],d[, 18]))))
   
   IPDlistPASS1[[length(IPDlistPASS1)+1]] <- returnIPDfittedIntoWindow(start,end,filled_valuesPASS1)$elt
   IPDlistPASS2[[length(IPDlistPASS2)+1]] <- returnIPDfittedIntoWindow(start,end,filled_valuesPASS2)$elt
   IPDlistPASS3[[length(IPDlistPASS3)+1]] <- returnIPDfittedIntoWindow(start,end,filled_valuesPASS3)$elt
   IPDlistPASS4[[length(IPDlistPASS4)+1]] <- returnIPDfittedIntoWindow(start,end,filled_valuesPASS4)$elt
+  #IPDlistPASS5[[length(IPDlistPASS5)+1]] <- returnIPDfittedIntoWindow(start,end,filled_valuesPASS5)$elt
+  #IPDlistPASS6[[length(IPDlistPASS6)+1]] <- returnIPDfittedIntoWindow(start,end,filled_valuesPASS6)$elt
+  
+  
   .f = function() {
 
   strand<-as.numeric((unlist(strsplit(as.character(colnames(d)[3]),"[.]"))[4]))
@@ -314,15 +320,47 @@ for (file in (filenames)) {
 }
 
 #IPDlistPASS1
+
+paddVector<-function(myVector) { #add paddings of NAs as flanks to the feature in order to form 100bp window
+  len<-100-length(unlist(myVector))
+  return(as.vector(mapply( function(x,y) c(rep( NA , round(y/2)), x , rep( NA , y-round(y/2)) ) , myVector , len, SIMPLIFY = TRUE))) #todo: check +-1 error
+}
+
+paddedIPDlistPASS1<-list()
+paddedIPDlistPASS2<-list()
+paddedIPDlistPASS3<-list()
+paddedIPDlistPASS4<-list()
+
+for (i in 1:length(IPDlistPASS1)) { 
+  print(i)
+  paddedIPDlistPASS1[i]<-list(paddVector(IPDlistPASS1[i]))
+}
+
+for (i in 1:length(IPDlistPASS2)) { 
+  print(i)
+  paddedIPDlistPASS2[i]<-list(paddVector(IPDlistPASS2[i]))
+}
+
+for (i in 1:length(IPDlistPASS3)) { 
+  print(i)
+  paddedIPDlistPASS3[i]<-list(paddVector(IPDlistPASS3[i]))
+}
+
+for (i in 1:length(IPDlistPASS4)) { 
+  print(i)
+  paddedIPDlistPASS4[i]<-list(paddVector(IPDlistPASS4[i]))
+}
+
+
 #IPDlistPASS2
 #IPDlistPASS3
 #IPDlistPASS4
 
-par(mfrow=c(2,2))
+par(mfrow=c(3,2))
 
 plot(
   1:100,
-  rowMeans(sapply(IPDlistPASS1, unlist), na.rm = TRUE),
+  rowMeans(sapply(paddedIPDlistPASS1, unlist), na.rm = TRUE),
   main = paste0("PASS 1, n=", length(IPDlistPASS1)),
   ylim = c(0, 10),
   ylab = "Mean IPD across all windows",
@@ -333,7 +371,7 @@ plot(
 
 plot(
   1:100,
-  rowMeans(sapply(IPDlistPASS2, unlist), na.rm = TRUE),
+  rowMeans(sapply(paddedIPDlistPASS2, unlist), na.rm = TRUE),
   main = paste0("PASS 2, n=", length(IPDlistPASS2)),
   ylim = c(0, 10),
   ylab = "Mean IPD across all windows",
@@ -344,7 +382,7 @@ plot(
 
 plot(
   1:100,
-  rowMeans(sapply(IPDlistPASS3, unlist), na.rm = TRUE),
+  rowMeans(sapply(paddedIPDlistPASS3, unlist), na.rm = TRUE),
   main = paste0("PASS 3, n=", length(IPDlistPASS3)),
   ylim = c(0, 10),
   ylab = "Mean IPD across all windows",
@@ -355,7 +393,7 @@ plot(
 
 plot(
   1:100,
-  rowMeans(sapply(IPDlistPASS4, unlist), na.rm = TRUE),
+  rowMeans(sapply(paddedIPDlistPASS4, unlist), na.rm = TRUE),
   main = paste0("PASS 4, n=", length(IPDlistPASS4)),
   ylim = c(0, 10),
   ylab = "Mean IPD across all windows",
@@ -363,9 +401,8 @@ plot(
   col = "red",
   pch = 21
 )
-  
 
-#dev.off()
+
 @
 
 \end{document}
