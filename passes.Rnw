@@ -227,7 +227,7 @@ setwd("/Users/alice/Desktop/projects/kinetics/passes")
 #pdf(file="/Users/alice/Desktop/projects/kinetics/errors_will/old/10000/molecules.pdf")
 filenames <- list.files(pattern = "*IPDs.txt", full.names = FALSE)
 #filenames<-filenames[grepl("Quad",filenames)]
-filenames<-filenames[1:100]
+#filenames<-filenames[1:100]
 
 myColors<-c("blue","red")
 
@@ -247,7 +247,7 @@ returnIPDfittedIntoWindow<-function(start,end,values) {
 
 for (file in (filenames)) {
   d <- read.table(file, sep = "\t", header = TRUE)
-  print(d)
+  print(file)
   #print(dim(d))
   
   start<-as.integer(unlist(strsplit(file, "-", fixed = TRUE))[2]) #window start
@@ -263,7 +263,8 @@ for (file in (filenames)) {
   IPDlistPASS2[[length(IPDlistPASS2)+1]] <- returnIPDfittedIntoWindow(start,end,filled_valuesPASS2)$elt
   IPDlistPASS3[[length(IPDlistPASS3)+1]] <- returnIPDfittedIntoWindow(start,end,filled_valuesPASS3)$elt
   IPDlistPASS4[[length(IPDlistPASS4)+1]] <- returnIPDfittedIntoWindow(start,end,filled_valuesPASS4)$elt
-  
+  .f = function() {
+
   strand<-as.numeric((unlist(strsplit(as.character(colnames(d)[3]),"[.]"))[4]))
   myCol<-myColors[as.numeric(strand+1)]
   
@@ -304,7 +305,7 @@ for (file in (filenames)) {
   }
   
   points(d[,1], rowMeans(d[, seq(3, ncol(d), 3)], na.rm = TRUE), pch = "*",col="gray",cex=2)
-  
+  }
   #dt <- t(d)
   #colnames(dt) <- dt[1, ]
   #dt <- dt[-1, ]
@@ -317,10 +318,52 @@ for (file in (filenames)) {
 #IPDlistPASS3
 #IPDlistPASS4
 
-plot(1:100,rowMeans(sapply(IPDlistPASS1, unlist),na.rm=TRUE),main="PASS 1",ylim=c(0,60),ylab="Mean IPD across all windows",xlab="window",col="red",pch=21)
-plot(1:100,rowMeans(sapply(IPDlistPASS2, unlist),na.rm=TRUE),main="PASS 2",ylim=c(0,60),ylab="Mean IPD across all windows",xlab="window",col="red",pch=21)
-plot(1:100,rowMeans(sapply(IPDlistPASS3, unlist),na.rm=TRUE),main="PASS 3",ylim=c(0,60),ylab="Mean IPD across all windows",xlab="window",col="red",pch=21)
-plot(1:100,rowMeans(sapply(IPDlistPASS4, unlist),na.rm=TRUE),main="PASS 4",ylim=c(0,60),ylab="Mean IPD across all windows",xlab="window",col="red",pch=21)
+par(mfrow=c(2,2))
+
+plot(
+  1:100,
+  rowMeans(sapply(IPDlistPASS1, unlist), na.rm = TRUE),
+  main = paste0("PASS 1, n=", length(IPDlistPASS1)),
+  ylim = c(0, 10),
+  ylab = "Mean IPD across all windows",
+  xlab = "window",
+  col = "red",
+  pch = 21
+)
+
+plot(
+  1:100,
+  rowMeans(sapply(IPDlistPASS2, unlist), na.rm = TRUE),
+  main = paste0("PASS 2, n=", length(IPDlistPASS2)),
+  ylim = c(0, 10),
+  ylab = "Mean IPD across all windows",
+  xlab = "window",
+  col = "red",
+  pch = 21
+)
+
+plot(
+  1:100,
+  rowMeans(sapply(IPDlistPASS3, unlist), na.rm = TRUE),
+  main = paste0("PASS 3, n=", length(IPDlistPASS3)),
+  ylim = c(0, 10),
+  ylab = "Mean IPD across all windows",
+  xlab = "window",
+  col = "red",
+  pch = 21
+)
+
+plot(
+  1:100,
+  rowMeans(sapply(IPDlistPASS4, unlist), na.rm = TRUE),
+  main = paste0("PASS 4, n=", length(IPDlistPASS4)),
+  ylim = c(0, 10),
+  ylab = "Mean IPD across all windows",
+  xlab = "window",
+  col = "red",
+  pch = 21
+)
+  
 
 #dev.off()
 @
