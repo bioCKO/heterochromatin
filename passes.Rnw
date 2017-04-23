@@ -227,12 +227,42 @@ setwd("/Users/alice/Desktop/projects/kinetics/passes")
 #pdf(file="/Users/alice/Desktop/projects/kinetics/errors_will/old/10000/molecules.pdf")
 filenames <- list.files(pattern = "*IPDs.txt", full.names = FALSE)
 #filenames<-filenames[grepl("Quad",filenames)]
+filenames<-filenames[1:100]
 
 myColors<-c("blue","red")
 
+IPDlistPASS1 <- list()
+IPDlistPASS2 <- list()
+IPDlistPASS3 <- list()
+IPDlistPASS4 <- list()
+
+returnIPDfittedIntoWindow<-function(start,end,values) {
+  window_span <-as.data.frame(seq(start,end,1))
+  colnames(window_span)<-c("position")
+  colnames(values)<-c("position","elt")
+  fitted_into_window<-merge(window_span,values,all.x=TRUE)
+  fitted_into_window<-aggregate(elt ~ position,data=fitted_into_window, FUN=mean, na.action=na.pass) #full window with multiple values per position replaced by mean
+  return(fitted_into_window)
+}
+
 for (file in (filenames)) {
   d <- read.table(file, sep = "\t", header = TRUE)
-  print(dim(d))
+  print(d)
+  #print(dim(d))
+  
+  start<-as.integer(unlist(strsplit(file, "-", fixed = TRUE))[2]) #window start
+  end<-as.integer(unlist(strsplit(file, "-", fixed = TRUE))[3]) #window end
+  
+  
+  filled_valuesPASS1<-as.data.frame(unique(na.omit(cbind(d[, 1],d[, 3]))))
+  filled_valuesPASS2<-as.data.frame(unique(na.omit(cbind(d[, 1],d[, 6]))))
+  filled_valuesPASS3<-as.data.frame(unique(na.omit(cbind(d[, 1],d[, 9]))))
+  filled_valuesPASS4<-as.data.frame(unique(na.omit(cbind(d[, 1],d[, 12]))))
+  
+  IPDlistPASS1[[length(IPDlistPASS1)+1]] <- returnIPDfittedIntoWindow(start,end,filled_valuesPASS1)$elt
+  IPDlistPASS2[[length(IPDlistPASS2)+1]] <- returnIPDfittedIntoWindow(start,end,filled_valuesPASS2)$elt
+  IPDlistPASS3[[length(IPDlistPASS3)+1]] <- returnIPDfittedIntoWindow(start,end,filled_valuesPASS3)$elt
+  IPDlistPASS4[[length(IPDlistPASS4)+1]] <- returnIPDfittedIntoWindow(start,end,filled_valuesPASS4)$elt
   
   strand<-as.numeric((unlist(strsplit(as.character(colnames(d)[3]),"[.]"))[4]))
   myCol<-myColors[as.numeric(strand+1)]
@@ -251,26 +281,26 @@ for (file in (filenames)) {
   )
   
   for (c in seq(6, ncol(d), 3)) {
-    print("---")
-    print(c)
+    #print("---")
+    #print(c)
     strand<-as.numeric((unlist(strsplit(as.character(colnames(d)[c]),"[.]"))[4]))
-    print(strand)
+    #print(strand)
     myCol<-myColors[as.numeric(strand+1)]
-    print(myCol)
-    print(colnames(d)[c])
+    #print(myCol)
+    #print(colnames(d)[c])
     mySymbol<-as.character((c/3))
-    print(mySymbol)
+    #print(mySymbol)
     points(d[, 1], d[, c], pch = mySymbol, col=myCol)
   }
   
   #plot insertions
   for (c in seq(2, ncol(d), 3)) {
-    points(d[,1],rep(10,length(d[,1])),pch=as.character(d[,c]),col="darkgreen")
+    points(d[,1],rep(10+c,length(d[,1])),pch=as.character(d[,c]),col="darkgreen")
   }
   
   #plot deletions
   for (c in seq(4, ncol(d), 3)) {
-    points(d[,1],rep(9.5,length(d[,1])),pch=as.character(d[,c]),col="orange")
+    points(d[,1],rep(9.5+c,length(d[,1])),pch=as.character(d[,c]),col="orange")
   }
   
   points(d[,1], rowMeans(d[, seq(3, ncol(d), 3)], na.rm = TRUE), pch = "*",col="gray",cex=2)
@@ -281,6 +311,16 @@ for (file in (filenames)) {
   
   #boxplot(dt, las = 2)
 }
+
+#IPDlistPASS1
+#IPDlistPASS2
+#IPDlistPASS3
+#IPDlistPASS4
+
+plot(1:100,rowMeans(sapply(IPDlistPASS1, unlist),na.rm=TRUE),main="PASS 1",ylim=c(0,60),ylab="Mean IPD across all windows",xlab="window",col="red",pch=21)
+plot(1:100,rowMeans(sapply(IPDlistPASS2, unlist),na.rm=TRUE),main="PASS 2",ylim=c(0,60),ylab="Mean IPD across all windows",xlab="window",col="red",pch=21)
+plot(1:100,rowMeans(sapply(IPDlistPASS3, unlist),na.rm=TRUE),main="PASS 3",ylim=c(0,60),ylab="Mean IPD across all windows",xlab="window",col="red",pch=21)
+plot(1:100,rowMeans(sapply(IPDlistPASS4, unlist),na.rm=TRUE),main="PASS 4",ylim=c(0,60),ylab="Mean IPD across all windows",xlab="window",col="red",pch=21)
 
 #dev.off()
 @
