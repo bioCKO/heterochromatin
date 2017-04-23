@@ -7,8 +7,9 @@ from itertools import izip
 import math
 
 ######################################
-#python generateEmptyTrack.py motifFile
+#python generateEmptyTrack.py motifFile emptyFile
 motifFile=str(sys.argv[1])
+emptyFile=str(sys.argv[2])
 ######################################
 
 print motifFile
@@ -18,7 +19,7 @@ print num_lines
 outputEmpty=motifFile + "EmptyTmp"
 
 #sample same number of empty lines as are in motif file
-bashCommand = "shuf -n " + str(num_lines) + " " + "Empty.mf"
+bashCommand = "shuf -n " + str(num_lines) + " " + emptyFile
 print bashCommand
 
 p = sp.Popen(bashCommand.split(), stdin = sp.PIPE, stdout = sp.PIPE, stderr = sp.PIPE)
@@ -56,7 +57,7 @@ for i in range(0,num_lines):
 		print "odd"
 		feature_start = window_start + (50 - math.trunc(length / 2))
 		feature_stop = window_start + (50 + math.trunc(length / 2))
-		IPDsubset = tail[(50 - math.trunc(length / 2)):(50 + math.trunc(length / 2))]
+		IPDsubset = tail[(50 - math.trunc(length / 2)):(50 + math.trunc(length / 2) + 1)] #center is 51st nucleotide
 	res=(e_array[0] + "\t" + str(feature_start) + "\t" + str(feature_stop) + "\t" + str(length)+ "\t" + '\t'.join(IPDsubset))
 	#print res
 	f.write(res+"\n")
