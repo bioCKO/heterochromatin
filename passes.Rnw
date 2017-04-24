@@ -242,11 +242,6 @@ IPDlistPASS5_1 <- list()
 IPDlistPASS6_0 <- list()
 IPDlistPASS6_1 <- list()
 
-IPDlistPASS2 <- list()
-IPDlistPASS3 <- list()
-IPDlistPASS4 <- list()
-IPDlistPASS5 <- list()
-IPDlistPASS6 <- list()
 
 returnIPDfittedIntoWindow<-function(start,end,values) {
   window_span <-as.data.frame(seq(start,end,1))
@@ -342,113 +337,38 @@ paddVector<-function(myVector) { #add paddings of NAs as flanks to the feature i
   return(as.vector(mapply( function(x,y) c(rep( NA , round(y/2)), x , rep( NA , y-round(y/2)) ) , myVector , len, SIMPLIFY = TRUE))) #todo: check +-1 error
 }
 
-.f = function() {
-paddedIPDlistPASS1_0<-list()
-paddedIPDlistPASS1_1<-list()
-paddedIPDlistPASS2<-list()
-paddedIPDlistPASS3<-list()
-paddedIPDlistPASS4<-list()
-
-for (i in 1:length(IPDlistPASS1_0)) { 
-  print(i)
-  paddedIPDlistPASS1_0[i]<-list(paddVector(IPDlistPASS1_0[i]))
-}
-
-for (i in 1:length(IPDlistPASS1_1)) { 
-  print(i)
-  paddedIPDlistPASS1_1[i]<-list(paddVector(IPDlistPASS1_1[i]))
-}
-
-for (i in 1:length(IPDlistPASS2)) { 
-  print(i)
-  paddedIPDlistPASS2[i]<-list(paddVector(IPDlistPASS2[i]))
-}
-
-for (i in 1:length(IPDlistPASS3)) { 
-  print(i)
-  paddedIPDlistPASS3[i]<-list(paddVector(IPDlistPASS3[i]))
-}
-
-for (i in 1:length(IPDlistPASS4)) { 
-  print(i)
-  paddedIPDlistPASS4[i]<-list(paddVector(IPDlistPASS4[i]))
-}
-
-
-IPDlistPASS1_0 
-IPDlistPASS1_1
-IPDlistPASS2_0
-IPDlistPASS2_1
-IPDlistPASS3_0
-IPDlistPASS3_1
-IPDlistPASS4_0
-IPDlistPASS4_1
-
-par(mfrow=c(3,2))
-
+#PLOT
+par(mfrow=c(4,2))
 motif<-"GQuadPlusFeatureOnly"
 
-plot(
-  1:100,
-  rowMeans(sapply(paddedIPDlistPASS1_0, unlist), na.rm = TRUE),
-  main = paste0("PASS 1 STRAND 0, n=", length(paddedIPDlistPASS1_0)),
-  ylim = c(0, 10),
-  ylab = "Mean IPD across all windows",
-  xlab = "window",
-  col = "red",
-  sub = motif,
-  pch = 21
-)
-
-plot(
-  1:100,
-  rowMeans(sapply(paddedIPDlistPASS1_1, unlist), na.rm = TRUE),
-  main = paste0("PASS 1 STRAND 1, n=", length(paddedIPDlistPASS1_1)),
-  ylim = c(0, 10),
-  ylab = "Mean IPD across all windows",
-  xlab = "window",
-  col = "red",
-  sub = motif,
-  pch = 21
-)
-
-plot(
-  1:100,
-  rowMeans(sapply(paddedIPDlistPASS2, unlist), na.rm = TRUE),
-  main = paste0("PASS 2, n=", length(IPDlistPASS2)),
-  ylim = c(0, 10),
-  ylab = "Mean IPD across all windows",
-  xlab = "window",
-  col = "red",
-  sub = motif,
-  pch = 21
-)
-
-plot(
-  1:100,
-  rowMeans(sapply(paddedIPDlistPASS3, unlist), na.rm = TRUE),
-  main = paste0("PASS 3, n=", length(IPDlistPASS3)),
-  ylim = c(0, 10),
-  ylab = "Mean IPD across all windows",
-  xlab = "window",
-  col = "red",
-  sub = motif,
-  pch = 21
-)
-
-plot(
-  1:100,
-  rowMeans(sapply(paddedIPDlistPASS4, unlist), na.rm = TRUE),
-  main = paste0("PASS 4, n=", length(IPDlistPASS4)),
-  ylim = c(0, 10),
-  ylab = "Mean IPD across all windows",
-  xlab = "window",
-  col = "red",
-  sub = motif,
-  pch = 21
-)
-
+for (actual_pass in seq(1,4,1)) { 
+  for (strand in c(0,1)) {
+    #print(paste("pass:",actual_pass,"strand",strand))
+    myVariable<-paste0("IPDlistPASS",actual_pass,"_",strand)
+    print(myVariable)
+    tmp_data <- get(myVariable)
+    paddedIPDlist<-list()
+    
+    for (i in 1:length(tmp_data)) { 
+      #print(i)
+      paddedIPDlist[i]<-list(paddVector(tmp_data[i]))
+    }
+    
+    plot(
+      1:100,
+      rowMeans(sapply(paddedIPDlist, unlist), na.rm = TRUE),
+      main = paste0("pass:",actual_pass," strand: ",strand," n=", length(paddedIPDlist)),
+      ylim = c(0, 10),
+      ylab = "Mean IPD across all windows",
+      xlab = "window",
+      col = "red",
+      sub = motif,
+      pch = 21
+    )
+  }
 }
+
+
 @
 
 \end{document}
