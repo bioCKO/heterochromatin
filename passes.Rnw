@@ -181,13 +181,13 @@ pdf("plots.pdf")
 #cmpH5 = PacBioCmpH5("/Users/alice/Desktop/projects/kinetics/passes/chr21_P6.cmp.h5")
 #passesStat <-read.table("/Users/alice/Desktop/projects/kinetics/passes/21.EmptyFeatureOnly.mf.gff.intersect")
 
-for (myChromosome in seq(21,22,1)) {
+for (myChromosome in seq(20,22,1)) {
   print(myChromosome)
   cmpH5candidate<-paste0("chr",myChromosome,"_P6.cmp.h5")
   
   if (file.exists(cmpH5candidate)) { #does cmp file exists?
     
-    passesStatCandidate<-paste0(myChromosome,".GQuadPlusFeatureOnly.mf.gff.intersect")
+    passesStatCandidate<-paste0(myChromosome,".GQuadMinusFeatureOnly.mf.gff.intersect")
     
     if (file.exists(passesStatCandidate)) { #does passesStat file exists?
       
@@ -356,7 +356,7 @@ paddVector<-function(myVector) { #add paddings of NAs as flanks to the feature i
 
 #PLOT
 par(mfrow=c(4,2))
-motif<-"GQuadPlusFeatureOnly"
+motif<-"motif"
 all_passes<-4
 
 for (actual_pass in seq(1,all_passes,1)) { 
@@ -372,20 +372,36 @@ for (actual_pass in seq(1,all_passes,1)) {
       paddedIPDlist[i]<-list(paddVector(tmp_data[i]))
     }
     
+    maxvalue<-round(max(rowMeans(sapply(paddedIPDlist, unlist), na.rm = TRUE),na.rm = TRUE),2)
+    minvalue<-round(min(rowMeans(sapply(paddedIPDlist, unlist), na.rm = TRUE),na.rm = TRUE),2)
+    
+    
+    #plot(
+    #  1:100,
+    #  rowMeans(sapply(paddedIPDlist, unlist), na.rm = TRUE),
+    #  main = paste0("pass:",actual_pass," strand: ",strand," n=", length(paddedIPDlist)," | min=",minvalue," max=",maxvalue),
+    #  ylim = c(0, 6),
+    #  ylab = "Mean IPD across all windows",
+    #  xlab = "window",
+    #  col = myColors[strand + 1],
+    #  sub = motif,
+    #  pch = 21
+    #)
     plot(
       1:100,
-      rowMeans(sapply(paddedIPDlist, unlist), na.rm = TRUE),
-      main = paste0("pass:",actual_pass," strand: ",strand," n=", length(paddedIPDlist)),
-      ylim = c(0, 10),
+      apply(sapply(paddedIPDlist, unlist), 1, quantile, probs = c(0.9),  na.rm = TRUE) ,
+      main = paste0("pass:",actual_pass," strand: ",strand," n=", length(paddedIPDlist)," | min=",minvalue," max=",maxvalue),
+      ylim = c(0, 6),
       ylab = "Mean IPD across all windows",
       xlab = "window",
       col = myColors[strand + 1],
       sub = motif,
-      pch = 21
+      pch = 20
     )
+    abline(h=1,col="gray")
+    #apply(sapply(paddedIPDlist, unlist), 1, sd,  na.rm = TRUE)
   }
 }
-
 
 @
 
