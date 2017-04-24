@@ -7,33 +7,6 @@
 library("h5r")
 library("pbh5")
 library("data.table")
-par(mfrow = c(3, 3))
-setwd("/Users/alice/Desktop/projects/kinetics/passes")
-cmpH5 = PacBioCmpH5("/Users/alice/Desktop/projects/kinetics/passes/chr21_P6.cmp.h5")
-#passesStat <-read.table("/Users/alice/Desktop/projects/kinetics/passes/21.EmptyFeatureOnly.mf.gff.intersect")
-passesStat <-read.table("21.GQuadPlusFeatureOnly.mf.gff.intersect")
-
-linkage <- paste(cmpH5$movieName, cmpH5$moleculeID, sep = "_")
-association <-
-  as.data.frame(cbind(cmpH5$ID, as.numeric(factor(linkage))))
-association$movieName <- cmpH5$movieName
-association$moleculeID <- cmpH5$moleculeID
-association$alignedStrand <- cmpH5$alignedStrand
-association$rStart <- cmpH5$rStart
-association$rEnd <- cmpH5$rEnd
-colnames(association) <-
-  c("idx",
-    "linkage",
-    "movieName",
-    "moleculeID",
-    "strand",
-    "rStart",
-    "rEnd")
-association <- as.data.table(association)
-
-#start <- 9829589
-#end <- 9829616
-#chromosome <- "chr21"
 
 calculateIPDforWindow <-
   function(chromosome, start, end, numberOfPasses) {
@@ -56,7 +29,7 @@ calculateIPDforWindow <-
       #print(paste("moleculeID: ",m))
       chunk <- mol[order(mol$rStart)] #sort subreads by rStart
       subreads_in_mol <- length(mol$idx)
-      print(subreads_in_mol)
+      #print(subreads_in_mol)
       #View(getAlignmentBlock(cmpH5, chromosome, start, end))
       if (subreads_in_mol == numberOfPasses) {
         #print("==========")
@@ -202,20 +175,64 @@ calculateIPDforWindow <-
     }
   }
 
-#calculateIPDforWindow("chr21", 10473900, 10473999, 4)
-coordinates <-
-  as.data.frame(unique(cbind(
-    passesStat$V1, as.numeric(passesStat$V4), as.numeric(passesStat$V5)
-  )))
-by(coordinates, 1:nrow(coordinates), function(row)
-  calculateIPDforWindow(paste0("chr", row[1]), row[2], row[3], 4))
+par(mfrow = c(3, 3))
+setwd("/Users/alice/Desktop/projects/kinetics/passes")
+pdf("plots.pdf")
+#cmpH5 = PacBioCmpH5("/Users/alice/Desktop/projects/kinetics/passes/chr21_P6.cmp.h5")
+#passesStat <-read.table("/Users/alice/Desktop/projects/kinetics/passes/21.EmptyFeatureOnly.mf.gff.intersect")
 
+for (myChromosome in seq(21,22,1)) {
+  print(myChromosome)
+  cmpH5candidate<-paste0("chr",myChromosome,"_P6.cmp.h5")
+  
+  if (file.exists(cmpH5candidate)) { #does cmp file exists?
+    
+    passesStatCandidate<-paste0(myChromosome,".GQuadPlusFeatureOnly.mf.gff.intersect")
+    
+    if (file.exists(passesStatCandidate)) { #does passesStat file exists?
+      
+      print(cmpH5candidate)
+      print(passesStatCandidate)
+      
+      cmpH5 = PacBioCmpH5(cmpH5candidate) #read cmp file
+      passesStat <-read.table(passesStatCandidate) #read passesStat candidate
+      
+      linkage <- paste(cmpH5$movieName, cmpH5$moleculeID, sep = "_")
+      association <-
+        as.data.frame(cbind(cmpH5$ID, as.numeric(factor(linkage))))
+      association$movieName <- cmpH5$movieName
+      association$moleculeID <- cmpH5$moleculeID
+      association$alignedStrand <- cmpH5$alignedStrand
+      association$rStart <- cmpH5$rStart
+      association$rEnd <- cmpH5$rEnd
+      colnames(association) <-
+        c("idx",
+          "linkage",
+          "movieName",
+          "moleculeID",
+          "strand",
+          "rStart",
+          "rEnd")
+      association <- as.data.table(association)
+      
+      coordinates <-as.data.frame(unique(cbind(passesStat$V1, as.numeric(passesStat$V4), as.numeric(passesStat$V5)
+      )))
+      print(head(coordinates))
+      by(coordinates, 1:nrow(coordinates), function(row) calculateIPDforWindow(paste0("chr", row[1]), row[2], row[3], 4))
+    }
+    else {
+      print("intersect file does not exist")
+      print(passesStatCandidate)
+    }
+    
+  } else {
+    print("cmp file does not exist")
+    print(cmpH5candidate)
+  }
+  
+}
 
-#all_molecules<-unique(passesStat$V12)
-#print(head(all_molecules))
-
-#calculateIPDforWindow(chromosome,start,end)
-
+dev.off()
 @
 
 <<PLOT DATA>>=
@@ -340,8 +357,9 @@ paddVector<-function(myVector) { #add paddings of NAs as flanks to the feature i
 #PLOT
 par(mfrow=c(4,2))
 motif<-"GQuadPlusFeatureOnly"
+all_passes<-4
 
-for (actual_pass in seq(1,4,1)) { 
+for (actual_pass in seq(1,all_passes,1)) { 
   for (strand in c(0,1)) {
     #print(paste("pass:",actual_pass,"strand",strand))
     myVariable<-paste0("IPDlistPASS",actual_pass,"_",strand)
@@ -361,7 +379,7 @@ for (actual_pass in seq(1,4,1)) {
       ylim = c(0, 10),
       ylab = "Mean IPD across all windows",
       xlab = "window",
-      col = "red",
+      col = myColors[strand + 1],
       sub = motif,
       pch = 21
     )
