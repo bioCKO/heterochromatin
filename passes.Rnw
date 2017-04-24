@@ -11,7 +11,7 @@ par(mfrow = c(3, 3))
 setwd("/Users/alice/Desktop/projects/kinetics/passes")
 cmpH5 = PacBioCmpH5("/Users/alice/Desktop/projects/kinetics/passes/chr21_P6.cmp.h5")
 #passesStat <-read.table("/Users/alice/Desktop/projects/kinetics/passes/21.EmptyFeatureOnly.mf.gff.intersect")
-passesStat <-read.table("/Users/alice/Desktop/projects/kinetics/passes/21.GQuadPlusFeatureOnly.mf.gff.intersect")
+passesStat <-read.table("21.GQuadPlusFeatureOnly.mf.gff.intersect")
 
 linkage <- paste(cmpH5$movieName, cmpH5$moleculeID, sep = "_")
 association <-
@@ -229,7 +229,19 @@ filenames <- list.files(pattern = "*IPDs.txt", full.names = FALSE)
 
 myColors<-c("blue","red")
 
-IPDlistPASS1 <- list()
+IPDlistPASS1_0 <- list()
+IPDlistPASS1_1 <- list()
+IPDlistPASS2_0 <- list()
+IPDlistPASS2_1 <- list()
+IPDlistPASS3_0 <- list()
+IPDlistPASS3_1 <- list()
+IPDlistPASS4_0 <- list()
+IPDlistPASS4_1 <- list()
+IPDlistPASS5_0 <- list()
+IPDlistPASS5_1 <- list()
+IPDlistPASS6_0 <- list()
+IPDlistPASS6_1 <- list()
+
 IPDlistPASS2 <- list()
 IPDlistPASS3 <- list()
 IPDlistPASS4 <- list()
@@ -253,25 +265,29 @@ for (file in (filenames)) {
   start<-as.integer(unlist(strsplit(file, "-", fixed = TRUE))[2]) #window start
   end<-as.integer(unlist(strsplit(file, "-", fixed = TRUE))[3]) #window end
   
-  
-  filled_valuesPASS1<-as.data.frame(unique(na.omit(cbind(d[, 1],d[, 3]))))
-  filled_valuesPASS2<-as.data.frame(unique(na.omit(cbind(d[, 1],d[, 6]))))
-  filled_valuesPASS3<-as.data.frame(unique(na.omit(cbind(d[, 1],d[, 9]))))
-  filled_valuesPASS4<-as.data.frame(unique(na.omit(cbind(d[, 1],d[, 12]))))
-  #filled_valuesPASS5<-as.data.frame(unique(na.omit(cbind(d[, 1],d[, 15]))))
-  #filled_valuesPASS6<-as.data.frame(unique(na.omit(cbind(d[, 1],d[, 18]))))
-  
-  IPDlistPASS1[[length(IPDlistPASS1)+1]] <- returnIPDfittedIntoWindow(start,end,filled_valuesPASS1)$elt
-  IPDlistPASS2[[length(IPDlistPASS2)+1]] <- returnIPDfittedIntoWindow(start,end,filled_valuesPASS2)$elt
-  IPDlistPASS3[[length(IPDlistPASS3)+1]] <- returnIPDfittedIntoWindow(start,end,filled_valuesPASS3)$elt
-  IPDlistPASS4[[length(IPDlistPASS4)+1]] <- returnIPDfittedIntoWindow(start,end,filled_valuesPASS4)$elt
-  #IPDlistPASS5[[length(IPDlistPASS5)+1]] <- returnIPDfittedIntoWindow(start,end,filled_valuesPASS5)$elt
-  #IPDlistPASS6[[length(IPDlistPASS6)+1]] <- returnIPDfittedIntoWindow(start,end,filled_valuesPASS6)$elt
-  
+
+  for (actual_pass in seq(1,4,1)) {
+    c<-actual_pass*3
+    strand<-as.numeric((unlist(strsplit(as.character(colnames(d)[c]),"[.]"))[4]))
+    print(paste("pass:",c,"strand",strand))
+    filled_valuesPASS<-as.data.frame(unique(na.omit(cbind(d[, 1],d[, c])))) #pick columns 3,6,9,12,15,18 depending on the pass we are interested in
+    
+    if (strand==0) {
+      myVariable<-paste0("IPDlistPASS",actual_pass,"_",strand)
+      tmp_data <- get(myVariable)
+      tmp_data[[length(tmp_data)+1]] <- returnIPDfittedIntoWindow(start,end,filled_valuesPASS)$elt
+      assign(myVariable, tmp_data)
+    } else {
+      myVariable<-paste0("IPDlistPASS",actual_pass,"_",strand)
+      tmp_data <- get(myVariable)
+      tmp_data[[length(tmp_data)+1]] <- returnIPDfittedIntoWindow(start,end,filled_valuesPASS)$elt
+      assign(myVariable, tmp_data)
+    }
+    
+  }
   
   .f = function() {
 
-  strand<-as.numeric((unlist(strsplit(as.character(colnames(d)[3]),"[.]"))[4]))
   myCol<-myColors[as.numeric(strand+1)]
   
   plot(
@@ -326,14 +342,21 @@ paddVector<-function(myVector) { #add paddings of NAs as flanks to the feature i
   return(as.vector(mapply( function(x,y) c(rep( NA , round(y/2)), x , rep( NA , y-round(y/2)) ) , myVector , len, SIMPLIFY = TRUE))) #todo: check +-1 error
 }
 
-paddedIPDlistPASS1<-list()
+.f = function() {
+paddedIPDlistPASS1_0<-list()
+paddedIPDlistPASS1_1<-list()
 paddedIPDlistPASS2<-list()
 paddedIPDlistPASS3<-list()
 paddedIPDlistPASS4<-list()
 
-for (i in 1:length(IPDlistPASS1)) { 
+for (i in 1:length(IPDlistPASS1_0)) { 
   print(i)
-  paddedIPDlistPASS1[i]<-list(paddVector(IPDlistPASS1[i]))
+  paddedIPDlistPASS1_0[i]<-list(paddVector(IPDlistPASS1_0[i]))
+}
+
+for (i in 1:length(IPDlistPASS1_1)) { 
+  print(i)
+  paddedIPDlistPASS1_1[i]<-list(paddVector(IPDlistPASS1_1[i]))
 }
 
 for (i in 1:length(IPDlistPASS2)) { 
@@ -352,20 +375,40 @@ for (i in 1:length(IPDlistPASS4)) {
 }
 
 
-#IPDlistPASS2
-#IPDlistPASS3
-#IPDlistPASS4
+IPDlistPASS1_0 
+IPDlistPASS1_1
+IPDlistPASS2_0
+IPDlistPASS2_1
+IPDlistPASS3_0
+IPDlistPASS3_1
+IPDlistPASS4_0
+IPDlistPASS4_1
 
 par(mfrow=c(3,2))
 
+motif<-"GQuadPlusFeatureOnly"
+
 plot(
   1:100,
-  rowMeans(sapply(paddedIPDlistPASS1, unlist), na.rm = TRUE),
-  main = paste0("PASS 1, n=", length(IPDlistPASS1)),
+  rowMeans(sapply(paddedIPDlistPASS1_0, unlist), na.rm = TRUE),
+  main = paste0("PASS 1 STRAND 0, n=", length(paddedIPDlistPASS1_0)),
   ylim = c(0, 10),
   ylab = "Mean IPD across all windows",
   xlab = "window",
   col = "red",
+  sub = motif,
+  pch = 21
+)
+
+plot(
+  1:100,
+  rowMeans(sapply(paddedIPDlistPASS1_1, unlist), na.rm = TRUE),
+  main = paste0("PASS 1 STRAND 1, n=", length(paddedIPDlistPASS1_1)),
+  ylim = c(0, 10),
+  ylab = "Mean IPD across all windows",
+  xlab = "window",
+  col = "red",
+  sub = motif,
   pch = 21
 )
 
@@ -377,6 +420,7 @@ plot(
   ylab = "Mean IPD across all windows",
   xlab = "window",
   col = "red",
+  sub = motif,
   pch = 21
 )
 
@@ -388,6 +432,7 @@ plot(
   ylab = "Mean IPD across all windows",
   xlab = "window",
   col = "red",
+  sub = motif,
   pch = 21
 )
 
@@ -399,10 +444,11 @@ plot(
   ylab = "Mean IPD across all windows",
   xlab = "window",
   col = "red",
+  sub = motif,
   pch = 21
 )
 
-
+}
 @
 
 \end{document}
