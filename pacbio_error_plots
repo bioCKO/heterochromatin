@@ -11,103 +11,102 @@ require("dplyr")
 require("hash")
 require("data.table")
 
-#setwd("~/Documents/Doctoral_Thesis/Dev/Divergence/")
-setwd("~/Documents/Doctoral_Thesis/Dev/1kG/filtered/")
-#setwd("~/Documents/Doctoral_Thesis/Dev/TCGA/")
-#setwd("~/Documents/Doctoral_Thesis/Dev/Illumina/all/")
+#setwd("~/Documents/Doctoral_Thesis/Dev/Divergence/rhesus/")
+#setwd("~/Documents/Doctoral_Thesis/Dev/1kG/filtered/")
+#setwd("~/Documents/Doctoral_Thesis/Dev/TCGA/UCEC/")
+#setwd("~/Documents/Doctoral_Thesis/Dev/TCGA/All/")
+setwd("~/Documents/Doctoral_Thesis/Dev/Illumina/all/")
 #setwd("~/Documents/Doctoral_Thesis/Dev/Illumina/plus/")
 #setwd("~/Documents/Doctoral_Thesis/Dev/Illumina/minus/")
 
+ITER <- 1000
 
-filenames <- list.files(pattern = "*mf", full.names = FALSE)
-filenames <- filenames[grepl("FeatureOnly", filenames)]
-filenames <- filenames[grep("collapsed", filenames,invert=TRUE)]
-#filenames <- filenames[grep("Feature", filenames, invert = TRUE)]
-filenames <- filenames[grep("EmptyTmp.txt", filenames,invert=TRUE)]
+filenames <- list.files(pattern = "*.mf", full.names = FALSE)
+
+filenames <- filenames[grep("EmptyTmp", filenames,invert=TRUE)]
+
+
 set.seed(3)
-
-#grp.1 <- round(rlnorm(100, 6)) # With Widget
-#grp.2 <- round(rlnorm(100, 6)) # Original page
 
 pdf("histograms.pdf")
 
 
 getPvalue <- function(grp.1, grp.2, comparedTo,paired=TRUE) {
- 
+  
   TwoPart <- function(data, group, test="wilcoxon", point.mass=0){
-  Index1 <- c(group==1)
-  Group1 <- data[Index1]
-  Group0 <- data[!Index1]
-  n1 <- length(Group1)
-  n2 <- length(Group0)
-  obs <- c(n1, n2)
-  success <- c(sum(Group1!=point.mass), sum(Group0!=point.mass))
-  pointmass <- obs-success
-  if (sum(success)==0) {
-    T2 <- 0
-    B2 <- 0
-  } else if ((success[1]==0)|(success[2]==0)) {
-    T2 <- 0
-    B2 <- prop.test(pointmass, obs)$statistic
-  } else if ((success[1]==1)|(success[2]==1)){
-    T2 <- 0
-    B2 <- prop.test(pointmass, obs)$statistic
-  } else {
-    uniq1 <- length(unique(Group1[Group1!=point.mass]))
-    uniq2 <- length(unique(Group0[Group0!=point.mass]))
-    if ((uniq1 < 2) & (uniq2 < 2)){
+    Index1 <- c(group==1)
+    Group1 <- data[Index1]
+    Group0 <- data[!Index1]
+    n1 <- length(Group1)
+    n2 <- length(Group0)
+    obs <- c(n1, n2)
+    success <- c(sum(Group1!=point.mass), sum(Group0!=point.mass))
+    pointmass <- obs-success
+    if (sum(success)==0) {
       T2 <- 0
-      if (sum(pointmass)==0){
+      B2 <- 0
+    } else if ((success[1]==0)|(success[2]==0)) {
+      T2 <- 0
+      B2 <- prop.test(pointmass, obs)$statistic
+    } else if ((success[1]==1)|(success[2]==1)){
+      T2 <- 0
+      B2 <- prop.test(pointmass, obs)$statistic
+    } else {
+      uniq1 <- length(unique(Group1[Group1!=point.mass]))
+      uniq2 <- length(unique(Group0[Group0!=point.mass]))
+      if ((uniq1 < 2) & (uniq2 < 2)){
+        T2 <- 0
+        if (sum(pointmass)==0){
+          B2 <- 0
+        } else {
+          B2 <- prop.test(pointmass, obs)$statistic
+        }
+      } else if (sum(pointmass)==0){
         B2 <- 0
+        if (test=="t.test")
+          T2 <- t.test(data~group)$statistic^2
+        if (test=="wilcoxon") {
+          W <- wilcox.test(data~group, exact=FALSE)$statistic
+          mu <- (n1*n2)/2
+          sigma <- sqrt((n1*n2*(n1+n2+1))/12)
+          T2 <- ((abs(W-mu)-0.5)/sigma)^2
+        }
+        if (test=="quantiles"){
+          T2 <- Reduce(cbind,by(data, groups, quantile, probs=c(.05, .25, .5, .75, .95),na.rm=TRUE))
+          T2 <- sum((T2[,2]-T2[,1])^2)
+        }
       } else {
         B2 <- prop.test(pointmass, obs)$statistic
-      }
-    } else if (sum(pointmass)==0){
-      B2 <- 0
-      if (test=="t.test")
-        T2 <- t.test(data~group)$statistic^2
-      if (test=="wilcoxon") {
-        W <- wilcox.test(data~group, exact=FALSE)$statistic
-        mu <- (n1*n2)/2
-        sigma <- sqrt((n1*n2*(n1+n2+1))/12)
-        T2 <- ((abs(W-mu)-0.5)/sigma)^2
-      }
-      if (test=="quantiles"){
-        T2 <- Reduce(cbind,by(data, groups, quantile, probs=c(.05, .25, .5, .75, .95),na.rm=TRUE))
-        T2 <- sum((T2[,2]-T2[,1])^2)
-      }
-    } else {
-      B2 <- prop.test(pointmass, obs)$statistic
-      contIndex <- data!=point.mass
-      cont <- data[contIndex]
-      cGroup <- group[contIndex]
-      n1c <- sum(cGroup==1)
-      n2c <- sum(cGroup==0)
-      if (test=="t.test")
-        T2 <- t.test(cont~cGroup)$statistic^2
-      if (test=="wilcoxon") {
-        W <- wilcox.test(cont~cGroup, exact=FALSE)$statistic
-        mu <- (n1c*n2c)/2
-        sigma <- sqrt((n1c*n2c*(n1c+n2c+1))/12)
-        T2 <- ((abs(W-mu)-0.5)/sigma)^2
-      }
-      if (test=="quantiles"){
-        T2 <- Reduce(cbind,by(data, groups, quantile, probs=c(.05, .25, .5, .75, .95),na.rm=TRUE))
-        T2 <- sum((T2[,2]-T2[,1])^2)
+        contIndex <- data!=point.mass
+        cont <- data[contIndex]
+        cGroup <- group[contIndex]
+        n1c <- sum(cGroup==1)
+        n2c <- sum(cGroup==0)
+        if (test=="t.test")
+          T2 <- t.test(cont~cGroup)$statistic^2
+        if (test=="wilcoxon") {
+          W <- wilcox.test(cont~cGroup, exact=FALSE)$statistic
+          mu <- (n1c*n2c)/2
+          sigma <- sqrt((n1c*n2c*(n1c+n2c+1))/12)
+          T2 <- ((abs(W-mu)-0.5)/sigma)^2
+        }
+        if (test=="quantiles"){
+          T2 <- Reduce(cbind,by(data, groups, quantile, probs=c(.05, .25, .5, .75, .95),na.rm=TRUE))
+          T2 <- sum((T2[,2]-T2[,1])^2)
+        }
       }
     }
+    X2 <- B2+T2
+    statistic=X2
+    return(statistic)
   }
-  X2 <- B2+T2
-  statistic=X2
-  return(statistic)
-}
- 
+  
   groups <- c(rep(1, length(grp.1)), rep(0, length(grp.2)))
   data <- c(grp.1, grp.2)
   
-if((paired)&(length(grp.1)!=length(grp.2)))
+  if((paired)&(length(grp.1)!=length(grp.2)))
     stop('Different sample size in the two groups, in a paired test!')
- 
+  
   
   #diff(by(data, groups, getMQuantile))
   
@@ -117,15 +116,15 @@ if((paired)&(length(grp.1)!=length(grp.2)))
   #s<- sample(groups, length(groups), FALSE)
   #diff(by(data, s, getMQuantile))
   
-  max.iter <- 500-1 #500
+  max.iter <- ITER-1 #500
   examples <- unlist(lapply(1:max.iter, function(x) {
     if(paired){
-       perm=which(sample(c(TRUE,FALSE),length(grp.1),replace = TRUE))
-       groups_perm=groups
-       groups_perm[perm]=groups[length(grp.1)+perm]
-       groups_perm[length(grp.1)+perm]=groups[perm]
+      perm=which(sample(c(TRUE,FALSE),length(grp.1),replace = TRUE))
+      groups_perm=groups
+      groups_perm[perm]=groups[length(grp.1)+perm]
+      groups_perm[length(grp.1)+perm]=groups[perm]
     }else{
-       groups_perm=sample(groups)
+      groups_perm=sample(groups)
     }
     #temp=Reduce(cbind,by(data, groups_perm, quantile, probs=c(.05, .25, .5, .75, .95),na.rm=TRUE))
     #temp=sum((temp[,2]-temp[,1])^2)
@@ -136,7 +135,7 @@ if((paired)&(length(grp.1)!=length(grp.2)))
   #test.diff <- Reduce(cbind,by(data, groups, quantile, probs=c(.05, .25, .5, .75, .95),na.rm=TRUE))
   #test.diff=sum((test.diff[,2]-test.diff[,1])^2)
   test.diff=TwoPart(data,groups, test="quantiles")   ###HERE!!!### "wilcoxon" or "quantiles"
- 
+  
   # two-tailed test
   pvalue <-
     (sum(examples >= test.diff) + 1) / (max.iter + 1) #from http://danielnee.com/tag/p-value/
@@ -163,143 +162,113 @@ if((paired)&(length(grp.1)!=length(grp.2)))
   return(pvalue)
 }
 
-summary <- NULL
-valTable <- NULL
-for (file in (filenames)) {
-  tryCatch({
-    if (file.size(file) > 0) {
-      #load motif windows
-      dataOriginal <-
-        read.table(
-          file,
-          header = F,
-          sep = "$",
-          col.names = c("V1", "V2", "V3"),
-          fill = TRUE
-        )
-      data <-
-        as.data.frame(setDT(tstrsplit(
-          as.character(dataOriginal[, 1]), " ", fixed = TRUE
-        ))[]) #split by spaces
-      data <- data[complete.cases(data), ]
-      row <-
-        cbind(
-          file,
-          as.numeric(as.character(mean(
-            as.numeric(as.character(as.vector(data$V8))), na.rm = TRUE
-          ))),
-          as.numeric(as.character(mean(
-            as.numeric(as.character(as.vector(data$V9))), na.rm = TRUE
-          ))),
-          as.numeric(as.character(mean(
-            as.numeric(as.character(as.vector(data$V10))), na.rm = TRUE
-          ))),
-          as.numeric(as.character(mean(
-            as.numeric(as.character(as.vector(data$V11))), na.rm = TRUE
-          )))
-        )
-      
-      summary <- rbind(summary, row)
-    }
-  }, error = function(err) {
-    # error handler picks up where error was generated
-    print(paste("Initial read.table didn't work!:  ", err))
-  })
-}
-print(summary)
-summary <- summary[complete.cases(summary), ]
-summary <- as.data.frame(summary)
-colnames(summary) <-
-  c("file", "V8", "V9", "V10", "V11") #"total", "insertions", "deletions", "mismatches"
-summary <-
-  plyr::arrange(summary, as.numeric(as.character(summary$V8)), decreasing =
-                  FALSE)
-print(summary)
-ordered <- summary$file
 
-V8 <- hash()
-V9 <- hash()
-V10 <- hash()
-V11 <- hash()
-
-V8controls <- hash()
-V9controls <- hash()
-V10controls <- hash()
-V11controls <- hash()
-
-V8pvalue <- hash()
-V9pvalue <- hash()
-V10pvalue <- hash()
-V11pvalue <- hash()
-
-getEmptyValues<- function(i) { 
-  tryCatch({
-    dataEmptyOriginal <-
-      read.table(
-        "merged_Empty.mf",
-        header = F,
-        sep = "$",
-        col.names = c("V1", "V2", "V3"),
-        fill = TRUE
+tryCatch({
+  if (file.size(file) > 0) {
+    #load motif windows
+    data <- read.table(
+      file,
+      header = F,
+      col.names = c("chr", "start", "end", "TOTAL", "MISMATCHES", "INSERTION", "DELETION"),
+      fill = TRUE
+    )
+    
+    row <-
+      cbind(
+        file,
+        as.numeric(as.character(mean(
+          as.numeric(as.character(as.vector(data$TOTAL))), na.rm = TRUE
+        ))),
+        as.numeric(as.character(mean(
+          as.numeric(as.character(as.vector(data$INSERTION))), na.rm = TRUE
+        ))),
+        as.numeric(as.character(mean(
+          as.numeric(as.character(as.vector(data$DELETION))), na.rm = TRUE
+        ))),
+        as.numeric(as.character(mean(
+          as.numeric(as.character(as.vector(data$MISMATCHES))), na.rm = TRUE
+        )))
       )
-    dataEmpty <-
-      as.data.frame(setDT(tstrsplit(
-        as.character(dataEmptyOriginal[, 1]), " ", fixed = TRUE
-      ))[]) #split by spaces
     
-    dataEmpty <- dataEmpty[complete.cases(dataEmpty),]
-    valuesEmpty <- as.numeric(as.character(as.vector(dataEmpty[[i]])))
-    
-    insertionsEmpty <-
-      sort(as.numeric(unlist(strsplit(
-        gsub("c\\(", "", gsub("\\)", "", dataEmptyOriginal$V2)), ", "
-      ))))
-    deletionsEmpty <-
-      sort(as.numeric(unlist(strsplit(
-        gsub("c\\(", "", gsub("\\)", "", dataEmptyOriginal$V3)), ", "
-      ))))
-    
-    return(valuesEmpty)
-    
-  },
-  error = function(err) {
-    # error handler picks up where error was generated
-    print(paste("Default empty file does not exist.", err))
-  })
+    summary <- rbind(summary, row)
+  }
+}, error = function(err) {
+  # error handler picks up where error was generated
+  print(paste("Initial read.table didn't work!:  ", err))
+})
 }
 
-#PLOT ordered from lowest error rate to highest
-for (i in names(data[8:11])) {
-  #iterate through V8-V11
+
+TOTAL <- hash()
+INSERTION <- hash()
+DELETION <- hash()
+MISMATCHES <- hash()
+
+TOTALcontrols <- hash()
+INSERTIONcontrols <- hash()
+DELETIONcontrols <- hash()
+MISMATCHEScontrols <- hash()
+
+TOTALpvalue <- hash()
+INSERTIONpvalue <- hash()
+DELETIONpvalue <- hash()
+MISMATCHESpvalue <- hash()
+
+#getEmptyValues<- function(i) { 
+tryCatch({
+  dataEmptyOriginal <-
+    read.table(
+      "merged_Empty.mf",
+      header = F,
+      sep = "$",
+      col.names = c("V1", "V2", "V3"),
+      fill = TRUE
+    )
+  dataEmpty <-
+    as.data.frame(setDT(tstrsplit(
+      as.character(dataEmptyOriginal[, 1]), " ", fixed = TRUE
+    ))[]) #split by spaces
+  
+  dataEmpty <- dataEmpty[complete.cases(dataEmpty),]
+  valuesEmpty <- as.numeric(as.character(as.vector(dataEmpty[[i]])))
+  
+  insertionsEmpty <-
+    sort(as.numeric(unlist(strsplit(
+      gsub("c\\(", "", gsub("\\)", "", dataEmptyOriginal$V2)), ", "
+    ))))
+  deletionsEmpty <-
+    sort(as.numeric(unlist(strsplit(
+      gsub("c\\(", "", gsub("\\)", "", dataEmptyOriginal$V3)), ", "
+    ))))
+  
+  return(valuesEmpty)
+  
+},
+error = function(err) {
+  # error handler picks up where error was generated
+  print(paste("Default empty file does not exist.", err))
+})
+}
+
+#PLOT 
+for (i in c("TOTAL","INSERTION","DELETION","MISMATCHES")) {
   print(i)
-  for (file in (ordered)) {
+  for (file in filenames) {
     print(file)
     tryCatch({
       #load motif windows
-      dataOriginal <-
-        read.table(
-          file,
-          header = F,
-          sep = "$",
-          col.names = c("V1", "V2", "V3"),
-          fill = TRUE
-        )
-      data <-
-        as.data.frame(setDT(tstrsplit(
-          as.character(dataOriginal[, 1]), " ", fixed = TRUE
-        ))[]) #split by spaces
+      
+      data <- read.table(
+        file,
+        header = F,
+        col.names = c("chr", "start", "end", "TOTAL", "MISMATCHES", "INSERTION", "DELETION"),
+        fill = TRUE
+      )
+      
       values <- as.numeric(as.vector(data[[i]]))
       values <- na.omit(values)
       print(mean(values))
       
-      insertions <-
-        sort(as.numeric(unlist(strsplit(
-          gsub("c\\(", "", gsub("\\)", "", dataOriginal$V2)), ", "
-        ))))
-      deletions <-
-        sort(as.numeric(unlist(strsplit(
-          gsub("c\\(", "", gsub("\\)", "", dataOriginal$V3)), ", "
-        ))))
       
       
       if (length(values) >= 30) {
@@ -308,10 +277,7 @@ for (i in names(data[8:11])) {
         tmp_data <- get(i)
         tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = values
         assign(i, tmp_data)
-        #h9[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = as.numeric(as.vector(data$V9))
-        #h10[gsub("ERROR.", "", gsub(".mf.txt", "", file))] = as.numeric(as.vector(data$V10))
-        #h11[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = as.numeric(as.vector(data$V11))
-        
+
         hist(
           values,
           col = "gold",
@@ -331,63 +297,44 @@ for (i in names(data[8:11])) {
         )
         
         #load empty windows
-        emptyFile <- gsub(".mf", ".mfEmptyTmp.txt", file)
+        emptyFile <- gsub(".mf", ".mfEmptyTmp", file)
         
         if (file.exists(emptyFile)) {
           print("empty file exists, will use matching file")
           
           #individial empty files
-          dataEmptyOriginal <-
+          
+          dataEmpty <-
+            
             read.table(
               emptyFile,
               header = F,
-              sep = "$",
-              col.names = c("V1", "V2", "V3"),
+              col.names = c("chr", "start", "end", "TOTAL", "MISMATCHES", "INSERTION", "DELETION"),
               fill = TRUE
             )
-          dataEmpty <-
-            as.data.frame(setDT(tstrsplit(
-              as.character(dataEmptyOriginal[, 1]), " ", fixed = TRUE
-            ))[]) #split by spaces
-          dataEmpty <- dataEmpty[complete.cases(dataEmpty), ]
+          
           valuesEmpty <-
             as.numeric(as.character(as.vector(dataEmpty[[i]])))
           valuesEmpty <-na.omit(valuesEmpty)
           print(mean(valuesEmpty))
-        
-        #populate hash with matching controls  
-        tmp_dataEmpty <- get(paste0(i,"controls"))
-        tmp_dataEmpty[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = valuesEmpty
-        assign(paste0(i,"controls"), tmp_dataEmpty)
           
-          insertionsEmpty <-
-            sort(as.numeric(unlist(strsplit(
-              gsub("c\\(", "", gsub(
-                "\\)", "", dataEmptyOriginal$V2
-              )), ", "
-            ))))
-          deletionsEmpty <-
-            sort(as.numeric(unlist(strsplit(
-              gsub("c\\(", "", gsub(
-                "\\)", "", dataEmptyOriginal$V3
-              )), ", "
-            ))))
+          #populate hash with matching controls  
+          tmp_dataEmpty <- get(paste0(i,"controls"))
+          tmp_dataEmpty[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = valuesEmpty
+          assign(paste0(i,"controls"), tmp_dataEmpty)
+          
           
         } else {
-          print("empty file does not exist, will use default file")         #one empty file for all
-          valuesEmpty<-getEmptyValues(i) #load data points for empty values
+          print("ERROR: MISSING CONTROLS")
           
         }
         #compare to either individual all default file with empty values
-        #getPvalue(valuesEmpty, values, file)
         pv <- as.numeric(getPvalue(valuesEmpty, values, file,paired=TRUE))
         
         tmp_data <- get(paste0(i,"pvalue"))
         tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = round(pv, 4) #save pvalue and plot
         assign(paste0(i,"pvalue"), tmp_data)
         
-        #print(getLengthSignificance(insertionsEmpty, insertions, file))
-        #print(getLengthSignificance(deletionsEmpty, deletions, file))
       } else {
         print("Too small sample size.")
       }
@@ -408,36 +355,12 @@ dev.off()
 par(mfrow = c(1, 1))
 
 
-for (i in names(data[8:11])) {
+for (i in c("TOTAL","INSERTION","DELETION","MISMATCHES")) { 
   
-  switch(
-    i,
-    #errorNames = c("TOTAL", "INSERTIONS", "DELETIONS", "MISMATCHES")
-    V8 = {
-      errorName = "TOTAL"
-    },
-    V9 = {
-      errorName = "INSERTIONS"
-    },
-    V10 = {
-      errorName = "DELETIONS"
-    },
-    V11 = {
-      errorName = "MISMATCHES"
-    }
-  )
-  
-      summary <-
-        plyr::arrange(summary, as.numeric(as.character(summary[[i]])), decreasing = FALSE)
-
-  #print(summary)
-  ordered <- summary$file
-  names <- gsub("ERRORS", "", gsub(".mf.txt", "", ordered))
-  #percErrorTotal
-  
-
+  names <- gsub("ERRORS", "", gsub(".mf.txt", "", filenames
+                                   ))
   f<-values(get(i))
-
+  
   
   for (a in names) {f[[a]] <- f[[a]][f[[a]]!=0]}
   
@@ -463,7 +386,7 @@ for (i in names(data[8:11])) {
   )
   
   box$stats[c(1,5),]=Reduce(cbind,lapply(c(f[names],c[names])[idx],quantile,probs=c(0.05,0.95),na.rm=TRUE,SIMPLIFY=FALSE))
-
+  
   annotation <- box$n
   annotation[annotation != 0] <- names[which(box$n != 0)]
   annotation[annotation == 0] <- NA
@@ -472,7 +395,7 @@ for (i in names(data[8:11])) {
   
   n <- length(box$n)
   largest_value <- max(box$n)
-  #perc = round(box$n / largest_value * 100, 0) # compute sample size percentages (the maximum sample size is 1)
+
   perc = round(significance / 1 * 100, 0) # compute pvalue percentages <0,1>
   perc<-as.numeric(na.omit(perc))
   
@@ -498,35 +421,27 @@ for (i in names(data[8:11])) {
     ylab = "% error rate",
     xaxt = 'n',
     yaxs ="i",
-    main = errorName,
-    border= "darkgray"
+    main = i,
+    border= "darkgray",
+    ylim = c(0,0.3)
   )
   
   library("SDMTools")
   #points for the gradient legend
-#pnts = cbind(x =c(0.8,20,20,0.8), y =c(20,20,0.8,0.8))
+  #pnts = cbind(x =c(0.8,20,20,0.8), y =c(20,20,0.8,0.8))
   
-middle_point<-median(as.numeric(as.character(box$out)),na.rm=TRUE)/2
+  middle_point<-median(as.numeric(as.character(box$out)),na.rm=TRUE)/2
   
-xl <- 92
-yb <- middle_point
-xr <- 93
-yt <- middle_point*2
-
-#rect(
-#     xl,
-#     head(seq(yb,yt,(yt-yb)/100#),-1),
-#     xr,
-#     tail(seq(yb,yt,(yt-yb)/100#),-1),
-#     col=colfunc(101),
-#     lwd=0.075
-#    )
-#mtext(seq(from=0,to=1,by=0.1),side=4,at=seq(from=yb,to=yt,by=(yt-yb)/10),las=2,cex=0.7)
-
-myLabels<-(gsub("merged_", "", gsub(
+  xl <- 92
+  yb <- middle_point
+  xr <- 93
+  yt <- middle_point*2
+  
+  
+  myLabels<-(gsub("merged_", "", gsub(
     ".mf", "", gsub("FeatureOnly", "", rep(paste(annotation,significance)[1:length(names)],each=2)))
   ))  
-
+  
   text(
     seq(1:(length(names)*2)),
     #0.004,
