@@ -423,7 +423,7 @@ for (i in c("TOTAL","INSERTION","DELETION","MISMATCHES")) {
     yaxs ="i",
     main = i,
     border= "darkgray",
-    ylim = c(0,0.3)
+    ylim = c(0,0.005)
   )
   
   library("SDMTools")
