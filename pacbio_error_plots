@@ -162,43 +162,6 @@ getPvalue <- function(grp.1, grp.2, comparedTo,paired=TRUE) {
   return(pvalue)
 }
 
-
-tryCatch({
-  if (file.size(file) > 0) {
-    #load motif windows
-    data <- read.table(
-      file,
-      header = F,
-      col.names = c("chr", "start", "end", "TOTAL", "MISMATCHES", "INSERTION", "DELETION"),
-      fill = TRUE
-    )
-    
-    row <-
-      cbind(
-        file,
-        as.numeric(as.character(mean(
-          as.numeric(as.character(as.vector(data$TOTAL))), na.rm = TRUE
-        ))),
-        as.numeric(as.character(mean(
-          as.numeric(as.character(as.vector(data$INSERTION))), na.rm = TRUE
-        ))),
-        as.numeric(as.character(mean(
-          as.numeric(as.character(as.vector(data$DELETION))), na.rm = TRUE
-        ))),
-        as.numeric(as.character(mean(
-          as.numeric(as.character(as.vector(data$MISMATCHES))), na.rm = TRUE
-        )))
-      )
-    
-    summary <- rbind(summary, row)
-  }
-}, error = function(err) {
-  # error handler picks up where error was generated
-  print(paste("Initial read.table didn't work!:  ", err))
-})
-}
-
-
 TOTAL <- hash()
 INSERTION <- hash()
 DELETION <- hash()
@@ -213,42 +176,6 @@ TOTALpvalue <- hash()
 INSERTIONpvalue <- hash()
 DELETIONpvalue <- hash()
 MISMATCHESpvalue <- hash()
-
-#getEmptyValues<- function(i) { 
-tryCatch({
-  dataEmptyOriginal <-
-    read.table(
-      "merged_Empty.mf",
-      header = F,
-      sep = "$",
-      col.names = c("V1", "V2", "V3"),
-      fill = TRUE
-    )
-  dataEmpty <-
-    as.data.frame(setDT(tstrsplit(
-      as.character(dataEmptyOriginal[, 1]), " ", fixed = TRUE
-    ))[]) #split by spaces
-  
-  dataEmpty <- dataEmpty[complete.cases(dataEmpty),]
-  valuesEmpty <- as.numeric(as.character(as.vector(dataEmpty[[i]])))
-  
-  insertionsEmpty <-
-    sort(as.numeric(unlist(strsplit(
-      gsub("c\\(", "", gsub("\\)", "", dataEmptyOriginal$V2)), ", "
-    ))))
-  deletionsEmpty <-
-    sort(as.numeric(unlist(strsplit(
-      gsub("c\\(", "", gsub("\\)", "", dataEmptyOriginal$V3)), ", "
-    ))))
-  
-  return(valuesEmpty)
-  
-},
-error = function(err) {
-  # error handler picks up where error was generated
-  print(paste("Default empty file does not exist.", err))
-})
-}
 
 #PLOT 
 for (i in c("TOTAL","INSERTION","DELETION","MISMATCHES")) {
@@ -266,8 +193,8 @@ for (i in c("TOTAL","INSERTION","DELETION","MISMATCHES")) {
       )
       
       values <- as.numeric(as.vector(data[[i]]))
-      values <- na.omit(values)
-      print(mean(values))
+      #values <- na.omit(values)
+      print(mean(values,na.rm=TRUE))
       
       
       
@@ -315,8 +242,8 @@ for (i in c("TOTAL","INSERTION","DELETION","MISMATCHES")) {
           
           valuesEmpty <-
             as.numeric(as.character(as.vector(dataEmpty[[i]])))
-          valuesEmpty <-na.omit(valuesEmpty)
-          print(mean(valuesEmpty))
+          #valuesEmpty <-na.omit(valuesEmpty)
+          print(mean(valuesEmpty,na.rm=TRUE))
           
           #populate hash with matching controls  
           tmp_dataEmpty <- get(paste0(i,"controls"))
@@ -423,7 +350,7 @@ for (i in c("TOTAL","INSERTION","DELETION","MISMATCHES")) {
     yaxs ="i",
     main = i,
     border= "darkgray",
-    ylim = c(0,0.005)
+    ylim = c(0,0.12)
   )
   
   library("SDMTools")
@@ -445,7 +372,7 @@ for (i in c("TOTAL","INSERTION","DELETION","MISMATCHES")) {
   text(
     seq(1:(length(names)*2)),
     #0.004,
-    2.55*middle_point,
+    1.55*middle_point,
     labels = myLabels,
     srt = 90,
     col = "black",
