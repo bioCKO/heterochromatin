@@ -1,4 +1,3 @@
-
 <<plot error profiles for different motifs>>=
 par(
   mfrow = c(4, 4),
@@ -11,15 +10,9 @@ require("dplyr")
 require("hash")
 require("data.table")
 
-#setwd("~/Documents/Doctoral_Thesis/Dev/Divergence/rhesus/")
-#setwd("~/Documents/Doctoral_Thesis/Dev/1kG/filtered/")
-#setwd("~/Documents/Doctoral_Thesis/Dev/TCGA/UCEC/")
-#setwd("~/Documents/Doctoral_Thesis/Dev/TCGA/All/")
-setwd("~/Documents/Doctoral_Thesis/Dev/Illumina/all/")
-#setwd("~/Documents/Doctoral_Thesis/Dev/Illumina/plus/")
-#setwd("~/Documents/Doctoral_Thesis/Dev/Illumina/minus/")
+setwd("/Users/alice/Desktop/projects/kinetics/errors_will/april28/Illumina")
 
-ITER <- 1000
+ITER <- 100
 
 filenames <- list.files(pattern = "*.mf", full.names = FALSE)
 
@@ -350,7 +343,7 @@ for (i in c("TOTAL","INSERTION","DELETION","MISMATCHES")) {
     yaxs ="i",
     main = i,
     border= "darkgray",
-    ylim = c(0,0.12)
+    ylim = c(0,0.01)
   )
   
   library("SDMTools")
