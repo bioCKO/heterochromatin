@@ -10,7 +10,7 @@ require("dplyr")
 require("hash")
 require("data.table")
 
-setwd("/Users/alice/Desktop/projects/kinetics/errors_will/april28/Illumina")
+setwd("Illumina")
 
 ITER <- 100
 
@@ -66,6 +66,7 @@ getPvalue <- function(grp.1, grp.2, comparedTo,paired=TRUE) {
         }
         if (test=="quantiles"){
           T2 <- Reduce(cbind,by(data, groups, quantile, probs=c(.05, .25, .5, .75, .95),na.rm=TRUE))
+          difference <- sum(T2[,2]-T2[,1])
           T2 <- sum((T2[,2]-T2[,1])^2)
         }
       } else {
@@ -85,13 +86,14 @@ getPvalue <- function(grp.1, grp.2, comparedTo,paired=TRUE) {
         }
         if (test=="quantiles"){
           T2 <- Reduce(cbind,by(data, groups, quantile, probs=c(.05, .25, .5, .75, .95),na.rm=TRUE))
+          difference <- sum(T2[,2]-T2[,1])
           T2 <- sum((T2[,2]-T2[,1])^2)
         }
       }
     }
     X2 <- B2+T2
     statistic=X2
-    return(statistic)
+    return(list(statistic=statistic,difference=difference))
   }
   
   groups <- c(rep(1, length(grp.1)), rep(0, length(grp.2)))
@@ -103,8 +105,16 @@ getPvalue <- function(grp.1, grp.2, comparedTo,paired=TRUE) {
   
   #diff(by(data, groups, getMQuantile))
   
-  print(paste("Control:",sort(table(grp.1))["0"]))
-  print(paste("Feature:",sort(table(grp.2))["0"]))
+  print(paste("Control 0 counts:",sort(table(grp.1))["0"]))
+  print(paste("Feature 0 counts:",sort(table(grp.2))["0"]))
+  
+  control_non_zero<-(length(grp.1)-table(grp.1)["0"])/length(grp.1)
+  feature_non_zero<-(length(grp.2)-table(grp.2)["0"])/length(grp.2)
+  
+  #populate hash with number of non_zeros  
+  tmp_data <- get(paste0(i,"nonzeros"))
+  tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = list(control_non_zero,feature_non_zero) 
+  assign(paste0(i,"nonzeros"), tmp_data)
   
   #s<- sample(groups, length(groups), FALSE)
   #diff(by(data, s, getMQuantile))
@@ -121,14 +131,15 @@ getPvalue <- function(grp.1, grp.2, comparedTo,paired=TRUE) {
     }
     #temp=Reduce(cbind,by(data, groups_perm, quantile, probs=c(.05, .25, .5, .75, .95),na.rm=TRUE))
     #temp=sum((temp[,2]-temp[,1])^2)
-    temp=TwoPart(data,groups_perm, test="quantiles")  ###HERE!!!### "wilcoxon" or "quantiles"
+    temp=TwoPart(data,groups_perm, test="quantiles")$statistic  ###HERE!!!### "wilcoxon" or "quantiles"
     return(temp)
   }))
   
   #test.diff <- Reduce(cbind,by(data, groups, quantile, probs=c(.05, .25, .5, .75, .95),na.rm=TRUE))
   #test.diff=sum((test.diff[,2]-test.diff[,1])^2)
-  test.diff=TwoPart(data,groups, test="quantiles")   ###HERE!!!### "wilcoxon" or "quantiles"
-  
+  two.part=TwoPart(data,groups, test="quantiles")   ###HERE!!!### "wilcoxon" or "quantiles"
+  test.diff=two.part$statistic
+  sign_difference=sign(two.part$difference)
   # two-tailed test
   pvalue <-
     (sum(examples >= test.diff) + 1) / (max.iter + 1) #from http://danielnee.com/tag/p-value/
@@ -152,7 +163,7 @@ getPvalue <- function(grp.1, grp.2, comparedTo,paired=TRUE) {
   #  )
   #)
   #abline(v = test.diff, col = "black", lwd = 4)
-  return(pvalue)
+  return(list(pvalue=pvalue,sign_difference=sign_difference))
 }
 
 TOTAL <- hash()
@@ -169,6 +180,16 @@ TOTALpvalue <- hash()
 INSERTIONpvalue <- hash()
 DELETIONpvalue <- hash()
 MISMATCHESpvalue <- hash()
+
+TOTALnonzeros <- hash()
+INSERTIONnonzeros <- hash()
+DELETIONnonzeros <- hash()
+MISMATCHESnonzeros <- hash()
+
+TOTALsign <- hash()
+INSERTIONsign <- hash()
+DELETIONsign <- hash()
+MISMATCHESsign <- hash()
 
 #PLOT 
 for (i in c("TOTAL","INSERTION","DELETION","MISMATCHES")) {
@@ -249,11 +270,18 @@ for (i in c("TOTAL","INSERTION","DELETION","MISMATCHES")) {
           
         }
         #compare to either individual all default file with empty values
-        pv <- as.numeric(getPvalue(valuesEmpty, values, file,paired=TRUE))
+        result=getPvalue(valuesEmpty, values, file,paired=TRUE)
+        pv <- as.numeric(result$pvalue)
+        sign_difference <- result$sign_difference
+        print(sign_difference)
         
         tmp_data <- get(paste0(i,"pvalue"))
         tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = round(pv, 4) #save pvalue and plot
         assign(paste0(i,"pvalue"), tmp_data)
+        
+        tmp_data <- get(paste0(i,"sign"))
+        tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = sign_difference #save sign
+        assign(paste0(i,"sign"), tmp_data)
         
       } else {
         print("Too small sample size.")
@@ -307,26 +335,35 @@ for (i in c("TOTAL","INSERTION","DELETION","MISMATCHES")) {
   
   box$stats[c(1,5),]=Reduce(cbind,lapply(c(f[names],c[names])[idx],quantile,probs=c(0.05,0.95),na.rm=TRUE,SIMPLIFY=FALSE))
   
-  annotation <- box$n
-  annotation[annotation != 0] <- names[which(box$n != 0)]
-  annotation[annotation == 0] <- NA
+  null_coordinates<-which(box$n==0) #these features don't have sufficiently large sample size
+  annotation <- rep(names,each=2)
+  annotation[null_coordinates]<-NA
   
   significance <- as.numeric(values(get(paste0(i,"pvalue")))[names])
+  signs <- as.numeric(values(get(paste0(i,"sign")))[names])
+  print(signs)
   
-  n <- length(box$n)
-  largest_value <- max(box$n)
-
-  perc = round(significance / 1 * 100, 0) # compute pvalue percentages <0,1>
-  perc<-as.numeric(na.omit(perc))
+  n <- length(box$n)/2 #DIVIDED BY TWO BECAUSE WE ARE PLOTTING EACH FEATURE TOGETHER WITH ITS CONTROL
   
-  colfunc <- colorRampPalette(c("firebrick1","white","white","white","white","white","white","white","white","white"))
-  col_perc = colfunc(101)[perc+1] # the maximum sample size has red, indexed from 1
-  colscale <- box$n
-  colscale[colscale == 0] <-NA
-  colscale[!is.na(colscale)] <- col_perc
+  significance[significance<1e-5]=1e-5
+  #significance[significance>0.05]=1 # threshold at 5%
+  log_pvalue=-log10(significance)
+  log_pvalue=signs*log_pvalue     # sign_difference -1 for negative differences, +1 for   positive differences
+  colfunc=colorRampPalette(c("navy","white","red"))(n=100-1)    
+  # 99 colors from blue to white to red.
+  # Blue will correspond to log_pvalue=-5
+  # white log_pvalue=0
+  # red log_pvalue=5
+  color_limits=seq (-5,5,length.out=100)
+  col=c(colfunc[unlist(lapply(log_pvalue,function(log) which((log>=color_limits[1:99])&(log<=color_limits[2:100]))[1]))],'green','green')
+  col[significance>0.05]<-"white"#non-significant not colored
   
-  colscale[grep("Empty", annotation)] <-
-    "green"  #assign green to empty windows
+  #colfunc <- colorRampPalette(c("firebrick1","white","white","white","white","white","white","white","white","white"))
+  #colscale = colfunc(101)[perc+1] # the maximum sample size has red, indexed from 1
+  colscale <- rep(col,each=2)
+  
+  #colscale[grep("Empty", annotation)] <-
+  #  "green"  #assign green to empty windows
   
   
   bxp(
@@ -335,10 +372,10 @@ for (i in c("TOTAL","INSERTION","DELETION","MISMATCHES")) {
     pars = list(
       whisklty = 3,
       staplewex = 0.8,
-      boxfill = rep(colscale,each=2)
+      boxfill = colscale
     ),
     xlab = "Motif",
-    ylab = "% error rate",
+    ylab = "error rate",
     xaxt = 'n',
     yaxs ="i",
     main = i,
@@ -359,18 +396,32 @@ for (i in c("TOTAL","INSERTION","DELETION","MISMATCHES")) {
   
   
   myLabels<-(gsub("merged_", "", gsub(
-    ".mf", "", gsub("FeatureOnly", "", rep(paste(annotation,significance)[1:length(names)],each=2)))
+    ".mf", "", gsub("FeatureOnly", "", rep(paste(names,significance)[1:length(names)],each=2)))
   ))  
   
+  #PLOT LABELS WITH PVALUES
   text(
     seq(1:(length(names)*2)),
     #0.004,
-    1.55*middle_point,
+    3*middle_point,
     labels = myLabels,
     srt = 90,
     col = "black",
     cex = 0.7
   )
+  
+  #PLOT LABELS WITH NON-ZERO COUNTS
+    text(
+    seq(1:(length(names)*2)),
+    #0.004,
+    6*middle_point,
+    labels = paste0(round(unlist(values(TOTALnonzeros)),2)*100,"%"),
+    srt = 90,
+    col = "black",
+    cex = 0.7,
+    font = 2
+  )
+  
   abline(h = median(as.numeric(unlist(values(
     get(i)
   )[names][grep("Empty", names)])), na.rm = TRUE), col = "black")
