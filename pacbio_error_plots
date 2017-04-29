@@ -63,9 +63,9 @@ getPvalue <- function(grp.1, grp.2, comparedTo,paired=TRUE) {
           mu <- (n1*n2)/2
           sigma <- sqrt((n1*n2*(n1+n2+1))/12)
           T2 <- ((abs(W-mu)-0.5)/sigma)^2
-        }
+       }
         if (test=="quantiles"){
-          T2 <- Reduce(cbind,by(data, groups, quantile, probs=c(.05, .25, .5, .75, .95),na.rm=TRUE))
+          T2 <- Reduce(cbind,by(data, group, quantile, probs=c(.05, .25, .5, .75, .95),na.rm=TRUE))
           difference <- sum(T2[,2]-T2[,1])
           T2 <- sum((T2[,2]-T2[,1])^2)
         }
@@ -85,14 +85,14 @@ getPvalue <- function(grp.1, grp.2, comparedTo,paired=TRUE) {
           T2 <- ((abs(W-mu)-0.5)/sigma)^2
         }
         if (test=="quantiles"){
-          T2 <- Reduce(cbind,by(data, groups, quantile, probs=c(.05, .25, .5, .75, .95),na.rm=TRUE))
+          T2 <- Reduce(cbind,by(cont, cGroup, quantile, probs=c(.05, .25, .5, .75, .95),na.rm=TRUE))
           difference <- sum(T2[,2]-T2[,1])
           T2 <- sum((T2[,2]-T2[,1])^2)
         }
       }
     }
     X2 <- B2+T2
-    statistic=X2
+   statistic=X2
     return(list(statistic=statistic,difference=difference))
   }
   
@@ -140,6 +140,7 @@ getPvalue <- function(grp.1, grp.2, comparedTo,paired=TRUE) {
   two.part=TwoPart(data,groups, test="quantiles")   ###HERE!!!### "wilcoxon" or "quantiles"
   test.diff=two.part$statistic
   sign_difference=sign(two.part$difference)
+  print(sign_difference)
   # two-tailed test
   pvalue <-
     (sum(examples >= test.diff) + 1) / (max.iter + 1) #from http://danielnee.com/tag/p-value/
