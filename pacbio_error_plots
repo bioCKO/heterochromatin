@@ -350,7 +350,7 @@ for (i in c("TOTAL","INSERTION","DELETION","MISMATCHES")) {
   #significance[significance>0.05]=1 # threshold at 5%
   log_pvalue=-log10(significance)
   log_pvalue=signs*log_pvalue     # sign_difference -1 for negative differences, +1 for   positive differences
-  colfunc=colorRampPalette(c("navy","white","red"))(n=100-1)    
+  colfunc=colorRampPalette(c("red","white","navy"))(n=100-1)    
   # 99 colors from blue to white to red.
   # Blue will correspond to log_pvalue=-5
   # white log_pvalue=0
