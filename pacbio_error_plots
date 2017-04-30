@@ -12,7 +12,7 @@ require("data.table")
 
 setwd("Illumina")
 
-ITER <- 100
+ITER <- 1000
 
 filenames <- list.files(pattern = "*.mf", full.names = FALSE)
 
@@ -271,10 +271,11 @@ for (i in c("TOTAL","INSERTION","DELETION","MISMATCHES")) {
           
         }
         #compare to either individual all default file with empty values
-        result=getPvalue(valuesEmpty, values, file,paired=TRUE)
+        df<-as.data.frame(cbind(valuesEmpty,values))
+        filled<-which(df$values!=0 & df$valuesEmpty!=0)
+        result=getPvalue(valuesEmpty[filled], values[filled], file,paired=TRUE)
         pv <- as.numeric(result$pvalue)
         sign_difference <- result$sign_difference
-        print(sign_difference)
         
         tmp_data <- get(paste0(i,"pvalue"))
         tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = round(pv, 4) #save pvalue and plot
@@ -381,7 +382,7 @@ for (i in c("TOTAL","INSERTION","DELETION","MISMATCHES")) {
     yaxs ="i",
     main = i,
     border= "darkgray",
-    ylim = c(0,0.01)
+    ylim = c(0,1)
   )
   
   library("SDMTools")
@@ -403,8 +404,8 @@ for (i in c("TOTAL","INSERTION","DELETION","MISMATCHES")) {
   #PLOT LABELS WITH PVALUES
   text(
     seq(1:(length(names)*2)),
-    #0.004,
-    3*middle_point,
+    0.004,
+    #2*middle_point,
     labels = myLabels,
     srt = 90,
     col = "black",
@@ -415,7 +416,7 @@ for (i in c("TOTAL","INSERTION","DELETION","MISMATCHES")) {
     text(
     seq(1:(length(names)*2)),
     #0.004,
-    6*middle_point,
+    3*middle_point,
     labels = paste0(round(unlist(values(TOTALnonzeros)),2)*100,"%"),
     srt = 90,
     col = "black",
