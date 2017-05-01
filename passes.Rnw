@@ -24,155 +24,155 @@ calculateIPDforWindow <-
     molecules <-
       association[association$idx %in% subreads,] #keep only associated subreads
     
-    for (mol in split(molecules, by = c("moleculeID"))) {
-      m <- unique(mol$moleculeID)
-      #print(paste("moleculeID: ",m))
-      chunk <- mol[order(mol$rStart)] #sort subreads by rStart
-      subreads_in_mol <- length(mol$idx)
-      #print(subreads_in_mol)
-      #View(getAlignmentBlock(cmpH5, chromosome, start, end))
-      if (subreads_in_mol == numberOfPasses) {
-        #print("==========")
-        print(paste(chromosome, start, end))
-        #print(paste("sufficient number of passes: ", length(mol$idx)))
-        #print(chunk$strand)
-        ideal_strandness0 <- rep(c(0, 1), length(chunk$strand) / 2)
-        ideal_strandness1 <- rep(c(1, 0), length(chunk$strand) / 2)
-        
-        if (all.equal(chunk$strand, ideal_strandness0) == TRUE |
-            all.equal(chunk$strand, ideal_strandness1) == TRUE) {
-          #strands interleave as expected
-          print("strands interleaved correctly ") #todo: add adjacency control for reads
-          write(chunk$strand,file="strandFile.txt",append=TRUE)
-          pass <- 0
-          for (id in chunk[order(chunk$rStart)]$idx) {
-            i<-sort(unique(id))
-            pass <- pass + 1
-            #print(paste("subread idx:",i,"pass",pass))
-            tposIPD <- getByTemplatePosition(cmpH5, idx = i)
-            tposIPD <- as.data.table(tposIPD)
-            #print(dim(tposIPD))
-            idx_chunk <- subset(tposIPD,tposIPD$position >= start & tposIPD$position <= end)
-            #print(dim(idx_chunk))
-            #print(nrow(idx_chunk))
-            
-            if (nrow(idx_chunk) == 0) {
-              print("empty dataframe")
-              #break #the whole molecule should be skipped
-            } else {
-              #print("non-empty dataframe")
+    if (nrow(molecules)>0) {
+      for (mol in split(molecules, by = c("moleculeID"))) {
+        m <- unique(mol$moleculeID)
+        #print(paste("moleculeID: ",m))
+        chunk <- mol[order(mol$rStart)] #sort subreads by rStart
+        subreads_in_mol <- length(mol$idx)
+        #print(subreads_in_mol)
+        #View(getAlignmentBlock(cmpH5, chromosome, start, end))
+        if (subreads_in_mol == numberOfPasses) {
+          #print("==========")
+          print(paste(chromosome, start, end))
+          #print(paste("sufficient number of passes: ", length(mol$idx)))
+          #print(chunk$strand)
+          ideal_strandness0 <- rep(c(0, 1), length(chunk$strand) / 2)
+          ideal_strandness1 <- rep(c(1, 0), length(chunk$strand) / 2)
+          
+          if (all.equal(chunk$strand, ideal_strandness0) == TRUE |
+              all.equal(chunk$strand, ideal_strandness1) == TRUE) {
+            #strands interleave as expected
+            print("strands interleaved correctly ") #todo: add adjacency control for reads
+            write(chunk$strand,file="strandFile.txt",append=TRUE)
+            pass <- 0
+            for (id in chunk[order(chunk$rStart)]$idx) {
+              i<-sort(unique(id))
+              pass <- pass + 1
+              #print(paste("subread idx:",i,"pass",pass))
+              tposIPD <- getByTemplatePosition(cmpH5, idx = i)
+              tposIPD <- as.data.table(tposIPD)
+              #print(dim(tposIPD))
+              idx_chunk <- subset(tposIPD,tposIPD$position >= start & tposIPD$position <= end)
+              #print(dim(idx_chunk))
+              #print(nrow(idx_chunk))
               
-              #print(head(idx_chunk, n = 1))
-              #print(tail(idx_chunk, n = 1))
-              
-              s <- unique(sort(idx_chunk$strand))
-              
-              #bind<-qpcR:::cbind.na(bind,paste(idx_chunk$position,idx_chunk$elt))
-              IPDbyPOS <-
-                as.data.frame(cbind(idx_chunk$position, idx_chunk$elt))
-              colnames(IPDbyPOS)[1] <- "position"
-              
-              insertionRows <-
-                as.data.frame(idx_chunk[as.character(idx_chunk$ref) == "-", c("position", "read")])
-              deletionRows <-
-                as.data.frame(idx_chunk[as.character(idx_chunk$read) == "-", c("position", "ref")])
-              mismatchRows <-
-                as.data.frame(idx_chunk[as.character(idx_chunk$ref) != as.character(idx_chunk$read) &
-                                          (as.character(idx_chunk$ref) != "-") &
-                                          (as.character(idx_chunk$read) != "-"), c("position", "read")])
-              
-              #add data about insertions, deletions, mismatches
-              IPDbyPOS <-
-                merge(
-                  IPDbyPOS,
-                  mismatchRows,
-                  all.x = TRUE,
-                  all.y = TRUE,
-                  suffixes = paste(i, pass, s)
-                )
-              IPDbyPOS <-
-                merge(
-                  IPDbyPOS,
-                  deletionRows,
-                  all.x = TRUE,
-                  all.y = TRUE,
-                  suffixes = paste(i, pass, s)
-                )
-              IPDbyPOS <-
-                merge(
-                  IPDbyPOS,
-                  insertionRows,
-                  all.x = TRUE,
-                  all.y = TRUE,
-                  suffixes = paste(i, pass, s)
-                )
-              colnames(IPDbyPOS) <-
-                c("position", "insertions", "elt", "deletions")
-              
-              if (is.null(bind)) {
-                bind <- IPDbyPOS
+              if (nrow(idx_chunk) == 0) {
+                print("empty dataframe")
+                #break #the whole molecule should be skipped
               } else {
-                bind <- merge(
-                  bind,
-                  IPDbyPOS,
-                  by = "position",
-                  all.y = TRUE,
-                  all.x = TRUE
+                #print("non-empty dataframe")
+                
+                #print(head(idx_chunk, n = 1))
+                #print(tail(idx_chunk, n = 1))
+                
+                s <- unique(sort(idx_chunk$strand))
+                
+                #bind<-qpcR:::cbind.na(bind,paste(idx_chunk$position,idx_chunk$elt))
+                IPDbyPOS <-
+                  as.data.frame(cbind(idx_chunk$position, idx_chunk$elt))
+                colnames(IPDbyPOS)[1] <- "position"
+                
+                insertionRows <-
+                  as.data.frame(idx_chunk[as.character(idx_chunk$ref) == "-", c("position", "read")])
+                deletionRows <-
+                  as.data.frame(idx_chunk[as.character(idx_chunk$read) == "-", c("position", "ref")])
+                mismatchRows <-
+                  as.data.frame(idx_chunk[as.character(idx_chunk$ref) != as.character(idx_chunk$read) &
+                                            (as.character(idx_chunk$ref) != "-") &
+                                            (as.character(idx_chunk$read) != "-"), c("position", "read")])
+                
+                #add data about insertions, deletions, mismatches
+                IPDbyPOS <-
+                  merge(
+                    IPDbyPOS,
+                    mismatchRows,
+                    all.x = TRUE,
+                    all.y = TRUE,
+                    suffixes = paste(i, pass, s)
+                  )
+                IPDbyPOS <-
+                  merge(
+                    IPDbyPOS,
+                    deletionRows,
+                    all.x = TRUE,
+                    all.y = TRUE,
+                    suffixes = paste(i, pass, s)
+                  )
+                IPDbyPOS <-
+                  merge(
+                    IPDbyPOS,
+                    insertionRows,
+                    all.x = TRUE,
+                    all.y = TRUE,
+                    suffixes = paste(i, pass, s)
+                  )
+                colnames(IPDbyPOS) <-
+                  c("position", "insertions", "elt", "deletions")
+                
+                if (is.null(bind)) {
+                  bind <- IPDbyPOS
+                } else {
+                  bind <- merge(
+                    bind,
+                    IPDbyPOS,
+                    by = "position",
+                    all.y = TRUE,
+                    all.x = TRUE
+                  )
+                }
+                
+                colnames(bind)[(ncol(bind) - 2):ncol(bind)] <-
+                  paste(colnames(bind)[(ncol(bind) - 2):ncol(bind)], i, pass, s)
+                #
+                
+                plot(
+                  idx_chunk$position,
+                  idx_chunk$elt,
+                  col = myColors[s + 1],
+                  ylim = c(0, 60),
+                  ylab = "IPD",
+                  xlab = "position in reference",
+                  main = paste("molecule:", m, "| PASS:", pass, "|", "nan"),
+                  sub = paste(
+                    "idx:",
+                    i,
+                    "strand:",
+                    s,
+                    "rStart:",
+                    chunk[chunk$idx == i]$rStart,
+                    "rEnd:",
+                    chunk[chunk$idx == i]$rEnd
+                  )
                 )
+                #print(head(idx_chunk))
+                
+                
+                
+                filename <-
+                  paste0(paste(chromosome, start, end, sep = "-"),
+                         "-",
+                         m,
+                         ".IPDs.txt")
+                if (file.exists(filename))
+                  file.remove(filename) #remove file if it exists
+                
+                write.table(
+                  #only plot if molecule has multiple subreads
+                  as.matrix(bind),
+                  file = filename,
+                  row.names = FALSE,
+                  quote = FALSE,
+                  sep = "\t",
+                  append = TRUE
+                )
+                
               }
-              
-              colnames(bind)[(ncol(bind) - 2):ncol(bind)] <-
-                paste(colnames(bind)[(ncol(bind) - 2):ncol(bind)], i, pass, s)
-              #
-              
-              plot(
-                idx_chunk$position,
-                idx_chunk$elt,
-                col = myColors[s + 1],
-                ylim = c(0, 60),
-                ylab = "IPD",
-                xlab = "position in reference",
-                main = paste("molecule:", m, "| PASS:", pass, "|", "nan"),
-                sub = paste(
-                  "idx:",
-                  i,
-                  "strand:",
-                  s,
-                  "rStart:",
-                  chunk[chunk$idx == i]$rStart,
-                  "rEnd:",
-                  chunk[chunk$idx == i]$rEnd
-                )
-              )
-              #print(head(idx_chunk))
-              
-              
-              
-              filename <-
-                paste0(paste(chromosome, start, end, sep = "-"),
-                       "-",
-                       m,
-                       ".IPDs.txt")
-              if (file.exists(filename))
-                file.remove(filename) #remove file if it exists
-              
-              write.table(
-                #only plot if molecule has multiple subreads
-                as.matrix(bind),
-                file = filename,
-                col.names = TRUE,
-                row.names = FALSE,
-                quote = FALSE,
-                sep = "\t",
-                append = TRUE
-              )
-              
             }
+            bind<-NULL
           }
-          bind<-NULL
         }
-      }
-    }
+      }}
   }
 
 par(mfrow = c(3, 3))
@@ -392,7 +392,7 @@ for (actual_pass in seq(1,all_passes,1)) {
       apply(sapply(paddedIPDlist, unlist), 1, quantile, probs = c(0.9),  na.rm = TRUE) ,
       main = paste0("pass:",actual_pass," strand: ",strand," n=", length(paddedIPDlist)," | min=",minvalue," max=",maxvalue),
       ylim = c(0, 6),
-      ylab = "Mean IPD across all windows",
+      ylab = "IPD across all windows",
       xlab = "window",
       col = myColors[strand + 1],
       sub = motif,
