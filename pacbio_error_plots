@@ -26,6 +26,22 @@ pdf("histograms.pdf")
 
 getPvalue <- function(grp.1, grp.2, comparedTo,paired=TRUE) {
   
+  control_non_zero<-round((length(grp.1)-(table(grp.1)["0"]))/length(grp.1),digits=4)
+  feature_non_zero<-round((length(grp.2)-(table(grp.2)["0"]))/length(grp.2),digits=4)
+  
+  if (is.na(control_non_zero)) {
+    control_non_zero<-1 #no zeros exist, all values are non-zero
+  }
+   if (is.na(feature_non_zero)) {
+    feature_non_zero<-1 #no zeros exist, all values are non-zero
+   }
+  print(paste("control_non_zero: ",control_non_zero,"; feature_non_zero:",feature_non_zero))
+  
+  #populate hash with number of non_zeros  
+  tmp_data <- get(paste0(i,"nonzeros"))
+  tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = list(control_non_zero,feature_non_zero) 
+  assign(paste0(i,"nonzeros"), tmp_data)
+  
   TwoPart <- function(data, group, test="wilcoxon", point.mass=0){
     Index1 <- c(group==1)
     Group1 <- data[Index1]
@@ -104,17 +120,6 @@ getPvalue <- function(grp.1, grp.2, comparedTo,paired=TRUE) {
   
   
   #diff(by(data, groups, getMQuantile))
-  
-  print(paste("Control 0 counts:",sort(table(grp.1))["0"]))
-  print(paste("Feature 0 counts:",sort(table(grp.2))["0"]))
-  
-  control_non_zero<-(length(grp.1)-table(grp.1)["0"])/length(grp.1)
-  feature_non_zero<-(length(grp.2)-table(grp.2)["0"])/length(grp.2)
-  
-  #populate hash with number of non_zeros  
-  tmp_data <- get(paste0(i,"nonzeros"))
-  tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = list(control_non_zero,feature_non_zero) 
-  assign(paste0(i,"nonzeros"), tmp_data)
   
   #s<- sample(groups, length(groups), FALSE)
   #diff(by(data, s, getMQuantile))
@@ -272,7 +277,8 @@ for (i in c("TOTAL","INSERTION","DELETION","MISMATCHES")) {
         }
         #compare to either individual all default file with empty values
         df<-as.data.frame(cbind(valuesEmpty,values))
-        filled<-which(df$values!=0 & df$valuesEmpty!=0)
+        missing<-which(is.na(df$values) | is.na(df$valuesEmpty))
+        filled<-!(1:(length(values)) %in% missing)
         result=getPvalue(valuesEmpty[filled], values[filled], file,paired=TRUE)
         pv <- as.numeric(result$pvalue)
         sign_difference <- result$sign_difference
@@ -382,7 +388,7 @@ for (i in c("TOTAL","INSERTION","DELETION","MISMATCHES")) {
     yaxs ="i",
     main = i,
     border= "darkgray",
-    ylim = c(0,1)
+    ylim = c(0,0.05)
   )
   
   library("SDMTools")
@@ -404,7 +410,7 @@ for (i in c("TOTAL","INSERTION","DELETION","MISMATCHES")) {
   #PLOT LABELS WITH PVALUES
   text(
     seq(1:(length(names)*2)),
-    0.004,
+    20,#0.004,
     #2*middle_point,
     labels = myLabels,
     srt = 90,
@@ -415,9 +421,9 @@ for (i in c("TOTAL","INSERTION","DELETION","MISMATCHES")) {
   #PLOT LABELS WITH NON-ZERO COUNTS
     text(
     seq(1:(length(names)*2)),
-    #0.004,
-    3*middle_point,
-    labels = paste0(round(unlist(values(TOTALnonzeros)),2)*100,"%"),
+    0.01,#0.004,
+    #3*middle_point,
+    labels = paste0(unlist(values(get(paste0(i,"nonzeros"))))*100,"%"),
     srt = 90,
     col = "black",
     cex = 0.7,
