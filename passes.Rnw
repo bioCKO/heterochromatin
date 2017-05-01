@@ -43,7 +43,7 @@ calculateIPDforWindow <-
             all.equal(chunk$strand, ideal_strandness1) == TRUE) {
           #strands interleave as expected
           print("strands interleaved correctly ") #todo: add adjacency control for reads
-          #print(chunk$strand)
+          write(chunk$strand,file="strandFile.txt",append=TRUE)
           pass <- 0
           for (id in chunk[order(chunk$rStart)]$idx) {
             i<-sort(unique(id))
