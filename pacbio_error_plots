@@ -198,7 +198,7 @@ DELETIONsign <- hash()
 MISMATCHESsign <- hash()
 
 #PLOT 
-for (i in c("TOTAL","INSERTION","DELETION","MISMATCHES")) {
+for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) {
   print(i)
   for (file in filenames) {
     print(file)
@@ -308,10 +308,10 @@ dev.off()
 
 <<>>=
 
-par(mfrow = c(1, 1))
+par(mfrow = c(1, 1), cex=1.4)
 
 
-for (i in c("TOTAL","INSERTION","DELETION","MISMATCHES")) { 
+for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) { 
   
   names <- gsub("ERRORS", "", gsub(".mf.txt", "", filenames
                                    ))
@@ -410,7 +410,7 @@ for (i in c("TOTAL","INSERTION","DELETION","MISMATCHES")) {
   #PLOT LABELS WITH PVALUES
   text(
     seq(1:(length(names)*2)),
-    20,#0.004,
+    0.004,
     #2*middle_point,
     labels = myLabels,
     srt = 90,
@@ -421,7 +421,7 @@ for (i in c("TOTAL","INSERTION","DELETION","MISMATCHES")) {
   #PLOT LABELS WITH NON-ZERO COUNTS
     text(
     seq(1:(length(names)*2)),
-    0.01,#0.004,
+    0.004,
     #3*middle_point,
     labels = paste0(unlist(values(get(paste0(i,"nonzeros"))))*100,"%"),
     srt = 90,
