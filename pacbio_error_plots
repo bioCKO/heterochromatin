@@ -23,6 +23,12 @@ set.seed(3)
 
 pdf("histograms.pdf")
 
+testCoordinates<- function(dataEmpty,data) {
+  control_lengths<-dataEmpty[,3]-dataEmpty[,2]+1
+  feature_lengths<-data[,3]-data[,2]+1
+  return(all.equal(control_lengths,feature_lengths))
+}
+
 
 getPvalue <- function(grp.1, grp.2, comparedTo,paired=TRUE) {
   
@@ -245,9 +251,10 @@ for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) {
         
         #load empty windows
         emptyFile <- gsub(".mf", ".mfEmptyTmp", file)
+        emptyFile <- gsub("merged_","",emptyFile)
         
         if (file.exists(emptyFile)) {
-          print("empty file exists, will use matching file")
+          print(paste("empty file exists, will use matching file",emptyFile))
           
           #individial empty files
           
@@ -271,8 +278,15 @@ for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) {
           assign(paste0(i,"controls"), tmp_dataEmpty)
           
           
+          #VALIDATE THAT CONTROLS AND FEATURES HAVE MATCHING LENGTHS
+          if (testCoordinates(dataEmpty,data)==FALSE) {
+            print("Features and controls have unequal feature lengths. ERROR.")
+            warning("Features and controls have unequal feature lengths. ERROR.")
+          }
+          
         } else {
           print("ERROR: MISSING CONTROLS")
+          warning("ERROR: MISSING CONTROLS")
           
         }
         #compare to either individual all default file with empty values
@@ -299,6 +313,7 @@ for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) {
       print(file)
       # error handler picks up where error was generated
       print(paste("Read.table didn't work!:  ", err))
+      warning(print(paste("Read.table didn't work!:  ", err)))
     })
   }
 }
