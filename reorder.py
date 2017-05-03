@@ -20,7 +20,7 @@ print("motifFileWithIPds: " + motifFileWithIPds + "; " + "motifFileWithErrors: "
 #print motifFile
 errorDict=defaultdict(int)
 
-outputEmpty=motifFileWithErrors.replace("merged_","")
+outputEmpty=motifFileWithErrors.replace("merged_","ordered_")
 if (os.path.exists(outputEmpty)):
 	print("File " + outputEmpty + " already exists. Quit.")
 	sys.exit()
