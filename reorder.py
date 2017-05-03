@@ -18,7 +18,7 @@ motifFileWithErrors=str(sys.argv[2])
 print("motifFileWithIPds: " + motifFileWithIPds + "; " + "motifFileWithErrors: " + motifFileWithErrors)
 
 #print motifFile
-errorDict=defaultdict(int)
+errorDict=defaultdict()
 
 outputEmpty=motifFileWithErrors.replace("merged_","ordered_")
 outputEmpty=basename(outputEmpty)
@@ -52,7 +52,11 @@ with open(motifFileWithIPds) as f:
 	for line in f:
 		array=line.rstrip().replace("\t", " ").split(" ") #replace tabs by spaces and split
 		key=array[0:3]
-		values=errorDict[str(key)]
+		if str(key) in errorDict.keys():
+			values=errorDict[str(key)]
+		else:
+			values=[' ',' ',' ',' ']
+		#print values
 		merged=key+values
 		merged=reduce(lambda key, values: key+" "+values, merged)
 		#print(merged)
