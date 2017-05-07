@@ -13,7 +13,7 @@ calculateIPDforWindow <-
     subreads <- getReadsInRange(cmpH5, chromosome, start, end)
     start<-as.integer(start)
     end<-as.integer(end)
-    print(paste(chromosome,start,end))
+    #print(paste(chromosome,start,end))
     #print(subreads)
     #print(paste("number of passes:",numberOfPasses))
     
@@ -26,6 +26,7 @@ calculateIPDforWindow <-
       #print(paste("moleculeID: ",m))
       chunk <- mol[order(mol$rStart)] #sort subreads by rStart
       subreads_in_mol <- length(mol$idx)
+      write(chunk$strand,file="strandFile.txt",append=TRUE)
       #print(subreads_in_mol)
       #View(getAlignmentBlock(cmpH5, chromosome, start, end))
       if (subreads_in_mol == numberOfPasses) {
@@ -36,12 +37,10 @@ calculateIPDforWindow <-
         ideal_strandness0 <- rep(c(0, 1), length(chunk$strand))[1:length(chunk$strand)] #generate how ideally the strands should interleave
         ideal_strandness1 <- rep(c(1, 0), length(chunk$strand))[1:length(chunk$strand)] #generate how ideally the strands should interleave
         
-        
         if (all.equal(chunk$strand, ideal_strandness0) == TRUE |
             all.equal(chunk$strand, ideal_strandness1) == TRUE) {
           #strands interleave as expected
-          print("strands interleaved correctly ") #todo: add adjacency control for reads
-          write(chunk$strand,file="strandFile.txt",append=TRUE)
+          #print("strands interleaved correctly ") #todo: add adjacency control for reads
           pass <- 0
           for (id in chunk[order(chunk$rStart)]$idx) {
             i<-sort(unique(id))
@@ -55,7 +54,7 @@ calculateIPDforWindow <-
             #print(nrow(idx_chunk))
             
             if (nrow(idx_chunk) == 0) {
-              print("empty dataframe")
+              #print("empty dataframe")
               #break #the whole molecule should be skipped
             } else {
               #print("non-empty dataframe")
@@ -184,17 +183,22 @@ calculateIPDforWindow <-
 
 par(mfrow = c(3, 3))
 setwd("/Users/alice/Desktop/projects/kinetics/passes")
+setwd("/Volumes/Przeworski_baboon_data/kinetics_cmp")
+if (file.exists("strandFile.txt")) {
+  print("strandFile.txt exists and will be removed")
+  file.remove("strandFile.txt")
+}
 pdf("plots.pdf")
 #cmpH5 = PacBioCmpH5("/Users/alice/Desktop/projects/kinetics/passes/chr21_P6.cmp.h5")
 #passesStat <-read.table("/Users/alice/Desktop/projects/kinetics/passes/21.EmptyFeatureOnly.mf.gff.intersect")
 
-for (myChromosome in seq(20,22,1)) {
+for (myChromosome in c(seq(22,8,-1),seq(6,1,-1))) { #c(seq(22,8,-1))
   print(myChromosome)
   cmpH5candidate<-paste0("chr",myChromosome,"_P6.cmp.h5")
   
   if (file.exists(cmpH5candidate)) { #does cmp file exists?
     
-    passesStatCandidate<-paste0(myChromosome,".GQuadMinusFeatureOnly.mf.gff.intersect")
+    passesStatCandidate<-paste0(myChromosome,".GQuadPlusFeatureOnly.mf.gff.intersect")
     
     if (file.exists(passesStatCandidate)) { #does passesStat file exists?
       
@@ -224,7 +228,7 @@ for (myChromosome in seq(20,22,1)) {
       
       coordinates <-as.data.frame(unique(cbind(passesStat$V1, as.numeric(passesStat$V4), as.numeric(passesStat$V5)
       )))
-      print(head(coordinates))
+      #print(head(coordinates))
       by(coordinates, 1:nrow(coordinates), function(row) calculateIPDforWindow(paste0("chr", row[1]), row[2], row[3], 5))
     }
     else {
@@ -249,7 +253,12 @@ dev.off()
 
 <<PLOT DATA>>=
 setwd("/Users/alice/Desktop/projects/kinetics/passes")
+setwd("/Volumes/Przeworski_baboon_data/kinetics_cmp/")
 filenames <- list.files(pattern = "*IPDs.txt", full.names = FALSE)
+#PLOT
+par(mfrow=c(5,2))
+motif<-"motif"
+all_passes<-5
 
 myColors<-c("blue","red")
 
@@ -265,6 +274,19 @@ IPDlistPASS5_0 <- list()
 IPDlistPASS5_1 <- list()
 IPDlistPASS6_0 <- list()
 IPDlistPASS6_1 <- list()
+
+INSERTIONlistPASS1_0 <- list()
+INSERTIONlistPASS1_1 <- list()
+INSERTIONlistPASS2_0 <- list()
+INSERTIONlistPASS2_1 <- list()
+INSERTIONlistPASS3_0 <- list()
+INSERTIONlistPASS3_1 <- list()
+INSERTIONlistPASS4_0 <- list()
+INSERTIONlistPASS4_1 <- list()
+INSERTIONlistPASS5_0 <- list()
+INSERTIONlistPASS5_1 <- list()
+INSERTIONlistPASS6_0 <- list()
+INSERTIONlistPASS6_1 <- list()
 
 returnIPDfittedIntoWindow<-function(start,end,values) {
   window_span <-as.data.frame(seq(start,end,1))
@@ -287,15 +309,17 @@ for (file in (filenames)) {
   for (actual_pass in seq(1,all_passes,1)) {
     c<-actual_pass*3
     strand<-as.numeric((unlist(strsplit(as.character(colnames(d)[c]),"[.]"))[4]))
-    print(paste("pass:",c,"strand",strand))
+    #print(paste("pass:",c,"strand",strand))
     filled_valuesPASS<-as.data.frame(unique(na.omit(cbind(d[, 1],d[, c])))) #pick columns 3,6,9,12,15,18 depending on the pass we are interested in
     
     if (strand==0) {
+      #assign IPD values
       myVariable<-paste0("IPDlistPASS",actual_pass,"_",strand)
       tmp_data <- get(myVariable)
       tmp_data[[length(tmp_data)+1]] <- returnIPDfittedIntoWindow(start,end,filled_valuesPASS)$elt
       assign(myVariable, tmp_data)
     } else {
+      #assign IPD values
       myVariable<-paste0("IPDlistPASS",actual_pass,"_",strand)
       tmp_data <- get(myVariable)
       tmp_data[[length(tmp_data)+1]] <- returnIPDfittedIntoWindow(start,end,filled_valuesPASS)$elt
@@ -303,23 +327,21 @@ for (file in (filenames)) {
     }
     
   }
-  
-  .f = function() {
     
     myCol<-myColors[as.numeric(strand+1)]
     
-    plot(
-      d[, 1],
-      d[, 3],
-      pch = '1',
-      col = myCol,
-      ylim = c(0, 60),
-      ylab = "IPD",
-      sub = "position on reference",
-      main=basename(file),
-      xlab="",
-      las=2
-    )
+    #plot(
+    #  d[, 1],
+    #  d[, 3],
+    #  pch = '1',
+    #  col = myCol,
+    #  ylim = c(0, 60),
+    #  ylab = "IPD",
+    #  sub = "position on reference",
+    #  main=basename(file),
+    #  xlab="",
+    #  las=2
+    #)
     
     for (c in seq(6, ncol(d), 3)) {
       #print("---")
@@ -335,18 +357,37 @@ for (file in (filenames)) {
     }
     
     #plot insertions
-    for (c in seq(2, ncol(d), 3)) {
-      points(d[,1],rep(10+c,length(d[,1])),pch=as.character(d[,c]),col="darkgreen")
+    for (actual_pass in seq(1,all_passes,1)) {
+      c<-actual_pass*3-1
+      #points(d[,1],rep(10+c,length(d[,1])),pch=as.character(d[,c]),col="darkgreen")
+      
+      insertion_nucleotides<-as.vector(na.omit(unique(cbind(d[,1],as.character(d[,c])))[,2])) #keep only unique insertions at position
+      print(insertion_nucleotides)
+      
+      if (strand==0) {
+      #assign INSERTIONS
+      myVariable<-paste0("INSERTIONlistPASS",actual_pass,"_",strand)
+      tmp_data <- get(myVariable)
+      tmp_data[[length(tmp_data)+1]] <- insertion_nucleotides
+      assign(myVariable, tmp_data)
+    } else {
+      #assign INSERTIONS
+      myVariable<-paste0("INSERTIONlistPASS",actual_pass,"_",strand)
+      tmp_data <- get(myVariable)
+      tmp_data[[length(tmp_data)+1]] <-insertion_nucleotides
+      assign(myVariable, tmp_data)
+    }
+      
     }
     
     #plot deletions
     for (c in seq(4, ncol(d), 3)) {
-      points(d[,1],rep(9.5+c,length(d[,1])),pch=as.character(d[,c]),col="orange")
+      #points(d[,1],rep(9.5+c,length(d[,1])),pch=as.character(d[,c]),col="orange")
     }
     
-    points(d[,1], rowMeans(d[, seq(3, ncol(d), 3)], na.rm = TRUE), pch = "*",col="gray",cex=2)
+    #points(d[,1], rowMeans(d[, seq(3, ncol(d), 3)], na.rm = TRUE), pch = "*",col="gray",cex=2)
   }
-}
+
 
 #IPDlistPASS1
 
@@ -355,16 +396,11 @@ paddVector<-function(myVector) { #add paddings of NAs as flanks to the feature i
   return(as.vector(mapply( function(x,y) c(rep( NA , round(y/2)), x , rep( NA , y-round(y/2)) ) , myVector , len, SIMPLIFY = TRUE))) #todo: check +-1 error
 }
 
-#PLOT
-par(mfrow=c(5,2))
-motif<-"motif"
-all_passes<-5
-
 for (actual_pass in seq(1,all_passes,1)) { 
   for (strand in c(0,1)) {
     #print(paste("pass:",actual_pass,"strand",strand))
     myVariable<-paste0("IPDlistPASS",actual_pass,"_",strand)
-    print(myVariable)
+    #print(myVariable)
     tmp_data <- get(myVariable)
     paddedIPDlist<-list()
     
