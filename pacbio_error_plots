@@ -151,6 +151,7 @@ getPvalue <- function(grp.1, grp.2, comparedTo,paired=TRUE) {
   two.part=TwoPart(data,groups, test="quantiles")   ###HERE!!!### "wilcoxon" or "quantiles"
   test.diff=two.part$statistic
   sign_difference=sign(two.part$difference)
+  effectSize=two.part$difference
   print(sign_difference)
   # two-tailed test
   pvalue <-
@@ -175,7 +176,7 @@ getPvalue <- function(grp.1, grp.2, comparedTo,paired=TRUE) {
   #  )
   #)
   #abline(v = test.diff, col = "black", lwd = 4)
-  return(list(pvalue=pvalue,sign_difference=sign_difference))
+  return(list(pvalue=pvalue,sign_difference=sign_difference,effectSize=effectSize))
 }
 
 TOTAL <- hash()
