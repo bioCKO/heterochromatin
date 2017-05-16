@@ -15,6 +15,11 @@ setwd("Illumina")
 ITER <- 1000
 
 filenames <- list.files(pattern = "*.mf", full.names = FALSE)
+filenames <- c("APhasedRepeatsFullWindow.mf","DirectRepeatsFullWindow.mf","InvertedRepeatsFullWindow.mf","MirrorRepeatsFullWindow.mf","ZDNAMotifsFullWindow.mf","GQuadPlusFullWindow.mf","GQuadMinusFullWindow.mf")
+
+#keep only mono, di and tri
+#microsatellites<-nchar(as.character(filenames))<=40
+#filenames<-filenames[microsatellites]
 
 filenames <- filenames[grep("EmptyTmp", filenames,invert=TRUE)]
 
@@ -204,6 +209,11 @@ INSERTIONsign <- hash()
 DELETIONsign <- hash()
 MISMATCHESsign <- hash()
 
+TOTALeffectSize <- hash()
+INSERTIONeffectSize <- hash()
+DELETIONeffectSize <- hash()
+MISMATCHESeffectSize <- hash()
+
 #PLOT 
 for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) {
   print(i)
@@ -225,30 +235,30 @@ for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) {
       
       
       
-      if (length(values) >= 30) {
+      if (length(values) >= 100) {
         #we are only interested in sufficiently populated motifs
         #populate hashes
         tmp_data <- get(i)
         tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = values
         assign(i, tmp_data)
 
-        hist(
-          values,
-          col = "gold",
-          xlab = "% error",
-          main = gsub(".txt", "", gsub(
-            "ERRORS", "", gsub("10000.", "", gsub(".mf", "", file))
-          )),
-          xlim = c(0, 5),
-          sub = paste(
-            "n=",
-            length(values),
-            " errorRate=",
-            round(mean(values), 4),
-            sep =
-              ""
-          )
-        )
+        #hist(
+        #  values,
+        #  col = "gold",
+        #  xlab = "% error",
+        #  main = gsub(".txt", "", gsub(
+        #    "ERRORS", "", gsub("10000.", "", gsub(".mf", "", file))
+        #  )),
+        #  xlim = c(0, 5),
+        #  sub = paste(
+        #    "n=",
+        #    length(values),
+        #    " errorRate=",
+        #    round(mean(values), 4),
+        #    sep =
+        #      ""
+        #  )
+        #)
         
         #load empty windows
         emptyFile <- gsub(".mf", ".mfEmptyTmp", file)
@@ -286,17 +296,36 @@ for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) {
           }
           
         } else {
-          print("ERROR: MISSING CONTROLS")
-          warning("ERROR: MISSING CONTROLS")
+          emptyFile<-"Control.mf"
+          print(paste("empty file DOES NOT exist, will use DEFAULT control file: ",emptyFile))
+          dataEmpty <-
+            
+            read.table(
+              emptyFile,
+              header = F,
+              col.names = c("chr", "start", "end", "TOTAL", "MISMATCHES", "INSERTION", "DELETION"),
+              fill = TRUE
+            )
+          
+          valuesEmpty <-
+            as.numeric(as.character(as.vector(dataEmpty[[i]])))
+          #valuesEmpty <-na.omit(valuesEmpty)
+          print(mean(valuesEmpty,na.rm=TRUE))
           
         }
+        
+        #UNCOMMENT THIS CHUNK IF USED ON FEATURES OF VARIABLE LENGTHS
         #compare to either individual all default file with empty values
-        df<-as.data.frame(cbind(valuesEmpty,values))
-        missing<-which(is.na(df$values) | is.na(df$valuesEmpty))
-        filled<-!(1:(length(values)) %in% missing)
-        result=getPvalue(valuesEmpty[filled], values[filled], file,paired=TRUE)
+        #df<-as.data.frame(cbind(valuesEmpty,values))
+        #missing<-which(is.na(df$values) | is.na(df$valuesEmpty))
+        #filled<-!(1:(length(values)) %in% missing)
+        #result=getPvalue(valuesEmpty[filled], values[filled], file,paired=TRUE)
+        print(paste("control sample size without NA: ", length(na.omit(valuesEmpty)),"feature sample size without NA:",length(na.omit(values))))
+        
+        result=getPvalue(na.omit(valuesEmpty), na.omit(values), file,paired=FALSE) #should be TRUE for paired test when using features of variable length
         pv <- as.numeric(result$pvalue)
         sign_difference <- result$sign_difference
+        effect_size <- result$effectSize
         
         tmp_data <- get(paste0(i,"pvalue"))
         tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = round(pv, 4) #save pvalue and plot
@@ -305,6 +334,10 @@ for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) {
         tmp_data <- get(paste0(i,"sign"))
         tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = sign_difference #save sign
         assign(paste0(i,"sign"), tmp_data)
+        
+        tmp_data <- get(paste0(i,"effectSize"))
+        tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = effect_size #save effect size
+        assign(paste0(i,"effectSize"), tmp_data)
         
       } else {
         print("Too small sample size.")
@@ -331,6 +364,7 @@ for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) {
   
   names <- gsub("ERRORS", "", gsub(".mf.txt", "", filenames
                                    ))
+  #names<-names[1:5]
   f<-values(get(i))
   
   
@@ -365,7 +399,12 @@ for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) {
   
   significance <- as.numeric(values(get(paste0(i,"pvalue")))[names])
   signs <- as.numeric(values(get(paste0(i,"sign")))[names])
-  print(signs)
+  effectSize <- as.numeric(values(get(paste0(i,"effectSize")))[names])
+  
+  nonzeros<-paste0(unlist(values(get(paste0(i,"nonzeros"))))*100,"%")
+  
+  summary<-as.data.frame(rbind(names,significance,signs,effectSize))
+  print(summary)
   
   n <- length(box$n)/2 #DIVIDED BY TWO BECAUSE WE ARE PLOTTING EACH FEATURE TOGETHER WITH ITS CONTROL
   
@@ -404,7 +443,7 @@ for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) {
     yaxs ="i",
     main = i,
     border= "darkgray",
-    ylim = c(0,0.05)
+    ylim = c(0,30)
   )
   
   library("SDMTools")
@@ -420,26 +459,26 @@ for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) {
   
   
   myLabels<-(gsub("merged_", "", gsub(
-    ".mf", "", gsub("FeatureOnly", "", rep(paste(names,significance)[1:length(names)],each=2)))
+    ".mf", "", gsub("FeatureOnly", "", rep(paste(gsub("X.featuresX.","",names),significance)[1:length(names)],each=2)))
   ))  
   
   #PLOT LABELS WITH PVALUES
   text(
     seq(1:(length(names)*2)),
-    0.004,
+    25,#0.004,
     #2*middle_point,
     labels = myLabels,
     srt = 90,
     col = "black",
-    cex = 0.7
+    cex = 0.5
   )
   
   #PLOT LABELS WITH NON-ZERO COUNTS
     text(
     seq(1:(length(names)*2)),
-    0.004,
+    -5,#0.004,
     #3*middle_point,
-    labels = paste0(unlist(values(get(paste0(i,"nonzeros"))))*100,"%"),
+    labels = nonzeros,
     srt = 90,
     col = "black",
     cex = 0.7,
