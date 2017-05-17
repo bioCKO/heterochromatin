@@ -6,149 +6,162 @@
 <<>>=
 par(mfrow = c(2, 4))
 library("outliers")
+library("data.table")
 setwd("/Users/alice/Desktop/projects/kinetics/errors_vs_IPD")
 
 if (!require("gplots")) {
-   install.packages("gplots", dependencies = TRUE)
-   library(gplots)
-   }
+  install.packages("gplots", dependencies = TRUE)
+  library(gplots)
+}
 if (!require("RColorBrewer")) {
-   install.packages("RColorBrewer", dependencies = TRUE)
-   library(RColorBrewer)
-   }
+  install.packages("RColorBrewer", dependencies = TRUE)
+  library(RColorBrewer)
+}
 
 
 
-calculatePvalue <- function(i, dataErrors, meanIPDperRow) {
-  switch(
-    i,
-    #errorNames = c("TOTAL", "INSERTIONS", "DELETIONS", "MISMATCHES")
-    V8 = {
-      errorName = "TOTAL"
-    },
-    V9 = {
-      errorName = "INSERTIONS"
-    },
-    V10 = {
-      errorName = "DELETIONS"
-    },
-    V11 = {
-      errorName = "MISMATCHES"
-    }
-  )
-  errorPerRow <- as.numeric(as.character(dataErrors[[i]]))
+calculatePvalue <- function(i, dataErrors, meanIPDperRow, output) {
+  errorName<-i
+  #print(errorName)
+  errorPerRow <- as.numeric(as.character(dataErrors[,c(errorName)]))
   #print(length(errorPerRow))
+  #print(length(meanIPDperRow))
   #boxplot(errorPerRow,col="gold")
   
-  df <- data.frame(meanIPDperRow, errorPerRow)
-  if (dim(df)[1] >= 100) {
-  plot(
-    errorPerRow,
-    log(meanIPDperRow+0.0001),
-    pch = ".",
-    col = "darkgray",
-    main = errorName,
-    sub = file,
-    xlim = c(0, 100),
-    xlab = "% ERROR RATE",
-    ylab = "log(mean IPD per window)"
-  )
-  mylm <- lm(log(meanIPDperRow+0.0001) ~ errorPerRow, data = df)
-  #plot(mylm)
-  
-  summary(mylm)
-  abline(mylm, col = "red")
-  pvalue <- as.numeric(round(coef(summary(mylm))[, "Pr(>|t|)"][2], 3))
-  slope <- as.numeric(round(coef(summary(mylm))[, "Estimate"][2], 3))
-  rsquare <-as.numeric(round(summary(mylm)$r.squared,3))
-  
-  mtext(paste("p-value:",pvalue,"slope:",slope,"r-square",rsquare),
+  df <- data.frame(cbind(meanIPDperRow, errorPerRow))
+  if (nrow(df) >= 100) {
+    mylm <- lm(log(meanIPDperRow + 0.0001) ~ errorPerRow, data = df)
+    #plot(mylm)
+    
+    summary(mylm)
+    pvalue <-
+      as.numeric(round(coef(summary(mylm))[, "Pr(>|t|)"][2], 3))
+    slope <-
+      as.numeric(round(coef(summary(mylm))[, "Estimate"][2], 3))
+    rsquare <- as.numeric(round(summary(mylm)$r.squared, 3))
+    
+    if (output == TRUE) {
+      plot(
+        errorPerRow,
+        log(meanIPDperRow + 0.0001),
+        pch = ".",
+        col = "darkgray",
+        main = errorName,
+        sub = file,
+        xlim = c(0, 100),
+        xlab = "% ERROR RATE",
+        ylab = "log(mean IPD per window)"
+      )
+      mtext(
+        paste("p-value:", pvalue, "slope:", slope, "r-square", rsquare),
         col = ifelse(pvalue < 0.05, 'red', 'blue'),
         side = 4,
-        line=0.5)
-  return(c(pvalue,slope,rsquare))
+        line = 0.5
+      )
+      abline(mylm, col = "red")
+    }
+    
+    return(list(pvalue=pvalue, slope=slope, rsquare=rsquare))
   } else {
     print("not sufficient sample size")
+    return(list(NULL,NULL,NULL))
   }
 }
-plotFile <- function(file) {
-  dataOriginal <-
-    read.table(
-      file,
-      header = F,
-      sep = "$",
-      col.names = c("V1", "V2", "V3"),
-      fill = TRUE
-    )
-  dataErrors <-
-    as.data.frame(setDT(tstrsplit(
-      as.character(dataOriginal[, 1]), " ", fixed = TRUE
-    ))[]) #split by spaces
-  dataIPDs <-
-    as.data.frame(setDT(tstrsplit(
-      as.character(dataOriginal[, 3]), "\t", fixed = FALSE
-    ))[])[-(1:4)] #split by spaces and remove columns with region and feature lengths, keep only IPDs
-  dataIPDs <- data.matrix(dataIPDs)
+plotFile <- function(dataOriginal) {
+  dataErrors <- data.matrix(dataOriginal[,c("TOTAL","MISMATCHES","INSERTION","DELETION")])
+  dataIPDs <- data.matrix(dataOriginal[,c(as.character(seq(1,100,1)))])
+  
   meanIPDperRow <-
     apply(dataIPDs, 1, function(x)
       mean(x, na.rm = TRUE))
   
-  pvaluesForMotif<-sapply(names(dataErrors[8:11]), function(x,y) calculatePvalue(x,dataErrors,meanIPDperRow)[1])
-  slopesForMotif<-sapply(names(dataErrors[8:11]), function(x,y) calculatePvalue(x,dataErrors,meanIPDperRow)[2])
-  rsquareForMotif<-sapply(names(dataErrors[8:11]), function(x,y) calculatePvalue(x,dataErrors,meanIPDperRow)[3])
+  pvaluesForMotif <-
+    sapply(colnames(dataErrors), function(x, y)
+      calculatePvalue(x, dataErrors, meanIPDperRow, TRUE)$pvalue)
+  slopesForMotif <-
+    sapply(colnames(dataErrors), function(x, y)
+      calculatePvalue(x, dataErrors, meanIPDperRow, FALSE)$slope)
+  rsquareForMotif <-
+    sapply(colnames(dataErrors), function(x, y)
+      calculatePvalue(x, dataErrors, meanIPDperRow, FALSE)$rsquare)
   
   
   
-  return(c(pvaluesForMotif,slopesForMotif,rsquareForMotif))
-  #for (i in names(dataErrors[8:11])) { #iterate through V8-V11
-  #  calculatePvalue(i)
-  #}
+  return(list(pvaluesForMotif=pvaluesForMotif, slopesForMotif=slopesForMotif, rsquareForMotif=rsquareForMotif))
 }
 
-filenames <- list.files(pattern = "*.mf", full.names = FALSE)
-summary<-NULL
-slopes<-NULL
-rsquares<-NULL
+filenames <- c("APhasedRepeatsFullWindow.mf","DirectRepeatsFullWindow.mf","InvertedRepeatsFullWindow.mf","MirrorRepeatsFullWindow.mf","ZDNAMotifsFullWindow.mf","GQuadPlusFullWindow.mf","GQuadMinusFullWindow.mf")
+
+folder_with_errors <-
+  "/Users/alice/Desktop/projects/kinetics/errors_will/may8/full_windowboth/interesting/ordered/single_control/"
+folder_with_IPDs <-
+  "/Users/alice/Desktop/projects/kinetics/errors_will/may8/"
+
+summary <- NULL
+slopes <- NULL
+rsquares <- NULL
 
 for (file in (filenames)) {
   tryCatch({
-    if (file.size(file) > 0) {
-      #load motif windows
-      print(file)
-      pvaluesForMotif<-plotFile(file)[1:4]
-      slopesForMotif<-plotFile(file)[5:8]
-      rsquareForMotif<-plotFile(file)[9:12]
+    dataE <-
+      read.table(
+        paste0(folder_with_errors, file),
+        header = F,
+        sep = "\t",
+        fill = TRUE
+      )
+    colnames(dataE) <-
+      c("chr",
+        "start",
+        "end",
+        "TOTAL",
+        "MISMATCHES",
+        "INSERTION",
+        "DELETION")
+    
+    dataI <-
+      read.table(
+        paste0(folder_with_IPDs, file),
+        header = F,
+        sep = "\t",
+        fill = TRUE
+      )
+    colnames(dataI) <- c("chr", "start", "end", "length", seq(1, 100, 1))
+    
+    mergedData <-
+      merge(as.data.frame(dataE),
+            as.data.frame(dataI),
+            by = c("chr", "start", "end"))
+    
+    #load motif windows
+    print(file)
+    result<-plotFile(mergedData)
+    pvaluesForMf <- result[1]
+    slopesForMf <- result[2]
+    rsquareForMf <- result[3]
+    
+    print(result)
+    
+    if (is.null(pvaluesForMf)) {
+      print("skipping")
+    } else {
+      print("OK, returning values")
+      row <-
+        c(file,
+          unlist(pvaluesForMf))
+      rowSlope <-
+        c(file,
+          unlist(slopesForMf))
+      rowRsquare <-
+        c(file,
+          unlist(rsquareForMf))
       
-      if (pvaluesForMotif[1]=="not sufficient sample size") {
-        print("skipping") 
-      } else { 
-        print("OK, returning values")
-        row <-
-          c(
-            file,
-            pvaluesForMotif
-          )
-        rowSlope <-
-          c(
-            file,
-            slopesForMotif      
-          )
-         rowRsquare <-
-          c(
-            file,
-            rsquareForMotif      
-          )
-        
-        row<-as.data.frame(t(row))
-        rowSlope<-as.data.frame(t(rowSlope))
-        rowRsquare<-as.data.frame(t(rowRsquare))
-        colnames(row)[1]=c("motif")
-        summary <- rbind(summary, row)  
-        slopes <- rbind(slopes, rowSlope)
-        rsquares <- rbind(slopes, rowRsquare)
-      }
-      
+      summary <- rbind(summary, row)
+      slopes <- rbind(slopes, rowSlope)
+      rsquares <- rbind(rsquares, rowRsquare)
     }
+    
+    
   }, error = function(err) {
     # error handler picks up where error was generated
     print(paste("Initial read.table didn't work!:  ", err))
@@ -157,38 +170,64 @@ for (file in (filenames)) {
 @
 
 <<>>=
-par(mfrow=c(1,2),cex.lab=1)
-toPlot<-summary
-rownames(toPlot)<-gsub("OUT_","",gsub("FeatureOnly.mf","",toPlot[,1]))
-toPlot<-toPlot[-1]
-colnames(toPlot)<-c("TOTAL", "INS", "DEL", "MISM")
-toPlot<-as.matrix(toPlot)
-class(toPlot) <- "numeric" 
 
-annotation<-slopes
-rownames(annotation)<-gsub("OUT_","",gsub("FeatureOnly.mf","",annotation[,1]))
-annotation<-annotation[-1]
-colnames(annotation)<-c("TOTAL", "INS", "DEL", "MISM")
-annotation<-as.matrix(annotation)
-class(annotation) <- "numeric" 
+#par(mfrow = c(1, 3), cex.lab = 1)
+plot(0,0)
+format<-function(input) {
+  toPlot<-input
+  rownames(toPlot) <-
+  gsub("OUT_", "", gsub("FeatureOnly.mf", "", toPlot[, 1]))
+  toPlot <- toPlot[,-1]
+  colnames(toPlot) <- c("TOTAL","MISMATCHES","INSERTION","DELETION")
+  toPlot <- as.matrix(toPlot)
+  class(toPlot) <- "numeric"
+  return(toPlot)
+}
 
-varExplained<-rsquares
-rownames(varExplained)<-gsub("OUT_","",gsub("FeatureOnly.mf","",varExplained[,1]))
-varExplained<-varExplained[-1]
-colnames(varExplained)<-c("TOTAL", "INS", "DEL", "MISM")
-varExplained<-as.matrix(varExplained)
-class(varExplained) <- "numeric" 
+toPlot <- format(summary)
+slopes <- format(slopes)
+rsquares <- format(rsquares)
 
-#lmat = rbind(c(0,3),c(2,1),c(0,4))
-lmat = rbind(c(3,4),c(2,1))
-lwid = c(0.4,5)
-my_palette <- colorRampPalette(c("red","white","white","white","white","white","white","white","white","white"))(n = 101)
-heatmap.2(toPlot,dendrogram='row',Rowv=TRUE,Colv=TRUE,col=my_palette,trace="row",tracecol="gray",lmat=lmat,lwid=lwid,margins = c(6.5, 6),key.title ="p-values",cellnote=annotation,notecol="black")
-
-
+##lmat = rbind(c(0,3),c(2,1),c(0,4))
+lmat = rbind(c(3, 4), c(2, 1))
+lwid = c(0.4, 1)
+my_palette <-
+  colorRampPalette(
+    c(
+      "red",
+      "white",
+      "white",
+      "white",
+      "white",
+      "white",
+      "white",
+      "white",
+      "white",
+      "white"
+    )
+  )(n = 101)
+heatmap.2(
+  toPlot,
+  dendrogram = 'none',
+  Rowv = TRUE,
+  Colv = TRUE,
+  col = my_palette,
+  trace = "row",
+  tracecol = "gray",
+  lmat = lmat,
+  lwid = lwid,
+  #margins = c(6.5, 6),
+  key.title = "p-values",
+  cellnote = rsquares,
+  notecol = "black"
+)
 
 @
 
+<<>>=
+par(cex=1.75)
+boxplot(rsquares,col=rainbow(4),main="Error rate can partially predict elevation in IPDs",ylab="R-Square")
+@
 
 
 \end{document}
