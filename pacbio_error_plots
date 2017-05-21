@@ -10,12 +10,16 @@ require("dplyr")
 require("hash")
 require("data.table")
 
-setwd("Illumina")
+#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/windows/Illumina")
+#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/windows/TCGA")
+setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/windows/divergence")
+#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/windows/diversity")
+#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/windows")
 
-ITER <- 1000
+ITER <- 10
 
 filenames <- list.files(pattern = "*.mf", full.names = FALSE)
-filenames <- c("APhasedRepeatsFullWindow.mf","DirectRepeatsFullWindow.mf","InvertedRepeatsFullWindow.mf","MirrorRepeatsFullWindow.mf","ZDNAMotifsFullWindow.mf","GQuadPlusFullWindow.mf","GQuadMinusFullWindow.mf")
+#filenames <- c("APhasedRepeatsFullWindow.mf","DirectRepeatsFullWindow.mf","InvertedRepeatsFullWindow.mf","MirrorRepeatsFullWindow.mf","ZDNAMotifsFullWindow.mf","GQuadPlusFullWindow.mf","GQuadMinusFullWindow.mf")
 
 #keep only mono, di and tri
 #microsatellites<-nchar(as.character(filenames))<=40
@@ -37,20 +41,22 @@ testCoordinates<- function(dataEmpty,data) {
 
 getPvalue <- function(grp.1, grp.2, comparedTo,paired=TRUE) {
   
-  control_non_zero<-round((length(grp.1)-(table(grp.1)["0"]))/length(grp.1),digits=4)
-  feature_non_zero<-round((length(grp.2)-(table(grp.2)["0"]))/length(grp.2),digits=4)
-  
+  feature_non_zero<-round((length(grp.1)-(table(grp.1)["0"]))/length(grp.1),digits=4)
+  control_non_zero<-round((length(grp.2)-(table(grp.2)["0"]))/length(grp.2),digits=4)
+
+  if (is.na(feature_non_zero)) {
+    feature_non_zero<-1 #no zeros exist, all values are non-zero
+   }
+    
   if (is.na(control_non_zero)) {
     control_non_zero<-1 #no zeros exist, all values are non-zero
   }
-   if (is.na(feature_non_zero)) {
-    feature_non_zero<-1 #no zeros exist, all values are non-zero
-   }
-  print(paste("control_non_zero: ",control_non_zero,"; feature_non_zero:",feature_non_zero))
+
+  print(paste("feature_non_zero: ",feature_non_zero,"; control_non_zero:",control_non_zero))
   
   #populate hash with number of non_zeros  
   tmp_data <- get(paste0(i,"nonzeros"))
-  tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = list(control_non_zero,feature_non_zero) 
+  tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = list(feature_non_zero,control_non_zero) 
   assign(paste0(i,"nonzeros"), tmp_data)
   
   TwoPart <- function(data, group, test="wilcoxon", point.mass=0){
@@ -215,7 +221,7 @@ DELETIONeffectSize <- hash()
 MISMATCHESeffectSize <- hash()
 
 #PLOT 
-for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) {
+for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) { #c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")
   print(i)
   for (file in filenames) {
     print(file)
@@ -296,7 +302,7 @@ for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) {
           }
           
         } else {
-          emptyFile<-"Control.mf"
+          emptyFile<-"Controls.mf"
           print(paste("empty file DOES NOT exist, will use DEFAULT control file: ",emptyFile))
           dataEmpty <-
             
@@ -312,6 +318,11 @@ for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) {
           #valuesEmpty <-na.omit(valuesEmpty)
           print(mean(valuesEmpty,na.rm=TRUE))
           
+          #populate hash with matching controls  
+          tmp_dataEmpty <- get(paste0(i,"controls"))
+          tmp_dataEmpty[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = valuesEmpty
+          assign(paste0(i,"controls"), tmp_dataEmpty)
+          
         }
         
         #UNCOMMENT THIS CHUNK IF USED ON FEATURES OF VARIABLE LENGTHS
@@ -319,10 +330,10 @@ for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) {
         #df<-as.data.frame(cbind(valuesEmpty,values))
         #missing<-which(is.na(df$values) | is.na(df$valuesEmpty))
         #filled<-!(1:(length(values)) %in% missing)
-        #result=getPvalue(valuesEmpty[filled], values[filled], file,paired=TRUE)
+        #result=getPvalue(values[filled], valuesEmpty[filled],file,paired=TRUE)
         print(paste("control sample size without NA: ", length(na.omit(valuesEmpty)),"feature sample size without NA:",length(na.omit(values))))
         
-        result=getPvalue(na.omit(valuesEmpty), na.omit(values), file,paired=FALSE) #should be TRUE for paired test when using features of variable length
+        result=getPvalue(na.omit(values), na.omit(valuesEmpty), file,paired=FALSE) #should be TRUE for paired test when using features of variable length
         pv <- as.numeric(result$pvalue)
         sign_difference <- result$sign_difference
         effect_size <- result$effectSize
@@ -355,15 +366,42 @@ for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) {
 dev.off()
 @
 
-<<>>=
+<<calculate table>>=
+par(mfrow = c(1, 1), cex=1.4)
+print(getwd())
+for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) {  #c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")
+  
+  print("-------------")
+  print(i)
+  names <- gsub("ERRORS", "", gsub(".mf.txt", "", filenames
+                                   ))
 
+  significance <- as.numeric(values(get(paste0(i,"pvalue")))[names])
+  signs <- as.numeric(values(get(paste0(i,"sign")))[names])
+  effectSize <- as.numeric(values(get(paste0(i,"effectSize")))[names])
+  
+  nonzeros<-unlist(values(get(paste0(i,"nonzeros"))))
+  nonzeros_differences<-as.numeric(nonzeros[seq(1,length(nonzeros),2)])-as.numeric(nonzeros[seq(2,length(nonzeros),2)])
+  
+  summary<-as.data.frame(rbind(names,significance,signs,effectSize,nonzeros_differences),optional=TRUE)
+  print(summary)
+ 
+}
+@
+
+
+<<plot boxplots>>=
+#THIS CODE IS UNDER CONSTRUCTION
 par(mfrow = c(1, 1), cex=1.4)
 
 
 for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) { 
   
+  print("-------------")
+  print(i)
   names <- gsub("ERRORS", "", gsub(".mf.txt", "", filenames
                                    ))
+  
   #names<-names[1:5]
   f<-values(get(i))
   
@@ -393,6 +431,20 @@ for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) {
   
   box$stats[c(1,5),]=Reduce(cbind,lapply(c(f[names],c[names])[idx],quantile,probs=c(0.05,0.95),na.rm=TRUE,SIMPLIFY=FALSE))
   
+  
+    box = boxplot(
+    c(f[names]),
+    names = TRUE,
+    frame = FALSE,
+    axis = FALSE,
+    labels = TRUE,
+    xaxt = "n",
+    outline = FALSE,
+    border = "gray",
+    ylab = "%",
+    plot = FALSE
+  )
+  
   null_coordinates<-which(box$n==0) #these features don't have sufficiently large sample size
   annotation <- rep(names,each=2)
   annotation[null_coordinates]<-NA
@@ -403,7 +455,7 @@ for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) {
   
   nonzeros<-paste0(unlist(values(get(paste0(i,"nonzeros"))))*100,"%")
   
-  summary<-as.data.frame(rbind(names,significance,signs,effectSize))
+  summary<-as.data.frame(rbind(names,significance,signs,effectSize),optional=TRUE)
   print(summary)
   
   n <- length(box$n)/2 #DIVIDED BY TWO BECAUSE WE ARE PLOTTING EACH FEATURE TOGETHER WITH ITS CONTROL
@@ -443,7 +495,7 @@ for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) {
     yaxs ="i",
     main = i,
     border= "darkgray",
-    ylim = c(0,30)
+    ylim = c(0,0.01)
   )
   
   library("SDMTools")
