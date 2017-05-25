@@ -1,4 +1,5 @@
 <<plot error profiles for different motifs>>=
+options(scipen=10)
 par(
   mfrow = c(4, 4),
   cex.main = 1.3,
@@ -10,13 +11,21 @@ require("dplyr")
 require("hash")
 require("data.table")
 
-#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/windows/Illumina")
-#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/windows/TCGA")
-setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/windows/divergence")
-#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/windows/diversity")
-#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/windows")
+#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/windows/Pacbio/")
+#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/windows/Illumina/")
+#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/windows/diversity/")
+#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/windows/divergence/")
+#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/windows/TCGA/")
 
-ITER <- 10
+#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/features/Pacbio/")
+#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/features/Illumina/")
+#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/features/diversity/")
+#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/features/divergence/")
+#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/features/TCGA/")
+#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/features/new_TCGA/")
+setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may2/0/all")
+
+ITER <- 100
 
 filenames <- list.files(pattern = "*.mf", full.names = FALSE)
 #filenames <- c("APhasedRepeatsFullWindow.mf","DirectRepeatsFullWindow.mf","InvertedRepeatsFullWindow.mf","MirrorRepeatsFullWindow.mf","ZDNAMotifsFullWindow.mf","GQuadPlusFullWindow.mf","GQuadMinusFullWindow.mf")
@@ -302,7 +311,7 @@ for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) { #c("TOTAL", "MISM
           
           
           #VALIDATE THAT CONTROLS AND FEATURES HAVE MATCHING LENGTHS
-          if (testCoordinates(dataEmpty,data)==FALSE) {
+          if (grepl("difference", as.character(testCoordinates(dataEmpty,data)))==TRUE) {
             print("Features and controls have unequal feature lengths. ERROR.")
             warning("Features and controls have unequal feature lengths. ERROR.")
           }
@@ -333,13 +342,14 @@ for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) { #c("TOTAL", "MISM
         
         #UNCOMMENT THIS CHUNK IF USED ON FEATURES OF VARIABLE LENGTHS
         #compare to either individual all default file with empty values
-        #df<-as.data.frame(cbind(valuesEmpty,values))
-        #missing<-which(is.na(df$values) | is.na(df$valuesEmpty))
-        #filled<-!(1:(length(values)) %in% missing)
-        #result=getPvalue(values[filled], valuesEmpty[filled],file,paired=TRUE)
+        df<-as.data.frame(cbind(valuesEmpty,values))
+        missing<-which(is.na(df$values) | is.na(df$valuesEmpty))
+        filled<-!(1:(length(values)) %in% missing)
+        result=getPvalue(values[filled], valuesEmpty[filled],file,paired=TRUE)
+        
         print(paste("control sample size without NA: ", length(na.omit(valuesEmpty)),"feature sample size without NA:",length(na.omit(values))))
         
-        result=getPvalue(na.omit(values), na.omit(valuesEmpty), file,paired=FALSE) #should be TRUE for paired test when using features of variable length
+        #result=getPvalue(na.omit(values), na.omit(valuesEmpty), file,paired=FALSE) #should be TRUE for paired test when using features of variable length
         pv <- as.numeric(result$pvalue)
         sign_difference <- result$sign_difference
         effect_size <- result$effectSize
@@ -368,186 +378,41 @@ for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) { #c("TOTAL", "MISM
     })
   }
 }
+save.image(file=basename(getwd()))
 
+#OUTPUT TABLES
+names<-names(TOTALpvalue)
+par(mfrow = c(1, 1), cex = 1.4)
+directory<-paste0(getwd(),"/")
+variables<-basename(getwd())
+
+for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) {
+  #c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")
+  
+  print("-------------")
+  print(i)
+  
+  significance <- as.numeric(values(get(paste0(i, "pvalue")))[names])
+  signs <- as.numeric(values(get(paste0(i, "sign")))[names])
+  effectSize <-
+    as.numeric(values(get(paste0(i, "effectSize")))[names])
+  
+  nonzeros <- unlist(values(get(paste0(i, "nonzeros"))))
+  nonzeros_differences <-
+    as.numeric(nonzeros[seq(1, length(nonzeros), 2)]) - as.numeric(nonzeros[seq(2, length(nonzeros), 2)])
+  
+  results <-
+    paste(significance, effectSize, nonzeros_differences, sep = " ")
+  summary <-
+    as.data.frame(as.matrix(rbind(names, results), optional = TRUE))
+  fn<-paste0(directory,basename(variables),"_",i,".txt")
+  print(fn)
+  write.table(summary,fn,sep="\t",row.names=FALSE,col.names = FALSE,append=FALSE, quote=FALSE)
+  
+}
 dev.off()
 @
 
-<<calculate table>>=
-par(mfrow = c(1, 1), cex=1.4)
-print(getwd())
-for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) {  #c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")
-  
-  print("-------------")
-  print(i)
-  names <- gsub("ERRORS", "", gsub(".mf.txt", "", filenames
-                                   ))
 
-  significance <- as.numeric(values(get(paste0(i,"pvalue")))[names])
-  signs <- as.numeric(values(get(paste0(i,"sign")))[names])
-  effectSize <- as.numeric(values(get(paste0(i,"effectSize")))[names])
-  
-  nonzeros<-unlist(values(get(paste0(i,"nonzeros"))))
-  nonzeros_differences<-as.numeric(nonzeros[seq(1,length(nonzeros),2)])-as.numeric(nonzeros[seq(2,length(nonzeros),2)])
-  
-  summary<-as.data.frame(rbind(names,significance,signs,effectSize,nonzeros_differences),optional=TRUE)
-  print(summary)
- 
-}
-@
-
-
-<<plot boxplots>>=
-#THIS CODE IS UNDER CONSTRUCTION
-par(mfrow = c(1, 1), cex=1.4)
-
-
-for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) { 
-  
-  print("-------------")
-  print(i)
-  names <- gsub("ERRORS", "", gsub(".mf.txt", "", filenames
-                                   ))
-  
-  #names<-names[1:5]
-  f<-values(get(i))
-  
-  
-  for (a in names) {f[[a]] <- f[[a]][f[[a]]!=0]}
-  
-  c<-values(get(paste0(i, "controls")))
-  for (a in names) {c[[a]] <- c[[a]][c[[a]]!=0]}
-  
-  
-  fc<-list(f,c)
-  idx <- order(c(seq_along(f), seq_along(c)))
-  
-  
-  box = boxplot(
-    c(f[names],c[names])[idx],
-    names = TRUE,
-    frame = FALSE,
-    axis = FALSE,
-    labels = TRUE,
-    xaxt = "n",
-    outline = FALSE,
-    border = "gray",
-    ylab = "%",
-    plot = FALSE
-  )
-  
-  box$stats[c(1,5),]=Reduce(cbind,lapply(c(f[names],c[names])[idx],quantile,probs=c(0.05,0.95),na.rm=TRUE,SIMPLIFY=FALSE))
-  
-  
-    box = boxplot(
-    c(f[names]),
-    names = TRUE,
-    frame = FALSE,
-    axis = FALSE,
-    labels = TRUE,
-    xaxt = "n",
-    outline = FALSE,
-    border = "gray",
-    ylab = "%",
-    plot = FALSE
-  )
-  
-  null_coordinates<-which(box$n==0) #these features don't have sufficiently large sample size
-  annotation <- rep(names,each=2)
-  annotation[null_coordinates]<-NA
-  
-  significance <- as.numeric(values(get(paste0(i,"pvalue")))[names])
-  signs <- as.numeric(values(get(paste0(i,"sign")))[names])
-  effectSize <- as.numeric(values(get(paste0(i,"effectSize")))[names])
-  
-  nonzeros<-paste0(unlist(values(get(paste0(i,"nonzeros"))))*100,"%")
-  
-  summary<-as.data.frame(rbind(names,significance,signs,effectSize),optional=TRUE)
-  print(summary)
-  
-  n <- length(box$n)/2 #DIVIDED BY TWO BECAUSE WE ARE PLOTTING EACH FEATURE TOGETHER WITH ITS CONTROL
-  
-  significance[significance<1e-5]=1e-5
-  #significance[significance>0.05]=1 # threshold at 5%
-  log_pvalue=-log10(significance)
-  log_pvalue=signs*log_pvalue     # sign_difference -1 for negative differences, +1 for   positive differences
-  colfunc=colorRampPalette(c("red","white","navy"))(n=100-1)    
-  # 99 colors from blue to white to red.
-  # Blue will correspond to log_pvalue=-5
-  # white log_pvalue=0
-  # red log_pvalue=5
-  color_limits=seq (-5,5,length.out=100)
-  col=c(colfunc[unlist(lapply(log_pvalue,function(log) which((log>=color_limits[1:99])&(log<=color_limits[2:100]))[1]))],'green','green')
-  col[significance>0.05]<-"white"#non-significant not colored
-  
-  #colfunc <- colorRampPalette(c("firebrick1","white","white","white","white","white","white","white","white","white"))
-  #colscale = colfunc(101)[perc+1] # the maximum sample size has red, indexed from 1
-  colscale <- rep(col,each=2)
-  
-  #colscale[grep("Empty", annotation)] <-
-  #  "green"  #assign green to empty windows
-  
-  
-  bxp(
-    box,
-    outline = FALSE,
-    pars = list(
-      whisklty = 3,
-      staplewex = 0.8,
-      boxfill = colscale
-    ),
-    xlab = "Motif",
-    ylab = "error rate",
-    xaxt = 'n',
-    yaxs ="i",
-    main = i,
-    border= "darkgray",
-    ylim = c(0,0.01)
-  )
-  
-  library("SDMTools")
-  #points for the gradient legend
-  #pnts = cbind(x =c(0.8,20,20,0.8), y =c(20,20,0.8,0.8))
-  
-  middle_point<-median(as.numeric(as.character(box$out)),na.rm=TRUE)/2
-  
-  xl <- 92
-  yb <- middle_point
-  xr <- 93
-  yt <- middle_point*2
-  
-  
-  myLabels<-(gsub("merged_", "", gsub(
-    ".mf", "", gsub("FeatureOnly", "", rep(paste(gsub("X.featuresX.","",names),significance)[1:length(names)],each=2)))
-  ))  
-  
-  #PLOT LABELS WITH PVALUES
-  text(
-    seq(1:(length(names)*2)),
-    25,#0.004,
-    #2*middle_point,
-    labels = myLabels,
-    srt = 90,
-    col = "black",
-    cex = 0.5
-  )
-  
-  #PLOT LABELS WITH NON-ZERO COUNTS
-    text(
-    seq(1:(length(names)*2)),
-    -5,#0.004,
-    #3*middle_point,
-    labels = nonzeros,
-    srt = 90,
-    col = "black",
-    cex = 0.7,
-    font = 2
-  )
-  
-  abline(h = median(as.numeric(unlist(values(
-    get(i)
-  )[names][grep("Empty", names)])), na.rm = TRUE), col = "black")
-}
-@
-  
 
 \end{document}
