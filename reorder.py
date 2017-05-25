@@ -22,6 +22,7 @@ errorDict=defaultdict()
 
 outputEmpty=motifFileWithErrors.replace("merged_","ordered_")
 outputEmpty=basename(outputEmpty)
+outputEmpty=("test" + outputEmpty)
 
 if (os.path.exists(outputEmpty)):
 	print("File " + outputEmpty + " already exists. Quit.")
@@ -49,7 +50,12 @@ f.close()
 #	print k, errorDict[k]
 
 with open(motifFileWithIPds) as f:
+	i=0
 	for line in f:
+		i=i+1 #line number
+		if (i>30000):
+			fout.close()
+			quit() #file too large, let's quit
 		array=line.rstrip().replace("\t", " ").split(" ") #replace tabs by spaces and split
 		key=array[0:3]
 		if str(key) in errorDict.keys():
@@ -59,6 +65,8 @@ with open(motifFileWithIPds) as f:
 		#print values
 		merged=key+values
 		merged=reduce(lambda key, values: key+" "+values, merged)
+		#print(str(merged))
 		#print(merged)
 		fout.write(merged+"\n")
+fout.close()
 
