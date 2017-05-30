@@ -1,5 +1,7 @@
 <<plot error profiles for different motifs>>=
 options(scipen=10)
+options(error=traceback)
+options(show.error.locations = TRUE)
 par(
   mfrow = c(4, 4),
   cex.main = 1.3,
@@ -11,44 +13,24 @@ require("dplyr")
 require("hash")
 require("data.table")
 
-#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/windows/Pacbio/")
-#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/windows/Illumina/")
-#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/windows/diversity/")
-#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/windows/divergence/")
-#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/windows/TCGA/")
-
-#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/features/Pacbio/")
-#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/features/Illumina/")
-#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/features/diversity/")
-#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/features/divergence/")
-#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/features/TCGA/")
-#setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may17/features/new_TCGA/")
-setwd("/Users/alice/Desktop/projects/kinetics/errors_will/may2/0/all")
-
-ITER <- 100
+set.seed(3)
+directory <-"/Users/alice/Desktop/projects/kinetics/errors_will/may17/features/new_TCGA/"
+setwd(directory)
 
 filenames <- list.files(pattern = "*.mf", full.names = FALSE)
-#filenames <- c("APhasedRepeatsFullWindow.mf","DirectRepeatsFullWindow.mf","InvertedRepeatsFullWindow.mf","MirrorRepeatsFullWindow.mf","ZDNAMotifsFullWindow.mf","GQuadPlusFullWindow.mf","GQuadMinusFullWindow.mf")
-
-#keep only mono, di and tri
-#microsatellites<-nchar(as.character(filenames))<=40
-#filenames<-filenames[microsatellites]
-
 filenames <- filenames[grep("EmptyTmp", filenames,invert=TRUE)]
 
-
-set.seed(3)
+#filenames <- c("APhasedRepeatsFullWindow.mf","DirectRepeatsFullWindow.mf","InvertedRepeatsFullWindow.mf","MirrorRepeatsFullWindow.mf","ZDNAMotifsFullWindow.mf","GQuadPlusFullWindow.mf","GQuadMinusFullWindow.mf")
 
 pdf("histograms.pdf")
 
 testCoordinates<- function(dataEmpty,data) {
-  control_lengths<-dataEmpty[,3]-dataEmpty[,2]+1
   feature_lengths<-data[,3]-data[,2]+1
-  return(all.equal(control_lengths,feature_lengths))
+  control_lengths<-dataEmpty[,3]-dataEmpty[,2]+1
+  return(all.equal(feature_lengths,control_lengths))
 }
 
-
-getPvalue <- function(grp.1, grp.2, comparedTo,paired=TRUE) {
+getPvalue <- function(grp.1, grp.2, comparedTo,i,ITER,paired=TRUE) {
   
   feature_non_zero<-round((length(grp.1)-(table(grp.1)["0"]))/length(grp.1),digits=4)
   control_non_zero<-round((length(grp.2)-(table(grp.2)["0"]))/length(grp.2),digits=4)
@@ -205,6 +187,198 @@ TwoPart <- function(data, group, test="quantiles", point.mass=0){
   return(list(pvalue=pvalue,sign_difference=sign_difference,effectSize=effectSize))
 }
 
+run <-function(directory,filenames,paired,ITER) {
+  
+  
+  #PLOT 
+  for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) { #c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")
+    print(i)
+    for (file in filenames) {
+      print(file)
+      tryCatch({
+        #load motif windows
+        
+        data <- read.table(
+          file,
+          header = F,
+          col.names = c("chr", "start", "end", "TOTAL", "MISMATCHES", "INSERTION", "DELETION"),
+          fill = TRUE
+        )
+        
+        values <- as.numeric(as.vector(data[[i]]))
+        #values <- na.omit(values)
+        print(mean(values,na.rm=TRUE))
+        
+        
+        
+        if (length(values) >= 100) {
+          #we are only interested in sufficiently populated motifs
+          #populate hashes
+          tmp_data <- get(i)
+          tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = values
+          assign(i, tmp_data)
+          
+          #hist(
+          #  values,
+          #  col = "gold",
+          #  xlab = "% error",
+          #  main = gsub(".txt", "", gsub(
+          #    "ERRORS", "", gsub("10000.", "", gsub(".mf", "", file))
+          #  )),
+          #  xlim = c(0, 5),
+          #  sub = paste(
+          #    "n=",
+          #    length(values),
+          #    " errorRate=",
+          #    round(mean(values), 4),
+          #    sep =
+          #      ""
+          #  )
+          #)
+          
+          #load empty windows
+          emptyFile <- gsub(".mf", ".mfEmptyTmp", file)
+          emptyFile <- gsub("merged_","",emptyFile)
+          
+          if (file.exists(emptyFile)) {
+            print(paste("empty file exists, will use matching file",emptyFile))
+            
+            #individial empty files
+            
+            dataEmpty <-
+              
+              read.table(
+                emptyFile,
+                header = F,
+                col.names = c("chr", "start", "end", "TOTAL", "MISMATCHES", "INSERTION", "DELETION"),
+                fill = TRUE
+              )
+            
+            valuesEmpty <-
+              as.numeric(as.character(as.vector(dataEmpty[[i]])))
+            #valuesEmpty <-na.omit(valuesEmpty)
+            print(mean(valuesEmpty,na.rm=TRUE))
+            
+            #populate hash with matching controls  
+            tmp_dataEmpty <- get(paste0(i,"controls"))
+            tmp_dataEmpty[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = valuesEmpty
+            assign(paste0(i,"controls"), tmp_dataEmpty)
+            
+            }
+            
+          } else {
+            emptyFile<-"Controls.mf"
+            print(paste("empty file DOES NOT exist, will use DEFAULT control file: ",emptyFile))
+            dataEmpty <-
+              
+              read.table(
+                emptyFile,
+                header = F,
+                col.names = c("chr", "start", "end", "TOTAL", "MISMATCHES", "INSERTION", "DELETION"),
+                fill = TRUE
+              )
+            
+            valuesEmpty <-
+              as.numeric(as.character(as.vector(dataEmpty[[i]])))
+            #valuesEmpty <-na.omit(valuesEmpty)
+            print(mean(valuesEmpty,na.rm=TRUE))
+            
+            #populate hash with matching controls  
+            tmp_dataEmpty <- get(paste0(i,"controls"))
+            tmp_dataEmpty[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = valuesEmpty
+            assign(paste0(i,"controls"), tmp_dataEmpty)
+            
+          }
+          
+          print(paste("paired status: ",paired))
+          
+          if (paired==TRUE) {
+            
+            #PAIRED DATA
+            df<-as.data.frame(cbind(valuesEmpty,values))
+            missing<-which(is.na(df$values) | is.na(df$valuesEmpty))
+            filled<-!(1:(length(values)) %in% missing)
+            result=getPvalue(values[filled], valuesEmpty[filled],file,i,ITER,paired=TRUE) 
+            print(paste("control sample size without NA: ", length(na.omit(valuesEmpty[filled])),"feature sample size without NA:",length(na.omit(values[filled]))))
+            print("validate that controls and features have matching lengths")
+              #VALIDATE THAT CONTROLS AND FEATURES HAVE MATCHING LENGTHS
+            comparison<-testCoordinates(data[filled,],dataEmpty[filled,])
+              if (grepl("difference", as.character(comparison))==TRUE) {
+                print("Features and controls have unequal feature lengths. ERROR.")
+                warning("Features and controls have unequal feature lengths. ERROR.")
+          } else {
+            
+            #SINGLE CONTROL
+            result=getPvalue(na.omit(values), na.omit(valuesEmpty), file,i,ITER,paired=FALSE) #should be TRUE for paired test when using features of variable length
+            print(paste("control sample size without NA: ", length(na.omit(valuesEmpty)),"feature sample size without NA:",length(na.omit(values))))
+          }
+          
+          
+          
+          #
+          pv <- as.numeric(result$pvalue)
+          sign_difference <- result$sign_difference
+          effect_size <- result$effectSize
+          
+          tmp_data <- get(paste0(i,"pvalue"))
+          tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = round(pv, 4) #save pvalue and plot
+          assign(paste0(i,"pvalue"), tmp_data)
+          
+          tmp_data <- get(paste0(i,"sign"))
+          tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = sign_difference #save sign
+          assign(paste0(i,"sign"), tmp_data)
+          
+          tmp_data <- get(paste0(i,"effectSize"))
+          tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = effect_size #save effect size
+          assign(paste0(i,"effectSize"), tmp_data)
+          
+        } else {
+          print("Too small sample size.")
+        }
+      },
+      error = function(err) {
+        print(file)
+        # error handler picks up where error was generated
+        print(paste("Read.table didn't work!:  ", err))
+        warning(print(paste("Read.table didn't work!:  ", err)))
+      })
+    }
+  }
+  save.image(file=basename(getwd()))
+  
+  
+  #OUTPUT TABLES
+  print("PRINT TABLES-------------")
+  names<-names(TOTALpvalue)
+  par(mfrow = c(1, 1), cex = 1.4)
+  directory<-paste0(getwd(),"/")
+  variables<-basename(getwd())
+  
+  for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) {
+    #c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")
+    
+    print(i)
+    
+    significance <- as.numeric(values(get(paste0(i, "pvalue")))[names])
+    signs <- as.numeric(values(get(paste0(i, "sign")))[names])
+    effectSize <-
+      as.numeric(values(get(paste0(i, "effectSize")))[names])
+    
+    nonzeros <- unlist(values(get(paste0(i, "nonzeros"))))
+    nonzeros_differences <-
+      as.numeric(nonzeros[seq(1, length(nonzeros), 2)]) - as.numeric(nonzeros[seq(2, length(nonzeros), 2)])
+    
+    results <-
+      paste(significance, effectSize, nonzeros_differences, sep = " ")
+    summary <-
+      as.data.frame(as.matrix(rbind(names, results), optional = TRUE))
+    fn<-paste0(directory,basename(variables),"_",i,".txt")
+    print(fn)
+    write.table(summary,fn,sep="\t",row.names=FALSE,col.names = FALSE,append=FALSE, quote=FALSE)
+    
+  }
+}
+
 TOTAL <- hash()
 INSERTION <- hash()
 DELETION <- hash()
@@ -235,182 +409,30 @@ INSERTIONeffectSize <- hash()
 DELETIONeffectSize <- hash()
 MISMATCHESeffectSize <- hash()
 
-#PLOT 
-for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) { #c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")
-  print(i)
-  for (file in filenames) {
-    print(file)
-    tryCatch({
-      #load motif windows
-      
-      data <- read.table(
-        file,
-        header = F,
-        col.names = c("chr", "start", "end", "TOTAL", "MISMATCHES", "INSERTION", "DELETION"),
-        fill = TRUE
-      )
-      
-      values <- as.numeric(as.vector(data[[i]]))
-      #values <- na.omit(values)
-      print(mean(values,na.rm=TRUE))
-      
-      
-      
-      if (length(values) >= 100) {
-        #we are only interested in sufficiently populated motifs
-        #populate hashes
-        tmp_data <- get(i)
-        tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = values
-        assign(i, tmp_data)
+set.seed(3)
+directory <-"/Users/alice/Desktop/projects/kinetics/errors_will/may17/features/diversity/"
+setwd(directory)
 
-        #hist(
-        #  values,
-        #  col = "gold",
-        #  xlab = "% error",
-        #  main = gsub(".txt", "", gsub(
-        #    "ERRORS", "", gsub("10000.", "", gsub(".mf", "", file))
-        #  )),
-        #  xlim = c(0, 5),
-        #  sub = paste(
-        #    "n=",
-        #    length(values),
-        #    " errorRate=",
-        #    round(mean(values), 4),
-        #    sep =
-        #      ""
-        #  )
-        #)
-        
-        #load empty windows
-        emptyFile <- gsub(".mf", ".mfEmptyTmp", file)
-        emptyFile <- gsub("merged_","",emptyFile)
-        
-        if (file.exists(emptyFile)) {
-          print(paste("empty file exists, will use matching file",emptyFile))
-          
-          #individial empty files
-          
-          dataEmpty <-
-            
-            read.table(
-              emptyFile,
-              header = F,
-              col.names = c("chr", "start", "end", "TOTAL", "MISMATCHES", "INSERTION", "DELETION"),
-              fill = TRUE
-            )
-          
-          valuesEmpty <-
-            as.numeric(as.character(as.vector(dataEmpty[[i]])))
-          #valuesEmpty <-na.omit(valuesEmpty)
-          print(mean(valuesEmpty,na.rm=TRUE))
-          
-          #populate hash with matching controls  
-          tmp_dataEmpty <- get(paste0(i,"controls"))
-          tmp_dataEmpty[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = valuesEmpty
-          assign(paste0(i,"controls"), tmp_dataEmpty)
-          
-          
-          #VALIDATE THAT CONTROLS AND FEATURES HAVE MATCHING LENGTHS
-          if (grepl("difference", as.character(testCoordinates(dataEmpty,data)))==TRUE) {
-            print("Features and controls have unequal feature lengths. ERROR.")
-            warning("Features and controls have unequal feature lengths. ERROR.")
-          }
-          
-        } else {
-          emptyFile<-"Controls.mf"
-          print(paste("empty file DOES NOT exist, will use DEFAULT control file: ",emptyFile))
-          dataEmpty <-
-            
-            read.table(
-              emptyFile,
-              header = F,
-              col.names = c("chr", "start", "end", "TOTAL", "MISMATCHES", "INSERTION", "DELETION"),
-              fill = TRUE
-            )
-          
-          valuesEmpty <-
-            as.numeric(as.character(as.vector(dataEmpty[[i]])))
-          #valuesEmpty <-na.omit(valuesEmpty)
-          print(mean(valuesEmpty,na.rm=TRUE))
-          
-          #populate hash with matching controls  
-          tmp_dataEmpty <- get(paste0(i,"controls"))
-          tmp_dataEmpty[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = valuesEmpty
-          assign(paste0(i,"controls"), tmp_dataEmpty)
-          
-        }
-        
-        #UNCOMMENT THIS CHUNK IF USED ON FEATURES OF VARIABLE LENGTHS
-        #compare to either individual all default file with empty values
-        df<-as.data.frame(cbind(valuesEmpty,values))
-        missing<-which(is.na(df$values) | is.na(df$valuesEmpty))
-        filled<-!(1:(length(values)) %in% missing)
-        result=getPvalue(values[filled], valuesEmpty[filled],file,paired=TRUE)
-        
-        print(paste("control sample size without NA: ", length(na.omit(valuesEmpty)),"feature sample size without NA:",length(na.omit(values))))
-        
-        #result=getPvalue(na.omit(values), na.omit(valuesEmpty), file,paired=FALSE) #should be TRUE for paired test when using features of variable length
-        pv <- as.numeric(result$pvalue)
-        sign_difference <- result$sign_difference
-        effect_size <- result$effectSize
-        
-        tmp_data <- get(paste0(i,"pvalue"))
-        tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = round(pv, 4) #save pvalue and plot
-        assign(paste0(i,"pvalue"), tmp_data)
-        
-        tmp_data <- get(paste0(i,"sign"))
-        tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = sign_difference #save sign
-        assign(paste0(i,"sign"), tmp_data)
-        
-        tmp_data <- get(paste0(i,"effectSize"))
-        tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = effect_size #save effect size
-        assign(paste0(i,"effectSize"), tmp_data)
-        
-      } else {
-        print("Too small sample size.")
-      }
-    },
-    error = function(err) {
-      print(file)
-      # error handler picks up where error was generated
-      print(paste("Read.table didn't work!:  ", err))
-      warning(print(paste("Read.table didn't work!:  ", err)))
-    })
-  }
-}
-save.image(file=basename(getwd()))
+filenames <- list.files(pattern = "*.mf", full.names = FALSE)
+filenames <- filenames[grep("EmptyTmp", filenames,invert=TRUE)]
 
-#OUTPUT TABLES
-names<-names(TOTALpvalue)
-par(mfrow = c(1, 1), cex = 1.4)
-directory<-paste0(getwd(),"/")
-variables<-basename(getwd())
+run(directory,filenames,TRUE,2)
+traceback()
 
-for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) {
-  #c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")
-  
-  print("-------------")
-  print(i)
-  
-  significance <- as.numeric(values(get(paste0(i, "pvalue")))[names])
-  signs <- as.numeric(values(get(paste0(i, "sign")))[names])
-  effectSize <-
-    as.numeric(values(get(paste0(i, "effectSize")))[names])
-  
-  nonzeros <- unlist(values(get(paste0(i, "nonzeros"))))
-  nonzeros_differences <-
-    as.numeric(nonzeros[seq(1, length(nonzeros), 2)]) - as.numeric(nonzeros[seq(2, length(nonzeros), 2)])
-  
-  results <-
-    paste(significance, effectSize, nonzeros_differences, sep = " ")
-  summary <-
-    as.data.frame(as.matrix(rbind(names, results), optional = TRUE))
-  fn<-paste0(directory,basename(variables),"_",i,".txt")
-  print(fn)
-  write.table(summary,fn,sep="\t",row.names=FALSE,col.names = FALSE,append=FALSE, quote=FALSE)
-  
-}
-dev.off()
+#directory <-"/Users/alice/Desktop/projects/kinetics/errors_will/may17/windows/Pacbio/")
+#directory <-"/Users/alice/Desktop/projects/kinetics/errors_will/may17/windows/Illumina/")
+#directory <-"/Users/alice/Desktop/projects/kinetics/errors_will/may17/windows/diversity/")
+#directory <-"/Users/alice/Desktop/projects/kinetics/errors_will/may17/windows/divergence/")
+#directory <-"/Users/alice/Desktop/projects/kinetics/errors_will/may17/windows/TCGA/")
+
+#directory <-"/Users/alice/Desktop/projects/kinetics/errors_will/may17/features/Pacbio/")
+#directory <-"/Users/alice/Desktop/projects/kinetics/errors_will/may17/features/Illumina/")
+#directory <-"/Users/alice/Desktop/projects/kinetics/errors_will/may17/features/diversity/")
+#directory <-"/Users/alice/Desktop/projects/kinetics/errors_will/may17/features/divergence/")
+#directory <-"/Users/alice/Desktop/projects/kinetics/errors_will/may17/features/TCGA/")
+#directory <-"/Users/alice/Desktop/projects/kinetics/errors_will/may17/features/new_TCGA/")
+#directory <-"/Users/alice/Desktop/projects/kinetics/errors_will/may2/0/all/reordered/")
+
 @
 
 
