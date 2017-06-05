@@ -46,11 +46,7 @@ getPvalue <- function(grp.1, grp.2, file, i, ITER, paired) {
   }
 
   print(paste("feature_non_zero: ",feature_non_zero,"; control_non_zero:",control_non_zero))
-  
-  #populate hash with number of non_zeros  
-  tmp_data <- get(paste0(i,"nonzeros"))
-  tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = list(feature_non_zero,control_non_zero) 
-  assign(paste0(i,"nonzeros"), tmp_data)
+  nonZeros_perc <- as.numeric((feature_non_zero-control_non_zero)/control_non_zero)
   
 # Function for calculating two-part statistics
 TwoPart <- function(data, group, test="quantiles", point.mass=0){
@@ -126,7 +122,7 @@ TwoPart <- function(data, group, test="quantiles", point.mass=0){
   }
   X2 <- B2+T2
   statistic=X2
-  return(list(statistic=statistic,difference=difference,difference_perc=difference_perc))
+  return(list(statistic=statistic,difference=difference,difference_perc=difference_perc,nonZeros_perc=nonZeros_perc))
 }
   
   groups <- c(rep(1, length(grp.1)), rep(0, length(grp.2)))
@@ -187,7 +183,7 @@ TwoPart <- function(data, group, test="quantiles", point.mass=0){
   #  )
   #)
   #abline(v = test.diff, col = "black", lwd = 4)
-  return(list(pvalue=pvalue,sign_difference=sign_difference,effectSize=effectSize,effectSize_perc=effectSize_perc))
+  return(list(pvalue=pvalue,sign_difference=sign_difference,effectSize=effectSize,effectSize_perc=effectSize_perc, nonZeros_perc=nonZeros_perc))
 }
 
 run <- function(directory, filenames, paired, ITER) {
@@ -355,6 +351,7 @@ run <- function(directory, filenames, paired, ITER) {
       pv <- as.numeric(result$pvalue)
       sign_difference <- result$sign_difference
       effect_size <- result$effectSize_perc #this uses percentages as opposed to using effectSizeonly
+      nonZeros_perc <- result$nonZeros_perc
       
       tmp_data <- get(paste0(i, "pvalue"))
       tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = round(pv, 4) #save pvalue and plot
@@ -367,6 +364,11 @@ run <- function(directory, filenames, paired, ITER) {
       tmp_data <- get(paste0(i, "effectSize"))
       tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = effect_size #save effect size
       assign(paste0(i, "effectSize"), tmp_data)
+      
+      #populate hash with number of non_zeros  
+      tmp_data <- get(paste0(i,"nonzeros"))
+      tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = nonZeros_perc #difference in non-zero valus in percentages
+      assign(paste0(i,"nonzeros"), tmp_data)
     }
   }
 
@@ -391,20 +393,22 @@ for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) {
   effectSize <-
     as.numeric(values(get(paste0(i, "effectSize")))[names])
   
+  featuresVector<-values(get(paste0(i)))[names]
   meanFeatures <-
-    mean(as.numeric(unlist(values(get(paste0(i))))),na.rm=TRUE)
+    lapply(featuresVector,mean)
+  meanNon0Features<-vapply(featuresVector, function(x) mean(x[x!=0]), numeric(1))
+  
+  controlsVector<-values(get(paste0(i,"controls")))[names]
   meanControls <-
-    mean(as.numeric(unlist(values(get(paste0(i, "controls"))))),na.rm=TRUE)
+    lapply(controlsVector,mean)
+  meanNon0Controls<-vapply(controlsVector, function(x) mean(x[x!=0]), numeric(1))
   
+  print(paste("meanF:",meanFeatures,"meanC:",meanControls,"meanNon0F:",meanNon0Features,"meanNon0C:",meanNon0Controls))
   
-  nonzeros <- unlist(values(get(paste0(i, "nonzeros"))))
-  
-  
-  nonzeros_differences <-
-    as.numeric(nonzeros[seq(1, length(nonzeros), 2)]) - as.numeric(nonzeros[seq(2, length(nonzeros), 2)])
-  
+  nonzeros <- values(get(paste0(i,"nonzeros")))[names]
+
   results <-
-    paste(meanFeatures, meanControls, significance, effectSize, nonzeros_differences, sep = " ")
+    paste(meanFeatures, meanControls, meanNon0Features, meanNon0Controls, significance, effectSize, nonzeros, sep = " ")
   summary <-
     as.data.frame(as.matrix(rbind(names, results), optional = TRUE))
   fn <- paste0(directory, basename(variables), "_", i, ".txt")
