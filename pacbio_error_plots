@@ -21,6 +21,19 @@ testCoordinates<- function(data,dataEmpty) {
 
 getPvalue <- function(grp.1, grp.2, file, i, ITER, paired) {
   
+  print(mean(grp.1))
+  print(mean(grp.2))
+  
+  #populate hashes
+  tmp_data <- get(i)
+  tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = grp.1 #features
+  assign(i, tmp_data)
+      
+  #populate hash with matching controls
+  tmp_dataEmpty <- get(paste0(i, "controls"))
+  tmp_dataEmpty[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = grp.2 #controls
+  assign(paste0(i, "controls"), tmp_dataEmpty)
+  
   feature_non_zero<-round((length(grp.1)-(table(grp.1)["0"]))/length(grp.1),digits=4)
   control_non_zero<-round((length(grp.2)-(table(grp.2)["0"]))/length(grp.2),digits=4)
 
@@ -140,13 +153,13 @@ TwoPart <- function(data, group, test="quantiles", point.mass=0){
     }
     #temp=Reduce(cbind,by(data, groups_perm, quantile, probs=c(.05, .25, .5, .75, .95),na.rm=TRUE))
     #temp=sum((temp[,2]-temp[,1])^2)
-    temp=TwoPart(data,groups_perm, test="quantiles")$statistic  ###HERE!!!### "quantiles" or "mean"
+    temp=TwoPart(data,groups_perm, test="mean")$statistic  ###HERE!!!### "quantiles" or "mean"
     return(temp)
   }))
   
   #test.diff <- Reduce(cbind,by(data, groups, quantile, probs=c(.05, .25, .5, .75, .95),na.rm=TRUE))
   #test.diff=sum((test.diff[,2]-test.diff[,1])^2)
-  two.part=TwoPart(data,groups, test="quantiles")   ###HERE!!!### "quantiles" or "mean"
+  two.part=TwoPart(data,groups, test="mean")   ###HERE!!!### "quantiles" or "mean"
   test.diff=two.part$statistic
   sign_difference=sign(two.part$difference)
   effectSize=two.part$difference
@@ -203,12 +216,7 @@ run <- function(directory, filenames, paired, ITER) {
       
       values <- as.numeric(as.vector(data[[i]]))
       #values <- na.omit(values)
-      print(mean(values, na.rm = TRUE))
-      
-      #populate hashes
-      tmp_data <- get(i)
-      tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = values
-      assign(i, tmp_data)
+      #print(mean(values, na.rm = TRUE))
       
       #hist(
       #  values,
@@ -257,12 +265,7 @@ run <- function(directory, filenames, paired, ITER) {
         valuesEmpty <-
           as.numeric(as.character(as.vector(dataEmpty[[i]])))
         #valuesEmpty <-na.omit(valuesEmpty)
-        print(mean(valuesEmpty, na.rm = TRUE))
-        
-        #populate hash with matching controls
-        tmp_dataEmpty <- get(paste0(i, "controls"))
-        tmp_dataEmpty[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = valuesEmpty
-        assign(paste0(i, "controls"), tmp_dataEmpty)
+        #print(mean(valuesEmpty, na.rm = TRUE))
         
         
       } else {
@@ -309,6 +312,7 @@ run <- function(directory, filenames, paired, ITER) {
                            is.na(df$valuesEmpty))
         filled <- !(1:(length(values)) %in% missing)
         result = getPvalue(values[filled], valuesEmpty[filled], file, i, ITER, paired) #should be TRUE for paired test when using features of variable length
+        print(result)
         print(
           paste(
             "control sample size without NA: ",
@@ -350,7 +354,7 @@ run <- function(directory, filenames, paired, ITER) {
       #
       pv <- as.numeric(result$pvalue)
       sign_difference <- result$sign_difference
-      effect_size <- result$effectSize
+      effect_size <- result$effectSize_perc #this uses percentages as opposed to using effectSizeonly
       
       tmp_data <- get(paste0(i, "pvalue"))
       tmp_data[gsub("ERRORS", "", gsub(".mf.txt", "", file))] = round(pv, 4) #save pvalue and plot
@@ -387,12 +391,20 @@ for (i in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) {
   effectSize <-
     as.numeric(values(get(paste0(i, "effectSize")))[names])
   
+  meanFeatures <-
+    mean(as.numeric(unlist(values(get(paste0(i))))),na.rm=TRUE)
+  meanControls <-
+    mean(as.numeric(unlist(values(get(paste0(i, "controls"))))),na.rm=TRUE)
+  
+  
   nonzeros <- unlist(values(get(paste0(i, "nonzeros"))))
+  
+  
   nonzeros_differences <-
     as.numeric(nonzeros[seq(1, length(nonzeros), 2)]) - as.numeric(nonzeros[seq(2, length(nonzeros), 2)])
   
   results <-
-    paste(significance, effectSize, nonzeros_differences, sep = " ")
+    paste(meanFeatures, meanControls, significance, effectSize, nonzeros_differences, sep = " ")
   summary <-
     as.data.frame(as.matrix(rbind(names, results), optional = TRUE))
   fn <- paste0(directory, basename(variables), "_", i, ".txt")
@@ -441,22 +453,22 @@ DELETIONeffectSize <- hash()
 MISMATCHESeffectSize <- hash()
 
 set.seed(3)
-directory <-"/Users/alice/Desktop/projects/kinetics/errors_will/june1/features/illumina"
-setwd(directory)
 
-filenames <- list.files(pattern = "*.mf", full.names = FALSE)
-filenames <- filenames[grep("EmptyTmp", filenames,invert=TRUE)]
-paired<-TRUE
-ITER<-1000
+directories<-c("/Users/alice/Desktop/projects/kinetics/errors_will/june1/features/illumina","/Users/alice/Desktop/projects/kinetics/errors_will/june1/features/pacbio","/Users/alice/Desktop/projects/kinetics/errors_will/june1/features/diversity","/Users/alice/Desktop/projects/kinetics/errors_will/june1/features/divergence","/Users/alice/Desktop/projects/kinetics/errors_will/june1/features/TCGA")
 
-run(directory,filenames,paired,ITER)
-#traceback()
+for (directory in directories) {
+  #directory <-"/Users/alice/Desktop/projects/kinetics/errors_will/june1/features/pacbio"
+  setwd(directory)
+  
+  filenames <- list.files(pattern = "*.mf", full.names = FALSE)
+  filenames <- filenames[grep("EmptyTmp", filenames,invert=TRUE)]
+  paired<-TRUE
+  ITER<-1000
+  
+  run(directory,filenames,paired,ITER)
+  #traceback()
+}
 
-#directory <-"/Users/alice/Desktop/projects/kinetics/errors_will/may17/windows/Pacbio/")
-#directory <-"/Users/alice/Desktop/projects/kinetics/errors_will/may17/windows/Illumina/")
-#directory <-"/Users/alice/Desktop/projects/kinetics/errors_will/may17/windows/diversity/")
-#directory <-"/Users/alice/Desktop/projects/kinetics/errors_will/may17/windows/divergence/")
-#directory <-"/Users/alice/Desktop/projects/kinetics/errors_will/may17/windows/TCGA/")
 
 
 @
