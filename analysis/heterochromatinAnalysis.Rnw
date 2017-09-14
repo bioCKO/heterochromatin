@@ -1,0 +1,122 @@
+<<LOAD LIBRARIES NEEDED and LOAD DATA>>=
+require(dendextend)
+require(reshape)
+require(hexbin)
+require(gplots)
+require(e1071)
+working_directory<-"/Users/alice/Desktop/projects/heterochromatin/refactored/"
+setwd(working_directory)
+load(paste0(working_directory,"abundant.Rda"))
+@
+
+
+<<DATA FORMATTING>>=
+top<-abundant
+colnames(top)<-paste(lapply(strsplit(colnames(top),"\\|"), function(x) paste(x[3],x[2],x[4])))
+unique_col_names <- unique(colnames(top))
+abundantRepeatsVsIndividuals <- sapply(unique_col_names, function(name)
+{
+  subs <- top[, colnames(top) == name]
+  if(is.data.frame(subs))
+    apply(subs,1,mean)
+  else
+    subs
+})
+rownames(abundantRepeatsVsIndividuals)<-top[,1]
+abundantRepeatsVsIndividuals<-abundantRepeatsVsIndividuals[,-1]
+
+#abundantRepeatsVsIndividuals contains REPEATS as ROWS and INDIVIDUALS with full names as columns
+abundantIndividualsVsRepeats<-t(abundantRepeatsVsIndividuals)
+
+sample<-abundantRepeatsVsIndividuals
+sample<-t(sample)
+
+abundantSpeciesVsRepeats<-sample
+l<-rownames(abundantSpeciesVsRepeats)
+l[grepl("Pan_paniscus",l)==TRUE]<-"Bonobo"
+l[grepl("Pan",l)==TRUE]<-"Chimpanzee"
+l[grepl("Gorilla",l)==TRUE]<-"Gorilla"
+l[grepl("Pongo",l)==TRUE]<-"Orangutan"
+l[grepl("Homo",l)==TRUE]<-"Homo"
+
+groupCodes <-l
+rownames(abundantSpeciesVsRepeats)<-groupCodes
+#abundantSpeciesVsRepeats contains SPECIES as ROWS and REPEATS as columns
+@
+
+
+<<FIGURE1>>=
+par(cex=0.5)
+par(mar=c(10,4,4,2))
+binary<-abundantSpeciesVsRepeats
+binary[binary>0]<-1
+binary<-as.data.frame(binary)
+
+binary <- sapply(unique(rownames(binary)), function(name) {
+  subs <- binary[rownames(binary) == name,]
+  if(is.data.frame(subs))
+    colSums(subs)
+  else
+    subs
+})
+
+sample_sizes<-c(19,13,27,10,11)
+binary<-sweep(binary, 2, sample_sizes, `/`)
+mycol<-colorRampPalette(c("beige","red" ), bias=1) 
+heatmap.2(binary,dendrogram="none", Colv=FALSE, trace='none',col=mycol,cexRow=0.1,cexCol=0.75)
+binary<-as.data.frame(binary)
+
+#shared among all species
+dim(binary[binary$Chimpanzee>0 & binary$Bonobo>0 & binary$Gorilla>0 & binary$Orangutan>0 & binary$Homo>0,])
+table(sort(nchar(rownames((binary[binary$Chimpanzee>0 & binary$Bonobo>0 & binary$Gorilla>0 & binary$Orangutan>0 & binary$Homo>0,])))))
+
+#specific to human
+rownames((binary[binary$Chimpanzee==0 & binary$Bonobo==0 & binary$Gorilla==0 & binary$Orangutan==0 & binary$Homo>0,]))
+
+table(rowSums(binary==1))
+@
+
+<<FIGURE2>>=
+par(mfrow=c(2,1))
+library("e1071")
+
+#I think we should maybe first exclude zero counts for each species separately (only there where _all_ individuals have zero counts) and only then calculate variability
+#The results will differ based on whether we only include "red" rows or all of them
+
+uniq_names<-c("Homo_sapiens","Pan_troglodytes_schweinfurthii","Pan_troglodytes_troglodytes","Pan_troglodytes_ellioti","Pan_troglodytes_verus","Pan_paniscus","Gorilla_gorilla_gorilla","Gorilla_beringei_graueri","Pongo_pygmaeus","Pongo_abelii")
+
+#colSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,])!=0
+repVariability<-lapply(uniq_names, function(x) rowMeans(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,colSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,])!=0],na.rm = TRUE))
+sd<-unlist(lapply(repVariability, function(x) round(sd(x),2)))
+min<-unlist(lapply(repVariability, function(x) x[which.min(abs(x))]))
+max<-unlist(lapply(repVariability, function(x) x[which.max(abs(x))]))
+skewness<-unlist(lapply(repVariability, function(x) skewness(x)))
+
+print(cbind(uniq_names,sd,skewness))
+
+myColors<-c(rep("gray30",1),rep("darkgreen",4),rep("dodgerblue",1),rep("firebrick1",2),rep("gold",2))
+
+boxplot(repVariability,names=paste(uniq_names,lengths(repVariability)),las=2,col=myColors,outline=TRUE)
+
+len <- sapply(repVariability,length)
+n <- max( len )
+len <- n - len
+dt<-mapply( function(x,y) c(rep( NA , round(y/2)), x , rep( NA , y-round(y/2)) ) , repVariability , len, SIMPLIFY = TRUE)
+rownames(dt)<-NULL
+colnames(dt)<-uniq_names
+#dt<-as.data.frame(dt)
+dotchart(dt,labels="",gcol=myColors,lcolor=rep(myColors,each=n),xlab="repeat counts per 1 million reads",pch=20,col="gray30",cex=1.2)
+
+
+uniq_names<-c("Homo","Pan_troglodytes","Pan_paniscus","Gorilla","Pongo")
+myColors<-c("gray30","darkgreen","dodgerblue","firebrick1","gold")
+
+repVariabilityBig<-lapply(uniq_names, function(x) rowMeans(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,colSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,])!=0],na.rm = TRUE))
+boxplot(repVariabilityBig,names=paste(uniq_names,lengths(repVariabilityBig)),las=2,col=myColors,outline=TRUE)
+
+@
+
+<<FIGURE3>>=
+
+@
+
