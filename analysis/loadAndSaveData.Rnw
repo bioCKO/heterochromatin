@@ -1,0 +1,188 @@
+
+<<load metadata>>=
+
+#LOAD REQUIRED PACKAGES
+require(data.table)
+require(plyr)
+require(dplyr)
+
+options(scipen=10)
+data_directory<-("/Users/alice/Desktop/projects/heterochromatin/great_ape_diversity/counts/")
+working_directory<-"/Users/alice/Desktop/projects/heterochromatin/refactored/"
+setwd(working_directory)
+
+#CHECK IF FILES EXIST
+checkExistenceOfFile <- function(file) {
+  if (!file.exists(file)) {
+    warning(paste("File",file,"does not exist. ERROR."))
+  }
+}
+
+#list of files that we need to check. Print warning message if non-existent.
+invisible(lapply(c("readC_afterF","readC_afterF_human","full_layout","human_layout","contaminated_individuals","related_individuals","read_lengths"),checkExistenceOfFile))
+
+#LOAD READ COUNTS
+#load read counts after filtering for great apes
+readC_afterF = read.table(("readC_afterF"),header=FALSE) #SRR id followed by read counts after filtering
+#load read counts after filtering for human
+readC_afterF_human = read.table(("readC_afterF_human"),header=FALSE)
+#concatenate counts of great apes with human data
+readC_afterF <- rbind(readC_afterF,readC_afterF_human)
+
+#LOAD METADATA ABOUT SAMPLES
+#Run spots bases LibraryLayout ScientificName SampleName Sex
+layout = read.table("full_layout", header=TRUE, sep = ",")
+layout<-layout[layout$Run %in% readC_afterF$V1,] #keep only those that have successful filtering information
+#Run LibraryLayout ScientificName SampleName Sex
+human_layout = read.table("human_layout", header=TRUE, sep = ",")
+#merge metadata about great apes with metadata about human
+layout<-merge(layout,human_layout,all=TRUE)
+
+#PRINT NUMBER OF DATASETS (NOT INDIVIDUALS) for each species
+#print(table(layout$ScientificName,layout$Sex))
+
+#PRINT SIZE OF DATASET FOR EACH INDIVIDUAL
+#print(aggregate(layout$bases ~ layout$SampleName + layout$Sex, layout$Sex, FUN=mean))
+
+getFileNames <- function(sex=NULL,species=NULL,name=NULL){
+  #print(sex) 
+  #print(species) 
+  #print(name)
+  list <-layout
+  if (!is.null(sex)) {list <-list[list$Sex==sex,]}
+  if (!is.null(species)) {list <-list[list$ScientificName==species,]}
+  if (!is.null(name)) {list <-list[list$SampleName==name,]}
+  filenames<-paste(list$Run,gsub(" ","_", list$ScientificName),gsub(" ","_", list$SampleName),list$Sex,"1.fastq.counts.sortedFilt",sep="|")
+  #print(list)
+  return(filenames) #includes only R1 files
+}
+
+getFilteredReadCounts <- function(files) {
+  SRR_ids<-gsub( "\\|.*$", "", files)
+  merged<-merge(SRR_ids,readC_afterF,by=1)
+  read_counts<-merged[match(SRR_ids,merged$x),]$V2
+  
+  if (!length(SRR_ids)==length(read_counts)) {
+    stop("Discrepancies in the association table.")
+  }
+  
+  return(read_counts)
+}
+
+
+#filters = list(species="Pan paniscus")
+filters = list() #no filters here, however filters could be potentially specified
+
+#GET LIST OF ALL DATASETS AVAILABLE
+files<-do.call(getFileNames, filters)
+
+@
+
+<<create big table with counts for all individuals, this section can be skipped if the tables are already created>>=
+
+#LOAD REPEAT COUNTS FOR ALL DATASETS
+tables <- lapply(files, function(x) read.table(gsub( "\\|", "_", paste0(data_directory,x)), nrows=100, col.names=c("unit", gsub("_1.fastq.counts.sortedFilt", "",x))))
+
+dt_list <- lapply(tables, function(x) {
+  out <- as.data.table(x)
+  setkey(out, "unit")
+  out
+})
+
+#MERGE ALL DATASETS INTO SINGLE TABLE
+mydt <- function(...) merge(..., by="unit", all=T)
+data <- Reduce(mydt, dt_list)
+
+data[is.na(data)] <- 0
+colnames(data)<-c("unit",files)
+data<-as.data.frame(data) #convert to dataframe from data table
+
+#SAVE ALL DATSETS AS SINGLE VARIABLE data.Rda
+save(data,file=paste0(working_directory,"data.Rda"))
+
+rep.row<-function(x,n){
+   matrix(rep(x,each=n),nrow=n) #transforms normalization vector into matrix
+}
+
+normalization_factor=1000000
+normalization_matrix<-rep.row(getFilteredReadCounts(files),dim(data)[1])
+data<-as.data.frame(data) #convert to dataframe from data table
+data[,2:ncol(data)]<-data[2:ncol(data)]/normalization_matrix*normalization_factor #normalization of data by read counts
+
+#SAVE ALL DATSETS AS SINGLE VARIABLE normalizedData.Rda THAT IS NORMALIZED BY READ COUNTS IN EACH DATASET
+save(data,file=paste0(working_directory,"normalizedData.Rda"))
+@
+
+
+
+<<load data from previous section, keep only those datasets/individuals that pass filters>>=
+
+dropLowReadCounts <-function(files,read_count_threshold) {
+  keep<-getFilteredReadCounts(files)>read_count_threshold
+  print(paste("excluding this many files:",as.numeric(table(keep)["FALSE"])))
+  print(paste("returning this many files:",as.numeric(table(keep)["TRUE"])))
+  return(files[keep])
+}
+
+dropShortReads <-function(files,read_length_threshold) { 
+  print(read_length_threshold)
+  SRR_ids_to_exclude<-gsub( "_.*$", "", read_lengths[read_lengths$V2<read_length_threshold,]$V1)
+  print(paste("excluding this many files:",length(SRR_ids_to_exclude)))
+  if (length(SRR_ids_to_exclude)==0) {
+      print(paste("returning this many files:",length(files)))
+      return(files)
+  } else {
+      keep<-!grepl(paste(unlist(SRR_ids_to_exclude),collapse="|"),files)
+      print(paste("returning this many files:",length(files[keep])))
+      return(files[keep])
+  }
+}
+
+dropContaminatedFiles <-function(files) {
+  keep<-!grepl(paste(unlist(contaminated),collapse="|"),files)
+  print(paste("excluding this many files:",as.numeric(table(keep)["FALSE"])))
+  print(paste("returning this many files:",as.numeric(table(keep)["TRUE"])))
+  return(files[keep])
+}
+
+dropFamilyRelatedFiles <-function(files) {
+  keep<-!grepl(paste(unlist(related),collapse="|"),files)
+  print(paste("excluding this many files:",as.numeric(table(keep)["FALSE"])))
+  print(paste("returning this many files:",as.numeric(table(keep)["TRUE"])))
+  return(files[keep])
+}
+
+contaminated = read.table("contaminated_individuals", header=FALSE)
+related = read.table("related_individuals", header=FALSE)
+read_lengths = read.table("read_lengths", header=FALSE)
+read_lengths<-read_lengths[grep("_1.fastq",read_lengths$V1),] #keep only forward reads
+
+#merge with human samples
+read_lengths_human = read.table("read_lengths_human", header=FALSE)
+read_lengths<-rbind(read_lengths,read_lengths_human)
+
+filtered_files<-files
+
+#drop files with too short reads
+filtered_files<-dropShortReads(filtered_files,52) #exclude everything shorter than a given threshold
+
+#drop files with very low read counts
+filtered_files<-dropLowReadCounts(filtered_files,20000000) #threshold representing minimal number of reads for sample to be taken into consideration
+
+#drop contaminated individuals
+#filtered_files<-dropContaminatedFiles(filtered_files)
+
+#drop related individuals that could bias heterochromatin abundance counts
+filtered_files<-dropFamilyRelatedFiles(filtered_files)
+
+#load data
+load(paste0(working_directory,"normalizedData.Rda"))
+
+#apply_filters
+abundant<-data[,c("unit",filtered_files)]
+
+#sort by abundance
+abundant<-arrange(abundant,desc(rowSums(abundant[,2:ncol(abundant)])))
+save(abundant,file=paste0(working_directory,"abundant.Rda"))
+
+@
