@@ -117,6 +117,22 @@ boxplot(repVariabilityBig,names=paste(uniq_names,lengths(repVariabilityBig)),las
 @
 
 <<FIGURE3>>=
+par(mfrow=c(1,5),cex=1.01)
+myList<-c("Homo","Bonobo","Chimpanzee","Gorilla","Orangutan")
 
+for (ape in myList) {
+  print(ape)
+  subset<-abundantSpeciesVsRepeats[grepl(ape,rownames(abundantSpeciesVsRepeats))==TRUE,]
+  print(dim(subset))
+  reordered<-subset[,order(colSums(-subset,na.rm=TRUE))]
+  
+  #use only unit length as a label for repeats with long units
+  rnames <- colnames(reordered)
+  rnames[nchar(rnames) > 5] <-
+    paste0(nchar(colnames(reordered)), "mer")[nchar(rnames) > 5]
+  colnames(reordered) <- rnames
+  
+  boxplot(reordered[,1:12],col="gold",las=2,main=paste(ape,"most abundant"))
+}
 @
 
