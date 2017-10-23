@@ -1,0 +1,76 @@
+\documentclass{article}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+<<PCR>>=
+par(mfrow=c(2,2))
+require(data.table)
+require(hexbin)
+require(ggplot2)
+read_and_normalize <-function(input_file) {
+  input<-read.table(input_file,col.names=c("unit","count"))
+  #input$count<-input$count/sum(input$count)*1000000
+  name<-basename(input_file)
+  colnames(input)<-c("unit",name)
+  return(as.data.frame(input))
+}
+
+PCRplus1 <- read_and_normalize("/Users/alice/Desktop/projects/heterochromatin/PCR/9-24-2013_BO_R1.fastq.dat_output.txt.counts.sortedFilt75")
+PCRplus2 <- read_and_normalize("/Users/alice/Desktop/projects/heterochromatin/PCR/6-6-2013_BO_R1.fastq.dat_output.txt.counts.sortedFilt75")
+PCRminus <- read_and_normalize("/Users/alice/Desktop/projects/heterochromatin/PCR/1-13-2014_TBO51_R1.fastq.dat_output.txt.counts.sortedFilt75")
+
+BO_readC1<-94110593
+BO_readC2<-3587652
+TBO_51<-28278372
+
+#LOAD REPEAT COUNTS FOR ALL DATASETS
+filenames<-c("plus1","plus2","minus")
+files<-list(PCRplus1,PCRplus2,PCRminus)
+
+dt_list <- lapply(files, function(x) {
+  out <- as.data.table(x)
+  setkey(out, "unit")
+  out
+})
+
+#MERGE ALL DATASETS INTO SINGLE TABLE
+mydt <- function(...) merge(..., by="unit", all=T,suffixes=filenames)
+data <- Reduce(mydt, dt_list)
+
+data[is.na(data)] <- 0
+colnames(data)<-c("unit",filenames)
+data$ulength<-nchar(as.character(data$unit))
+data<-as.data.frame(data) #convert to dataframe from data table
+
+#normalize by read count
+data$plus1<-log(data$plus1/BO_readC1*1000000+0.01)
+data$plus2<-log(data$plus2/BO_readC2*1000000+0.01)
+data$minus<-log(data$minus/TBO_51*1000000+0.01)
+
+data<-data[order(rowSums(data[,2:(ncol(data)-1)]),decreasing=T),]
+data<-head(data,n=1000)
+
+apply(data[,2:4],2,sum)
+
+plot(subset[,2:4],main="1000 most abundant repeats")
+hexplom(subset[,2:4],main="1000 most abundant repeats",xlim=c(-10,10),ylim=c(-10,10))
+
+plot(subset$plus1,subset$plus2)
+plot(subset$plus1,subset$minus)
+plot(subset$plus1,subset$minus)
+
+hist(subset$plus-subset$minus,breaks=50,col="gold")
+abline(v=0,col="red",lw=3)
+cor(head(data[,2:(ncol(data)-1)],n=100))
+
+dist<-as.dist(1-cor((head(data[,2:(ncol(data)-1)],n=100)),method="spearman")) #distance based on correlation
+hcSingle <- hclust(dist,method="single") 
+dendSingle <- as.dendrogram(hcSingle)
+plot(dendSingle, main = "Clustering using linkage function 'single'",cex=0.3)
+
+
+@
+
+
+\end{document}
