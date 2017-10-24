@@ -4,7 +4,7 @@
 \SweaveOpts{concordance=TRUE}
 
 <<PCR>>=
-par(mfrow=c(2,2))
+par(mfrow=c(3,3))
 require(data.table)
 require(hexbin)
 require(ggplot2)
@@ -44,33 +44,71 @@ data$ulength<-nchar(as.character(data$unit))
 data<-as.data.frame(data) #convert to dataframe from data table
 
 #normalize by read count
-data$plus1<-log(data$plus1/BO_readC1*1000000+0.01)
-data$plus2<-log(data$plus2/BO_readC2*1000000+0.01)
-data$minus<-log(data$minus/TBO_51*1000000+0.01)
+data$plus1<-data$plus1/BO_readC1*1000000
+data$plus2<-data$plus2/BO_readC2*1000000
+data$minus<-data$minus/TBO_51*1000000
 
 data<-data[order(rowSums(data[,2:(ncol(data)-1)]),decreasing=T),]
 data<-head(data,n=1000)
+subset<-scale(data[,2:4],center=FALSE,scale=FALSE)
+subset<-subset[rowSums(subset)>(log(100)),] #keep only rows where all three libraries have at least 100 reads total
+subset<-as.data.frame(subset)
 
-apply(data[,2:4],2,sum)
+apply(subset,2,sum)
 
-plot(subset[,2:4],main="1000 most abundant repeats")
-hexplom(subset[,2:4],main="1000 most abundant repeats",xlim=c(-10,10),ylim=c(-10,10))
+hexplom(subset,main="1000 most abundant repeats",xlim=c(-10,10),ylim=c(-10,10))
 
-plot(subset$plus1,subset$plus2)
-plot(subset$plus1,subset$minus)
-plot(subset$plus1,subset$minus)
+plot(apply(subset,1,sd))
 
-hist(subset$plus-subset$minus,breaks=50,col="gold")
+hist(subset$plus1-subset$minus,breaks=10,col="gold")
 abline(v=0,col="red",lw=3)
-cor(head(data[,2:(ncol(data)-1)],n=100))
+hist(subset$plus2-subset$minus,breaks=10,col="gold")
+abline(v=0,col="red",lw=3)
+cor(subset,method="spearman")
 
-dist<-as.dist(1-cor((head(data[,2:(ncol(data)-1)],n=100)),method="spearman")) #distance based on correlation
+dist<-as.dist(1-cor(subset,method="spearman")) #distance based on correlation
 hcSingle <- hclust(dist,method="single") 
 dendSingle <- as.dendrogram(hcSingle)
 plot(dendSingle, main = "Clustering using linkage function 'single'",cex=0.3)
 
+plot(subset$plus1,subset$plus2)
+abline(a=c(0,0),b=(1),col="red")
+plot(subset$plus1,subset$minus)
+abline(a=c(0,0),b=(1),col="red")
+plot(subset$plus2,subset$minus)
+abline(a=c(0,0),b=(1),col="red")
 
+hist(resid(lm(subset$plus2-subset$plus1 ~ 0)),col="pink",breaks=50)
+boxplot(resid(lm(subset$plus2-subset$plus1 ~ 0)))
+summary(resid(lm(subset$plus2-subset$plus1 ~ 0)))
+
+hist(resid(lm(subset$plus1-subset$minus ~ 0)),col="pink",breaks=50)
+boxplot(resid(lm(subset$plus1-subset$minus ~ 0)))
+summary(resid(lm(subset$plus1-subset$minus ~ 0)))
+
+hist(resid(lm(subset$plus2-subset$minus ~ 0)),col="pink",breaks=50)
+boxplot(resid(lm(subset$plus2-subset$minus ~ 0)))
+summary(resid(lm(subset$plus2-subset$minus ~ 0)))
 @
 
+<<>>=
+par(pty="s")
+x=runif(100, 0, 100)
+    y=runif (100, 0, 100)
+    df=cbind (x,y)
+    df=as.data.frame(df)
+plot (y~x, data=df, pch=16)
+lm1<-lm(y~x, data=df)
+line (lm1)
+abline(0,1, col="red")
+#get residulas for the linear model 
+y.resid= resid (lm1)
+a=1;b=-1;c=0
+xi = (b*(b*x-a*y)-a*c) / (a^2+b^2)
+yi = (a*(-b*x+a*y)-b*c) / (a^2+b^2)
+segments(x,y,xi,yi,col="blue")
+yr = abs(a*x+b*y+c)/sqrt(a^2+b^2)
+hist(abs(yr))
+@
 
 \end{document}
