@@ -7,7 +7,8 @@ require(plyr)
 require(dplyr)
 
 options(scipen=10)
-data_directory<-("/Users/alice/Desktop/projects/heterochromatin/great_ape_diversity/counts/")
+#data_directory<-"/Users/alice/Desktop/projects/heterochromatin/great_ape_diversity/counts/"
+data_directory<-"/Users/alice/Desktop/projects/heterochromatin/great_ape_diversity/counts75/"
 working_directory<-"/Users/alice/Desktop/projects/heterochromatin/refactored/"
 setwd(working_directory)
 
@@ -33,6 +34,9 @@ readC_afterF <- rbind(readC_afterF,readC_afterF_human)
 #Run spots bases LibraryLayout ScientificName SampleName Sex
 layout = read.table("full_layout", header=TRUE, sep = ",")
 layout<-layout[layout$Run %in% readC_afterF$V1,] #keep only those that have successful filtering information
+
+
+
 #Run LibraryLayout ScientificName SampleName Sex
 human_layout = read.table("human_layout", header=TRUE, sep = ",")
 #merge metadata about great apes with metadata about human
@@ -76,6 +80,13 @@ filters = list() #no filters here, however filters could be potentially specifie
 #GET LIST OF ALL DATASETS AVAILABLE
 files<-do.call(getFileNames, filters)
 
+# get the size for each file
+sizes <- file.info(list.files(data_directory,full.names=TRUE))
+
+# subset the files that have non-zero size
+list.of.non.empty.files <- basename(rownames(sizes[sizes$size>0,]))
+
+files<-files[gsub("\\|","_",files) %in% list.of.non.empty.files] #keep only non-empty files
 @
 
 <<create big table with counts for all individuals, this section can be skipped if the tables are already created>>=
@@ -84,14 +95,28 @@ files<-do.call(getFileNames, filters)
 tables <- lapply(files, function(x) read.table(gsub( "\\|", "_", paste0(data_directory,x)), nrows=100, col.names=c("unit", gsub("_1.fastq.counts.sortedFilt", "",x))))
 
 dt_list <- lapply(tables, function(x) {
-  out <- as.data.table(x)
-  setkey(out, "unit")
+  out <- as.data.frame(x)
+  #setkey(out, "unit")
   out
 })
 
+merged.data.frame = Reduce(function(...) merge(..., all=T), dt_list)
+
+library(dplyr)
+
+dt_list %>%
+    Reduce(function(dtf1,dtf2) full_join(dtf1,dtf2,by="unit"), .)
+
 #MERGE ALL DATASETS INTO SINGLE TABLE
-mydt <- function(...) merge(..., by="unit", all=T)
+mydt <- function(...) base::merge(..., by="unit", all=TRUE) #View(base::merge(dt_list[1],dt_list[221],by="unit", all=TRUE))
 data <- Reduce(mydt, dt_list)
+data[data$unit=="C",c(1,221)]
+
+Reduce(function(dtf1, dtf2) merge(dtf1, dtf2, by = "unit", all = TRUE),dt_list)
+
+@
+
+<<>>=
 
 data[is.na(data)] <- 0
 colnames(data)<-c("unit",files)
@@ -113,6 +138,12 @@ data[,2:ncol(data)]<-data[2:ncol(data)]/normalization_matrix*normalization_facto
 save(data,file=paste0(working_directory,"normalizedData.Rda"))
 @
 
+<<>>=
+for(i in seq(from=1, to=370, by=1)){
+  print(i)
+  print(table(as.data.frame(tables[i])$unit=="C"))
+}
+@
 
 
 <<load data from previous section, keep only those datasets/individuals that pass filters>>=
@@ -174,7 +205,33 @@ filtered_files<-dropLowReadCounts(filtered_files,20000000) #threshold representi
 
 #drop related individuals that could bias heterochromatin abundance counts
 filtered_files<-dropFamilyRelatedFiles(filtered_files)
+@
 
+<<BASH LOADED TABLE NORMALIZATION AND RESTRICTION TO FILTERED FILES>>=
+d<-read.table("/Users/alice/Desktop/projects/heterochromatin/great_ape_diversity/counts75/threshold100/sort/big.table.with.header.txt",sep=" ",header=TRUE,row.names=1,na.strings=NA,fill=TRUE)
+d<-as.data.frame(d) #convert to dataframe
+d[is.na(d)] <- 0
+
+columns_to_select<-gsub( "\\|", "_",filtered_files)
+data<-d[order(-rowSums(d)),columns_to_select] 
+#View(d)
+
+rep.row<-function(x,n){
+   matrix(rep(x,each=n),nrow=n) #transforms normalization vector into matrix
+}
+
+normalization_factor=1000000
+normalization_matrix<-rep.row(getFilteredReadCounts(filtered_files),dim(data)[1])
+data<-as.data.frame(data) #convert to dataframe from data table
+data[,2:ncol(data)]<-data[2:ncol(data)]/normalization_matrix*normalization_factor #normalization of data by read counts
+
+abundant<-data[,columns_to_select]
+#abundant<-head(abundant,10000)
+@
+
+
+
+<<>>=
 #load data
 load(paste0(working_directory,"normalizedData.Rda"))
 
