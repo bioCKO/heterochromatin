@@ -20,7 +20,7 @@ checkExistenceOfFile <- function(file) {
 }
 
 #list of files that we need to check. Print warning message if non-existent.
-invisible(lapply(c("readC_afterF","readC_afterF_human","full_layout","human_layout","contaminated_individuals","related_individuals","read_lengths"),checkExistenceOfFile))
+invisible(lapply(c("readC_afterF","readC_afterF_human","full_layout","human_layout","contaminated_individuals","related_individuals","read_lengths","read_lengths_human"),checkExistenceOfFile))
 
 #LOAD READ COUNTS
 #load read counts after filtering for great apes
@@ -87,62 +87,6 @@ sizes <- file.info(list.files(data_directory,full.names=TRUE))
 list.of.non.empty.files <- basename(rownames(sizes[sizes$size>0,]))
 
 files<-files[gsub("\\|","_",files) %in% list.of.non.empty.files] #keep only non-empty files
-@
-
-<<create big table with counts for all individuals, this section can be skipped if the tables are already created>>=
-
-#LOAD REPEAT COUNTS FOR ALL DATASETS
-tables <- lapply(files, function(x) read.table(gsub( "\\|", "_", paste0(data_directory,x)), nrows=100, col.names=c("unit", gsub("_1.fastq.counts.sortedFilt", "",x))))
-
-dt_list <- lapply(tables, function(x) {
-  out <- as.data.frame(x)
-  #setkey(out, "unit")
-  out
-})
-
-merged.data.frame = Reduce(function(...) merge(..., all=T), dt_list)
-
-library(dplyr)
-
-dt_list %>%
-    Reduce(function(dtf1,dtf2) full_join(dtf1,dtf2,by="unit"), .)
-
-#MERGE ALL DATASETS INTO SINGLE TABLE
-mydt <- function(...) base::merge(..., by="unit", all=TRUE) #View(base::merge(dt_list[1],dt_list[221],by="unit", all=TRUE))
-data <- Reduce(mydt, dt_list)
-data[data$unit=="C",c(1,221)]
-
-Reduce(function(dtf1, dtf2) merge(dtf1, dtf2, by = "unit", all = TRUE),dt_list)
-
-@
-
-<<>>=
-
-data[is.na(data)] <- 0
-colnames(data)<-c("unit",files)
-data<-as.data.frame(data) #convert to dataframe from data table
-
-#SAVE ALL DATSETS AS SINGLE VARIABLE data.Rda
-save(data,file=paste0(working_directory,"data.Rda"))
-
-rep.row<-function(x,n){
-   matrix(rep(x,each=n),nrow=n) #transforms normalization vector into matrix
-}
-
-normalization_factor=1000000
-normalization_matrix<-rep.row(getFilteredReadCounts(files),dim(data)[1])
-data<-as.data.frame(data) #convert to dataframe from data table
-data[,2:ncol(data)]<-data[2:ncol(data)]/normalization_matrix*normalization_factor #normalization of data by read counts
-
-#SAVE ALL DATSETS AS SINGLE VARIABLE normalizedData.Rda THAT IS NORMALIZED BY READ COUNTS IN EACH DATASET
-save(data,file=paste0(working_directory,"normalizedData.Rda"))
-@
-
-<<>>=
-for(i in seq(from=1, to=370, by=1)){
-  print(i)
-  print(table(as.data.frame(tables[i])$unit=="C"))
-}
 @
 
 
@@ -225,21 +169,19 @@ normalization_matrix<-rep.row(getFilteredReadCounts(filtered_files),dim(data)[1]
 data<-as.data.frame(data) #convert to dataframe from data table
 data[,2:ncol(data)]<-data[2:ncol(data)]/normalization_matrix*normalization_factor #normalization of data by read counts
 
-abundant<-data[,columns_to_select]
-#abundant<-head(abundant,10000)
+abundant<-data[,columns_to_select] #RESTRICT ONLY TO FILTERED FILES
+abundant<-abundant[order(rowSums(abundant),decreasing=T),]
+threshold<-15 #the cummulative repeat count per million reads needs to be at least 5
+abundant<-abundant[rowSums(abundant)>(threshold),] #keep only rows where all three libraries have at least threshold abundance total
+
+abundant<-abundant[nchar(as.character(rownames(abundant)))<=50,] #remove handful of repeat motifs with unit sizes over 50
+abundant<-as.data.frame(abundant)
+
+vector_of_unit_lengths<-nchar(as.character(rownames(abundant)))
+abundant<-sweep(abundant,MARGIN=1,STATS=vector_of_unit_lengths,FUN="*")  #NOW CALCULATE REPEAT DENSITYL multiply by unit length
+abundant<-abundant[order(rowSums(abundant),decreasing=T),]
+View(abundant)
+print(dim(abundant))
+plot(table(nchar(as.character(rownames(abundant)))),ylab="number of distinct repeat motifs",xlab="unit size")
 @
 
-
-
-<<>>=
-#load data
-load(paste0(working_directory,"normalizedData.Rda"))
-
-#apply_filters
-abundant<-data[,c("unit",filtered_files)]
-
-#sort by abundance
-abundant<-arrange(abundant,desc(rowSums(abundant[,2:ncol(abundant)])))
-save(abundant,file=paste0(working_directory,"abundant.Rda"))
-
-@
