@@ -93,21 +93,43 @@ files<-files[gsub("\\|","_",files) %in% list.of.non.empty.files] #keep only non-
 <<load data from previous section, keep only those datasets/individuals that pass filters>>=
 
 dropLowReadCounts <-function(files,read_count_threshold) {
+  if (!length(getFilteredReadCounts(files))==length(files)) {
+    stop("Discrepancies in the read length association.")
+  }
+  
   keep<-getFilteredReadCounts(files)>read_count_threshold
   print(paste("excluding this many files:",as.numeric(table(keep)["FALSE"])))
   print(paste("returning this many files:",as.numeric(table(keep)["TRUE"])))
   return(files[keep])
+  
+  
 }
 
 dropShortReads <-function(files,read_length_threshold) { 
+  SRR_ids<-gsub( "\\|", "_", gsub(".fastq.*",".fastq",files))
+  merged<-merge(SRR_ids,read_lengths,by=1)
+  colnames(merged)<-c("file","read_length")
+  read_lens<-merged[match(SRR_ids,merged$file),]$read_length
+  
+  if (!length(files)==length(read_lens)) {
+    stop("Discrepancies in the read length association.")
+  }
+  
+  if (any(is.na(read_lens))) {
+    stop("Discrepancies in the read length association.")
+  }
+  
   print(read_length_threshold)
-  SRR_ids_to_exclude<-gsub( "_.*$", "", read_lengths[read_lengths$V2<read_length_threshold,]$V1)
+  SRR_ids_to_exclude<-read_lengths[read_lengths$read_length<read_length_threshold,]$file
+  SRR_ids_to_keep<-read_lengths[read_lengths$read_length>=read_length_threshold,]$file
+  
   print(paste("excluding this many files:",length(SRR_ids_to_exclude)))
   if (length(SRR_ids_to_exclude)==0) {
       print(paste("returning this many files:",length(files)))
       return(files)
   } else {
-      keep<-!grepl(paste(unlist(SRR_ids_to_exclude),collapse="|"),files)
+      keep_prep<-paste0(SRR_ids_to_keep,".counts.sortedFilt")
+      keep<-gsub("\\|","_",files) %in% keep_prep
       print(paste("returning this many files:",length(files[keep])))
       return(files[keep])
   }
@@ -135,6 +157,8 @@ read_lengths<-read_lengths[grep("_1.fastq",read_lengths$V1),] #keep only forward
 #merge with human samples
 read_lengths_human = read.table("read_lengths_human", header=FALSE)
 read_lengths<-rbind(read_lengths,read_lengths_human)
+read_lengths<-as.data.frame(read_lengths)
+colnames(read_lengths)<-c("file","read_length")
 
 filtered_files<-files
 
