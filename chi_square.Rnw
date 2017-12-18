@@ -1,0 +1,69 @@
+\documentclass{article}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+<<>>=
+tulip <- c(81, 50, 27)
+flower <- as.data.frame(cbind(c(81, 50, 5),c(81, 50, 5)))
+expected <- as.data.frame(cbind(c(1/6, 1/6, 1/6),c(1/6, 1/6, 1/6)))
+
+
+chisq.test(flower, expected)
+
+chisq.test(tulip, p = c(1/3, 1/3, 1/3))
+#res
+
+TeaTasting <-
+matrix(c(3, 1, 1, 3),
+       nrow = 2,
+       dimnames = list(Guess = c("Milk", "Tea"),
+                       Truth = c("Milk", "Tea")))
+fisher.test(TeaTasting, alternative = "greater")
+
+Job <- matrix(c(1,2,1,0, 3,3,6,1, 10,10,14,9, 6,7,12,11), 4, 4,
+dimnames = list(income = c("< 15k", "15-25k", "25-40k", "> 40k"),
+                satisfaction = c("VeryD", "LittleD", "ModerateS", "VeryS")))
+fisher.test(Job)
+fisher.test(Job, simulate.p.value = TRUE, B = 1e5)
+@
+
+<<>>=
+library(pwr)
+
+constant<-11
+
+assessSignificance <- function(case){ 
+  print(case)
+  df<-(dim(case)[1]-1)
+  sample_size<-sum(case)/constant
+  alpha<-pwr.chisq.test(w=0.3,df=df,N=sample_size,power=0.8,sig.level=NULL)$sig.level
+  pvalue<-chisq.test(case)$p.value
+  print(paste("alpha:",alpha,"pvalue:",pvalue,"df:",df,"sample_size:",sample_size))
+  if (pvalue<=alpha) {
+    print("Reject null, our positions are biased.")
+  } else {
+    print("All positions have equal number of errors.")
+  }
+}
+
+case1<-as.data.frame(cbind(c(1198,981,1339,1176,1165),c(202,419,61,224,235)))
+case2<-as.data.frame(cbind(c(115,117,110,117,116),c(25,22,30,22,23)))
+case3<-as.data.frame(cbind(c(1150,1170,1100,1170,1160),c(250,220,300,220,230)))
+colnames(case1)<-c("M","E")
+colnames(case2)<-c("M","E")
+colnames(case3)<-c("M","E")
+
+assessSignificance(case1)
+chisq.test(case1)
+print("=====")
+assessSignificance(case2)
+chisq.test(case2)
+print("=====")
+assessSignificance(case3)
+chisq.test(case3)
+@
+
+
+
+\end{document}
