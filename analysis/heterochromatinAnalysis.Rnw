@@ -141,7 +141,7 @@ binary <- sapply(unique(rownames(binary)), function(name) {
 
 sample_sizes<-c(19,13,27,10,11)
 binary<-sweep(binary, 2, sample_sizes, `/`)
-mycol<-colorRampPalette(c("beige","red" ), bias=1) 
+mycol<-colorRampPalette(c("white","black" ), bias=1) 
 heatmap.2(binary[,c("Homo","Chimpanzee","Bonobo","Gorilla","Orangutan")],dendrogram="none", Colv=FALSE, trace='none',col=mycol,cexRow=0.1,cexCol=0.75)
 binary<-as.data.frame(binary)
 
@@ -163,9 +163,8 @@ length(rownames((binary[binary$Chimpanzee>0 & binary$Bonobo==0 & binary$Gorilla=
 table(rowSums(binary==1))
 @
 
-<<>>=
+<<Venn diagram>>=
 #human, chimp, bonobo, gorilla, orangutan
-#for some reason, this sums to 610, not 694
 
 keep<-binary[!(binary$Chimpanzee==0 & binary$Bonobo==0 & binary$Gorilla==0 & binary$Orangutan==0 & binary$Homo==0),]
 
@@ -230,6 +229,14 @@ library("e1071")
 #I think we should maybe first exclude zero counts for each species separately (only there where _all_ individuals have zero counts) and only then calculate variability
 #The results will differ based on whether we only include "red" rows or all of them
 
+
+myDivision <- function(arguments){
+  smaller<-min(arguments[1],arguments[2])
+  larger<-max(arguments[1],arguments[2])
+  stopifnot(smaller>0)
+return(larger/smaller)
+}
+
 uniq_names<-c("Homo_sapiens","Pan_troglodytes_schweinfurthii","Pan_troglodytes_troglodytes","Pan_troglodytes_ellioti","Pan_troglodytes_verus","Pan_paniscus","Gorilla_gorilla_gorilla","Gorilla_beringei_graueri","Pongo_pygmaeus","Pongo_abelii")
 
 #colSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,])!=0
@@ -238,8 +245,12 @@ sd<-unlist(lapply(repVariability, function(x) round(sd(x),2)))
 min<-unlist(lapply(repVariability, function(x) x[which.min(abs(x))]))
 max<-unlist(lapply(repVariability, function(x) x[which.max(abs(x))]))
 skewness<-unlist(lapply(repVariability, function(x) skewness(x)))
+mean_fold_dif<-unlist(lapply(repVariability, function(x) mean(apply(combn(x,2),2, myDivision))))
+#human_without_son<-as.vector(repVariability[[1]])[2:length(repVariability[[1]])]
+distribution_summary<-as.data.frame(cbind(uniq_names,sd,mean_fold_dif))
+distribution_summary<-distribution_summary[order(mean_fold_dif,decreasing=F),]
+print(distribution_summary)
 
-print(cbind(uniq_names,sd,skewness))
 
 myColors<-c(rep("gray30",1),rep("darkgreen",4),rep("dodgerblue",1),rep("firebrick1",2),rep("gold",2))
 
@@ -253,7 +264,7 @@ rownames(dt)<-NULL
 colnames(dt)<-uniq_names
 #dt<-as.data.frame(dt)
 plot.new()
-dotchart(dt,labels="",gcol=myColors,lcolor=rep(myColors,each=n),xlab="repeat counts per 1 million reads",pch=20,col="gray30",cex=1.2)
+dotchart(dt,labels="",gcol="black",col="black",lcolor="white",xlab="repeat density per 1 million reads",pch=20,cex=1.2)
 plot.new()
 
 uniq_names<-c("Homo","Pan_troglodytes","Pan_paniscus","Gorilla","Pongo")
@@ -270,28 +281,30 @@ apply(dt,2,foldStat)
 @
 
 <<FIGURE3>>=
-par(mfrow=c(1,5),cex=1.01)
-myList<-c("Homo","Bonobo","Chimpanzee","Gorilla","Orangutan")
+par(mfrow=c(1,5),cex=1.01, mai = c(5, 0.5, 0.3, 0.3))
+myList<-c("Homo","Chimpanzee","Bonobo","Gorilla","Orangutan")
 
 for (ape in myList) {
   print(ape)
   subset<-abundantSpeciesVsRepeats[grepl(ape,rownames(abundantSpeciesVsRepeats))==TRUE,]
   print(dim(subset))
   reordered<-subset[,order(colSums(-subset,na.rm=TRUE))]
+  #print(colnames(reordered)[1:10])
+  print(binary[colnames(reordered)[1:10],])
   
   #use only unit length as a label for repeats with long units
-  rnames <- colnames(reordered)
-  rnames[nchar(rnames) > 5] <-
-    paste0(nchar(colnames(reordered)), "mer")[nchar(rnames) > 5]
-  colnames(reordered) <- rnames
+  #rnames <- colnames(reordered)
+  #rnames[nchar(rnames) > 5] <-
+  #  paste0(nchar(colnames(reordered)), "mer")[nchar(rnames) > 5]
+  #colnames(reordered) <- rnames
   
-  boxplot(reordered[,1:12],col="gold",las=2,main=paste(ape,"most abundant"))
+  boxplot(reordered[,1:12]/1000,col="gold",las=2,main=paste(ape,"most abundant"))
 }
 @
 
 <<FIGURE4a,eval=TRUE>>=
 par(mfrow=c(2,3))
-pca_data<-as.data.frame(na.omit(abundantSpeciesVsRepeats[,1:10]))
+pca_data<-as.data.frame(na.omit(abundantSpeciesVsRepeats[,]))
 pca_data$species<-rownames(pca_data)
 pca_data<-pca_data[with(pca_data, order(species)), ]
 
@@ -300,7 +313,7 @@ pca_data$species<-factor(pca_data$species)
 #RUN PRINCIPAL COMPONENT ANALYSIS (PCA) based on SPECIES
 pc <- princomp(pca_data[,1:(ncol(pca_data)-1)], cor=FALSE, scores=TRUE)
 summary(pc)
-plot(pc,type="lines") #plot variance explained by each component
+plot(pc,type="lines",main="Variance explained") #plot variance explained by each component
 
 #Human (black), bonobo (blue), chimpanzee (green), gorilla (red) and orangutan (orange) are plotted in the 3D space defined by first three principal components
 
@@ -313,12 +326,12 @@ legend(x="topleft", legend = levels(pca_data$species), col = unique(as.numeric(p
 
 @
 
-<<FIGURE4b,eval=FALSE>>=
+<<FIGURE4b,eval=TRUE>>=
 sex<-paste(lapply(strsplit(rownames(abundantIndividualsVsRepeats)," "), function(x) x[3]))
 pca_data_sex<-as.data.frame(abundantIndividualsVsRepeats) 
 pca_data_sex$sex<-sex
 rownames(pca_data_sex)<- make.names(pca_data_sex$sex, unique=TRUE)
-pca_data_sex<-pca_data_sex[1:80,c(1:10,ncol(pca_data_sex)-1)] #subsample
+pca_data_sex<-pca_data_sex[,1:(ncol(pca_data_sex)-1)] #subsample
 
 #RUN PRINCIPAL COMPONENT ANALYSIS (PCA) based on SEX
 pc_sex <- princomp(pca_data_sex[,1:(ncol(pca_data_sex)-1)], cor=TRUE,scores=TRUE)
@@ -327,7 +340,7 @@ summary(pc_sex)
 
 #Females (pink) and males (black) are plotted in the 3D space defined by fourth, fifth and sixth principal components.
 palette(c("black","deeppink"))
-plot3d(pc_sex$scores[,4:6],col=as.numeric(factor(sex))+1)
+plot3d(pc_sex$scores[,4:6],col=as.numeric(factor(sex))+1,cex=2,size=10)
 plot.new()
 legend(x="topleft", legend = unique(sex), col = unique(as.numeric(as.factor(sex)))+1,lty=1,bty = "n")
 
@@ -338,6 +351,12 @@ legend(x="topleft", legend = unique(sex), col = unique(as.numeric(as.factor(sex)
 
 par(mfrow=c(2,1))
 sampleToCluster<-abundantIndividualsVsRepeats
+
+#columns_present_in_enough_individuals<-apply(sampleToCluster, MARGIN = 2, function(x) all(x>0))
+#columns_present_in_enough_individuals<-names(na.omit(columns_present_in_enough_individuals[columns_present_in_enough_individuals==TRUE]))
+#print(length(columns_present_in_enough_individuals))
+#sampleToCluster<-scale(sampleToCluster[,columns_present_in_enough_individuals],center=FALSE,scale=TRUE)
+
 l<-rownames(sampleToCluster)
 l[grepl("Pan_paniscus",l)==TRUE]<-"Bonobo"
 l[grepl("Pan",l)==TRUE]<-"Chimpanzee"
@@ -349,12 +368,12 @@ groupCodes <-l
 rownames(sampleToCluster)<-groupCodes
 colorCodes <- c(Bonobo="blue", Chimpanzee="darkgreen", Gorilla="red", Orangutan="orange", Homo="black")
 
-dist<-as.dist(1-cor((t(sampleToCluster)))) #distance based on correlation
+dist<-as.dist(1-cor((t(sampleToCluster)),method="spearman")) #distance based on correlation
 
 #OPTIONS FOR CLUSTERING LINKAGE FUNCTIONS: 
 #method="ward.D", "ward.D2", "single", "complete", "average" (= UPGMA), "mcquitty" (= WPGMA), "median" (= WPGMC) or "centroid" (= UPGMC).
 
-hc <- hclust(dist,method="complete")
+hc <- hclust(dist,method="ward.D2")
 hcSingle <- hclust(dist,method="single") 
 dend <- as.dendrogram(hc)
 dendSingle <- as.dendrogram(hcSingle)
@@ -449,9 +468,9 @@ for (ape in unique(Fsp)) {
       allIndivOrderData<-rbind(allIndivOrderData,indivOrder)
     }
     
-    #rownames(allIndivOrderData)<-colnames(t)
-    #allIndivOrderData<-as.data.frame(allIndivOrderData)
-    #drawRadarPlot(allIndivOrderData,nrow(allIndivOrderData),paste("all",ape,"individuals"),rgb(0.2, 0.5, 0.2, 0.2)) 
+    rownames(allIndivOrderData)<-colnames(t)
+    allIndivOrderData<-as.data.frame(allIndivOrderData)
+    drawRadarPlot(allIndivOrderData,nrow(allIndivOrderData),paste("all",ape,"individuals"),rgb(0.2, 0.5, 0.2, 0.05)) 
   }
 }
 
@@ -532,6 +551,11 @@ for (ape in myList) {
   #lines(df$x, df$L, col="red",lty=2)
 }
 @
+
+<<sandbox>>=
+rownames((keep[keep$Chimpanzee==0 & keep$Bonobo==0 & keep$Gorilla>0 & keep$Orangutan==0 & keep$Homo==0,]))
+@
+
 
 <<FIGURE8>>=
 
