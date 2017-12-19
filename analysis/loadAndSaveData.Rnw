@@ -8,7 +8,7 @@ require(dplyr)
 
 options(scipen=10)
 #data_directory<-"/Users/alice/Desktop/projects/heterochromatin/great_ape_diversity/counts/"
-data_directory<-"/Users/alice/Desktop/projects/heterochromatin/great_ape_diversity/counts75/"
+data_directory<-"/Users/alice/Desktop/projects/heterochromatin/refactored/" #"/Users/alice/Desktop/projects/heterochromatin/great_ape_diversity/counts75/"
 working_directory<-"/Users/alice/Desktop/projects/heterochromatin/refactored/"
 setwd(working_directory)
 
@@ -20,27 +20,16 @@ checkExistenceOfFile <- function(file) {
 }
 
 #list of files that we need to check. Print warning message if non-existent.
-invisible(lapply(c("readC_afterF","readC_afterF_human","full_layout","human_layout","contaminated_individuals","related_individuals","read_lengths","read_lengths_human"),checkExistenceOfFile))
+invisible(lapply(c("rcounts","layout","contaminated_individuals","related_individuals","rlengths"),checkExistenceOfFile))
 
 #LOAD READ COUNTS
 #load read counts after filtering for great apes
-readC_afterF = read.table(("readC_afterF"),header=FALSE) #SRR id followed by read counts after filtering
-#load read counts after filtering for human
-readC_afterF_human = read.table(("readC_afterF_human"),header=FALSE)
-#concatenate counts of great apes with human data
-readC_afterF <- rbind(readC_afterF,readC_afterF_human)
+readC_afterF = read.table("rcounts",sep=",",header=TRUE) #SRR id followed by read counts after filtering
 
 #LOAD METADATA ABOUT SAMPLES
 #Run spots bases LibraryLayout ScientificName SampleName Sex
-layout = read.table("full_layout", header=TRUE, sep = ",")
-layout<-layout[layout$Run %in% readC_afterF$V1,] #keep only those that have successful filtering information
-
-
-
-#Run LibraryLayout ScientificName SampleName Sex
-human_layout = read.table("human_layout", header=TRUE, sep = ",")
-#merge metadata about great apes with metadata about human
-layout<-merge(layout,human_layout,all=TRUE)
+layout = read.table("layout", header=TRUE, sep = ",")
+layout<-layout[layout$Run %in% readC_afterF$Run,] #keep only those that have successful filtering information
 
 #PRINT NUMBER OF DATASETS (NOT INDIVIDUALS) for each species
 #print(table(layout$ScientificName,layout$Sex))
@@ -64,10 +53,14 @@ getFileNames <- function(sex=NULL,species=NULL,name=NULL){
 getFilteredReadCounts <- function(files) {
   SRR_ids<-gsub( "\\|.*$", "", files)
   merged<-merge(SRR_ids,readC_afterF,by=1)
-  read_counts<-merged[match(SRR_ids,merged$x),]$V2
+  read_counts<-merged[match(SRR_ids,merged$x),]$rCount
   
   if (!length(SRR_ids)==length(read_counts)) {
     stop("Discrepancies in the association table.")
+  }
+  
+  if (any(is.na(read_counts))) {
+    stop("Discrepancies in the read length association.")
   }
   
   return(read_counts)
@@ -81,12 +74,12 @@ filters = list() #no filters here, however filters could be potentially specifie
 files<-do.call(getFileNames, filters)
 
 # get the size for each file
-sizes <- file.info(list.files(data_directory,full.names=TRUE))
+#sizes <- file.info(list.files(data_directory,full.names=TRUE))
 
 # subset the files that have non-zero size
-list.of.non.empty.files <- basename(rownames(sizes[sizes$size>0,]))
+#list.of.non.empty.files <- basename(rownames(sizes[sizes$size>0,]))
 
-files<-files[gsub("\\|","_",files) %in% list.of.non.empty.files] #keep only non-empty files
+#files<-files[gsub("\\|","_",files) %in% list.of.non.empty.files] #keep only non-empty files
 @
 
 
@@ -96,17 +89,14 @@ dropLowReadCounts <-function(files,read_count_threshold) {
   if (!length(getFilteredReadCounts(files))==length(files)) {
     stop("Discrepancies in the read length association.")
   }
-  
   keep<-getFilteredReadCounts(files)>read_count_threshold
   print(paste("excluding this many files:",as.numeric(table(keep)["FALSE"])))
   print(paste("returning this many files:",as.numeric(table(keep)["TRUE"])))
   return(files[keep])
-  
-  
 }
 
 dropShortReads <-function(files,read_length_threshold) { 
-  SRR_ids<-gsub( "\\|", "_", gsub(".fastq.*",".fastq",files))
+  SRR_ids<-gsub("\\|.*$", "",files)
   merged<-merge(SRR_ids,read_lengths,by=1)
   colnames(merged)<-c("file","read_length")
   read_lens<-merged[match(SRR_ids,merged$file),]$read_length
@@ -128,8 +118,7 @@ dropShortReads <-function(files,read_length_threshold) {
       print(paste("returning this many files:",length(files)))
       return(files)
   } else {
-      keep_prep<-paste0(SRR_ids_to_keep,".counts.sortedFilt")
-      keep<-gsub("\\|","_",files) %in% keep_prep
+      keep<-gsub("\\|.*","",files) %in% SRR_ids_to_keep
       print(paste("returning this many files:",length(files[keep])))
       return(files[keep])
   }
@@ -151,14 +140,10 @@ dropFamilyRelatedFiles <-function(files) {
 
 contaminated = read.table("contaminated_individuals", header=FALSE)
 related = read.table("related_individuals", header=FALSE)
-read_lengths = read.table("read_lengths", header=FALSE)
-read_lengths<-read_lengths[grep("_1.fastq",read_lengths$V1),] #keep only forward reads
-
-#merge with human samples
-read_lengths_human = read.table("read_lengths_human", header=FALSE)
-read_lengths<-rbind(read_lengths,read_lengths_human)
-read_lengths<-as.data.frame(read_lengths)
-colnames(read_lengths)<-c("file","read_length")
+read_lengths = as.data.frame(read.table("rlengths", sep=",",header=TRUE))
+read_lengths<-read_lengths[grep("1.fastq",read_lengths$file),] #keep only forward reads
+read_lengths$file<-gsub("_.*","",read_lengths$file)
+read_lengths$file<-gsub('[.].*',"",read_lengths$file)
 
 filtered_files<-files
 
