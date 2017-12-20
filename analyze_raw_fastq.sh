@@ -16,7 +16,7 @@ mkdir -p counts
 filename=`basename $1`
 
 #filter reads for quality
-/galaxy/home/biomonika/fastx/fastq_quality_filter -Q33 -v -q 20 -p 100 -i $1 -o filtered/${filename}.filtered
+/galaxy/home/biomonika/fastx/bin/fastq_quality_filter -Q33 -v -q 20 -p 100 -i $1 -o filtered/${filename}.filtered
 
 #convert files to fasta
 /galaxy/home/biomonika/seqtk/seqtk seq -A filtered/${filename}.filtered >fasta/${filename}.fasta
@@ -27,13 +27,8 @@ filename=`basename $1`
 wait
 
 #collapse the redundant repeats
-python parseTRFngs.py trf/${filename}.dat
+python parseTRFngsKeepHeader.py trf/${filename}.dat
 
-#convert to counts
-cat trf/${filename}.dat_output.txt | cut -d' ' -f3 | grep -v "unit" | sort | uniq -c | sed 's/^ *//g' | awk '{print $2 " " $1}' | sort -b >counts/${filename}.counts
-
-#remove not needed files
 rm filtered/${filename}.filtered
-rm fasta/${filename}.fasta
 
-echo "Analysis finished. Done."
+echo "Done."
