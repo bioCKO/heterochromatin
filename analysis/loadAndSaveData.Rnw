@@ -45,7 +45,7 @@ getFileNames <- function(sex=NULL,species=NULL,name=NULL){
   if (!is.null(sex)) {list <-list[list$Sex==sex,]}
   if (!is.null(species)) {list <-list[list$ScientificName==species,]}
   if (!is.null(name)) {list <-list[list$SampleName==name,]}
-  filenames<-paste(list$Run,gsub(" ","_", list$ScientificName),gsub(" ","_", list$SampleName),list$Sex,"1.fastq.counts.sortedFilt",sep="|")
+  filenames<-paste(list$Run,gsub(" ","_", list$ScientificName),gsub(" ","_", list$SampleName),list$Sex,"1.fastq",sep="|")
   #print(list)
   return(filenames) #includes only R1 files
 }
@@ -160,12 +160,12 @@ filtered_files<-dropLowReadCounts(filtered_files,20000000) #threshold representi
 filtered_files<-dropFamilyRelatedFiles(filtered_files)
 @
 
-<<BASH LOADED TABLE NORMALIZATION AND RESTRICTION TO FILTERED FILES>>=
-d<-read.table("/Users/alice/Desktop/projects/heterochromatin/great_ape_diversity/counts75/threshold100/sort/big.table.with.header.txt",sep=" ",header=TRUE,row.names=1,na.strings=NA,fill=TRUE)
+<<FREQUENCY>>=
+d<-read.table("/Users/alice/Desktop/projects/heterochromatin/refactored/big.table.with.header.1.fastq.dat_Header.txt.rawcounts.sortedFilt.txt",sep=" ",header=TRUE,row.names=1,na.strings=NA,fill=TRUE)
 d<-as.data.frame(d) #convert to dataframe
 d[is.na(d)] <- 0
 
-columns_to_select<-gsub( "\\|", "_",filtered_files)
+columns_to_select<-paste0(gsub( "\\|", "_",filtered_files),".dat_Header.txt.rawcounts.sortedFilt")
 data<-d[order(-rowSums(d)),columns_to_select] 
 #View(d)
 
@@ -178,19 +178,38 @@ normalization_matrix<-rep.row(getFilteredReadCounts(filtered_files),dim(data)[1]
 data<-as.data.frame(data) #convert to dataframe from data table
 data[,2:ncol(data)]<-data[2:ncol(data)]/normalization_matrix*normalization_factor #normalization of data by read counts
 
-abundant<-data[,columns_to_select] #RESTRICT ONLY TO FILTERED FILES
-abundant<-abundant[order(rowSums(abundant),decreasing=T),]
-threshold<-15 #the cummulative repeat count per million reads needs to be at least 5
-abundant<-abundant[rowSums(abundant)>(threshold),] #keep only rows where all three libraries have at least threshold abundance total
+#FREQUENCY
+frequency<-data[,columns_to_select] #RESTRICT ONLY TO FILTERED FILES
+frequency<-frequency[order(rowSums(frequency),decreasing=T),]
+frequency<-frequency[nchar(as.character(rownames(frequency)))<=50,] #remove handful of repeat motifs with unit sizes over 50
+frequency<-as.data.frame(frequency)
 
-abundant<-abundant[nchar(as.character(rownames(abundant)))<=50,] #remove handful of repeat motifs with unit sizes over 50
-abundant<-as.data.frame(abundant)
-
-vector_of_unit_lengths<-nchar(as.character(rownames(abundant)))
-abundant<-sweep(abundant,MARGIN=1,STATS=vector_of_unit_lengths,FUN="*")  #NOW CALCULATE REPEAT DENSITYL multiply by unit length
-abundant<-abundant[order(rowSums(abundant),decreasing=T),]
-View(abundant)
-print(dim(abundant))
-plot(table(nchar(as.character(rownames(abundant)))),ylab="number of distinct repeat motifs",xlab="unit size")
+plot(table(nchar(as.character(rownames(frequency)))),ylab="number of distinct repeat motifs",xlab="unit size")
 @
 
+<<DENSITY>>=
+d<-read.table("/Users/alice/Desktop/projects/heterochromatin/refactored/big.table.with.header.1.fastq.dat_Header.txt.rawlengths.sortedFilt.txt",sep=" ",header=TRUE,row.names=1,na.strings=NA,fill=TRUE)
+d<-as.data.frame(d) #convert to dataframe
+d[is.na(d)] <- 0
+
+columns_to_select<-paste0(gsub( "\\|", "_",filtered_files),".dat_Header.txt.rawlengths.sortedFilt")
+data<-d[order(-rowSums(d)),columns_to_select] 
+#View(d)
+
+rep.row<-function(x,n){
+   matrix(rep(x,each=n),nrow=n) #transforms normalization vector into matrix
+}
+
+normalization_factor=1000000
+normalization_matrix<-rep.row(getFilteredReadCounts(filtered_files),dim(data)[1])
+data<-as.data.frame(data) #convert to dataframe from data table
+data[,2:ncol(data)]<-data[2:ncol(data)]/normalization_matrix*normalization_factor #normalization of data by read counts
+
+#DENSITY
+density<-data[,columns_to_select] #RESTRICT ONLY TO FILTERED FILES
+density<-density[order(rowSums(density),decreasing=T),]
+density<-density[nchar(as.character(rownames(density)))<=50,] #remove handful of repeat motifs with unit sizes over 50
+density<-as.data.frame(density)
+
+plot(table(nchar(as.character(rownames(density)))),ylab="number of distinct repeat motifs",xlab="unit size")
+@
