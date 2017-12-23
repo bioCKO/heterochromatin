@@ -36,46 +36,66 @@ R libraries needed:
 
 ### Pipeline ###
 
-1) Download the files and name them accordingly
+* 1) Download the files and name them accordingly
 	scripts: download_run.sh and rename.py
-Input: SRR run id
-Output: fastq file
-Requirements: sratoolkit.2.5.7-ubuntu64/bin/fastq-dump
+	
+*Input*: SRR run id
 
-2) Identify the repeats 
+*Output*: fastq file
+
+*Requirements*: sratoolkit.2.5.7-ubuntu64/bin/fastq-dump
+
+* 2) Identify the repeats 
 	scripts: analyze_raw_fastq.sh, parseTRFngsKeepHeader.py
-Input: fastq file
-Output: .dat and .dat_Header.txt
-Requirements: fastx, seqtk, trf409.legacylinux64 
+	
+*Input*: fastq file
 
-2) Identify the repeats 
+*Output*: .dat and .dat_Header.txt
+
+*Requirements*: fastx, seqtk, trf409.legacylinux64 
+
+* 2) Identify the repeats 
 	scripts:  run_jobs.sh, analyze_raw_fastq.sh, parseTRFngsKeepHeader.py
-Input: fastq file
-Output: .dat and .dat_Header.txt
-Requirements: fastx, seqtk, trf409.legacylinux64 
+	
+*Input*: fastq file
 
-3) Parse repeats into repeat frequency (.rawcounts) and repeat density (.rawlengths)
+*Output*: .dat and .dat_Header.txt
+
+*Requirements*: fastx, seqtk, trf409.legacylinux64 
+
+* 3) Parse repeats into repeat frequency (.rawcounts) and repeat density (.rawlengths)
 	scripts: parse_headers.sh
-Input: .dat_Header.txt
-Output: .rawcounts and .rawlengths
-Requirements: none
+	
+*Input*: .dat_Header.txt
 
-4) Filter repeat motifs based on minimum frequency
+*Output*: .rawcounts and .rawlengths
+
+*Requirements*: none
+
+* 4) Filter repeat motifs based on minimum frequency
 	scripts: filter_raw_files.sh
-Input: .rawcounts (automatically processes also .rawlengths)
-Output: .rawcounts.sortedFilt and .rawlengths.sortedFilt
-Requirements: none
+	
+*Input*: .rawcounts (automatically processes also .rawlengths)
 
-5) Merge identified repeat motifs into single table
+*Output*: .rawcounts.sortedFilt and .rawlengths.sortedFilt
+
+*Requirements*: none
+
+* 5) Merge identified repeat motifs into single table
 	scripts: run_merging.sh
-Input: rawcounts.sortedFilt or rawlengths.sortedFilt
-Output: big.table.with.header.rawcounts.sortedFilt.txt and big.table.with.header.rawlengths.sortedFilt.txt
-Requirements: none
+	
+*Input*: rawcounts.sortedFilt or rawlengths.sortedFilt
 
-6) Load the table into R and do more filtering
+*Output*: big.table.with.header.rawcounts.sortedFilt.txt and big.table.with.header.rawlengths.sortedFilt.txt
+
+*Requirements*: none
+
+* 6) Load the table into R and do more filtering
 	scripts: loadAndSaveData.Rnw
-Input: big.table.with.header.rawcounts.sortedFilt.txt and big.table.with.header.rawlengths.sortedFilt.txt
-Output: R variables frequency and density
+	
+*Input*: big.table.with.header.rawcounts.sortedFilt.txt and big.table.with.header.rawlengths.sortedFilt.txt
+
+*Output*: R variables frequency and density
 
 
 ### Who do I talk to? ###
