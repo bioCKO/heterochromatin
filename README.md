@@ -63,7 +63,7 @@ R libraries needed:
 
 *Requirements*: fastx, seqtk, trf409.legacylinux64 
 
-####4. Parse repeats into repeat frequency (.rawcounts) and repeat density (.rawlengths)
+####4. Filter repeat arrays shorter than 75bps and parse repeats into repeat frequency (.rawcounts) and repeat density (.rawlengths)
 	scripts: parse_headers.sh
 	
 *Input*: .dat_Header.txt
