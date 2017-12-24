@@ -14,8 +14,8 @@ filename=`basename $1`
 
 echo "rawcounts"
 #convert to counts for the frequency
-time grep -v "@\|unit" ${filename} | awk '{count[$3]+=1} END {for (word in count) print word, count[word]}' | sort >results/${filename}.rawcounts #+1 for each occurence of an array
+time grep -v "@\|unit" ${filename} | awk '{if ($7>=75) {print;} }' | awk '{count[$3]+=1} END {for (word in count) print word, count[word]}' | sort >results/${filename}.rawcounts #+1 for each occurence of an array
 
 echo "rawlengths"
 #convert to length for the density
-time grep -v "@\|unit" ${filename} | awk '{count[$3]+=$7} END {for (word in count) print word, count[word]}' | sort >results/${filename}.rawlengths #+length for each occurence of an array
+time grep -v "@\|unit" ${filename} | awk '{if ($7>=75) {print;} }' | awk '{count[$3]+=$7} END {for (word in count) print word, count[word]}' | sort >results/${filename}.rawlengths #+length for each occurence of an array
