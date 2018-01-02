@@ -63,6 +63,8 @@ R libraries needed:
 
 *Requirements*: none
 
+Use datasets trimmed to 100bp reads if available.
+
 ####4. Filter repeat motifs based on minimum frequency
 	scripts: filter_raw_files.sh
 	
