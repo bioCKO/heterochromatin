@@ -1,0 +1,415 @@
+Run,LibraryLayout,ScientificName,SampleName,Sex
+SRR726233,PAIRED,Pan troglodytes schweinfurthii,Vincent,M
+SRR726241,PAIRED,Pan troglodytes schweinfurthii,Vincent,M
+SRR726242,PAIRED,Pan troglodytes schweinfurthii,Vincent,M
+SRR726243,PAIRED,Pan troglodytes schweinfurthii,Vincent,M
+SRR726275,PAIRED,Pan troglodytes schweinfurthii,Andromeda,F
+SRR726278,PAIRED,Pan troglodytes schweinfurthii,Andromeda,F
+SRR726279,PAIRED,Pan troglodytes schweinfurthii,Andromeda,F
+SRR726280,PAIRED,Pan troglodytes schweinfurthii,Andromeda,F
+SRR726352,PAIRED,Pan troglodytes schweinfurthii,Bwambale,M
+SRR726353,PAIRED,Pan troglodytes schweinfurthii,Bwambale,M
+SRR726354,PAIRED,Pan troglodytes schweinfurthii,Bwambale,M
+SRR726355,PAIRED,Pan troglodytes schweinfurthii,Bwambale,M
+SRR726356,PAIRED,Pan troglodytes schweinfurthii,Bwambale,M
+SRR726357,PAIRED,Pan troglodytes schweinfurthii,Bwambale,M
+SRR726358,PAIRED,Pan troglodytes schweinfurthii,Bwambale,M
+SRR726359,PAIRED,Pan troglodytes schweinfurthii,Bwambale,M
+SRR726360,PAIRED,Pan troglodytes schweinfurthii,Kidongo,F
+SRR726381,PAIRED,Pan troglodytes schweinfurthii,Kidongo,F
+SRR726395,PAIRED,Pan troglodytes schweinfurthii,Kidongo,F
+SRR726402,PAIRED,Pan troglodytes schweinfurthii,Kidongo,F
+SRR726403,PAIRED,Pan troglodytes schweinfurthii,Kidongo,F
+SRR726404,PAIRED,Pan troglodytes schweinfurthii,Kidongo,F
+SRR726405,PAIRED,Pan troglodytes schweinfurthii,Kidongo,F
+SRR726406,PAIRED,Pan troglodytes schweinfurthii,Kidongo,F
+SRR726407,PAIRED,Pan troglodytes schweinfurthii,Kidongo,F
+SRR726408,PAIRED,Pan troglodytes schweinfurthii,Nakuu,F
+SRR726409,PAIRED,Pan troglodytes schweinfurthii,Nakuu,F
+SRR726410,PAIRED,Pan troglodytes schweinfurthii,Nakuu,F
+SRR726411,PAIRED,Pan troglodytes schweinfurthii,Nakuu,F
+SRR726412,PAIRED,Pan troglodytes schweinfurthii,Nakuu,F
+SRR726413,PAIRED,Pan troglodytes schweinfurthii,Nakuu,F
+SRR726415,PAIRED,Pan troglodytes schweinfurthii,Nakuu,F
+SRR726416,PAIRED,Pan troglodytes schweinfurthii,Nakuu,F
+SRR726612,PAIRED,Pan paniscus,Hortense,F
+SRR726613,PAIRED,Pan paniscus,Hortense,F
+SRR726614,PAIRED,Pan paniscus,Hortense,F
+SRR726615,PAIRED,Pan paniscus,Hortense,F
+SRR740768,PAIRED,Pan paniscus,Kosana,F
+SRR740769,PAIRED,Pan paniscus,Kosana,F
+SRR740770,PAIRED,Pan paniscus,Kosana,F
+SRR740771,PAIRED,Pan paniscus,Kosana,F
+SRR740772,PAIRED,Pan paniscus,Kosana,F
+SRR740773,PAIRED,Pan paniscus,Kosana,F
+SRR740774,PAIRED,Pan paniscus,Kosana,F
+SRR740775,PAIRED,Pan paniscus,Kosana,F
+SRR740781,PAIRED,Pan paniscus,Dzeeta,F
+SRR740782,PAIRED,Pan paniscus,Dzeeta,F
+SRR740783,PAIRED,Pan paniscus,Dzeeta,F
+SRR740784,PAIRED,Pan paniscus,Dzeeta,F
+SRR740787,PAIRED,Pan paniscus,Dzeeta,F
+SRR740790,PAIRED,Pan paniscus,Dzeeta,F
+SRR740792,PAIRED,Pan paniscus,Dzeeta,F
+SRR740793,PAIRED,Pan paniscus,Dzeeta,F
+SRR740794,PAIRED,Pan paniscus,Hermien,F
+SRR740795,PAIRED,Pan paniscus,Hermien,F
+SRR740796,PAIRED,Pan paniscus,Hermien,F
+SRR740797,PAIRED,Pan paniscus,Hermien,F
+SRR740798,PAIRED,Pan paniscus,Hermien,F
+SRR740799,PAIRED,Pan paniscus,Hermien,F
+SRR740800,PAIRED,Pan paniscus,Hermien,F
+SRR740801,PAIRED,Pan paniscus,Hermien,F
+SRR740802,PAIRED,Pan paniscus,Desmond,M
+SRR740803,PAIRED,Pan paniscus,Desmond,M
+SRR740804,PAIRED,Pan paniscus,Desmond,M
+SRR740805,PAIRED,Pan paniscus,Desmond,M
+SRR740806,PAIRED,Pan paniscus,Desmond,M
+SRR740807,PAIRED,Pan paniscus,Desmond,M
+SRR740808,PAIRED,Pan paniscus,Desmond,M
+SRR740809,PAIRED,Pan paniscus,Desmond,M
+SRR740816,PAIRED,Pan paniscus,Catherine,F
+SRR740817,PAIRED,Pan paniscus,Catherine,F
+SRR740818,PAIRED,Pan paniscus,Catherine,F
+SRR740819,PAIRED,Pan paniscus,Catherine,F
+SRR740820,PAIRED,Pan paniscus,Catherine,F
+SRR740821,PAIRED,Pan paniscus,Catherine,F
+SRR740822,PAIRED,Pan paniscus,Kombote,F
+SRR740823,PAIRED,Pan paniscus,Kombote,F
+SRR740824,PAIRED,Pan paniscus,Kombote,F
+SRR740825,PAIRED,Pan paniscus,Kombote,F
+SRR740827,PAIRED,Pan paniscus,Kombote,F
+SRR740828,PAIRED,Pan paniscus,Kombote,F
+SRR740831,PAIRED,Pan paniscus,Chipita,F
+SRR740832,PAIRED,Pan paniscus,Chipita,F
+SRR740833,PAIRED,Pan paniscus,Chipita,F
+SRR740834,PAIRED,Pan paniscus,Chipita,F
+SRR740835,PAIRED,Pan paniscus,Chipita,F
+SRR740853,PAIRED,Pan paniscus,Bono,M
+SRR740857,PAIRED,Pan paniscus,Bono,M
+SRR740905,PAIRED,Pan paniscus,Bono,M
+SRR740911,PAIRED,Pan paniscus,Bono,M
+SRR740941,PAIRED,Pan paniscus,Bono,M
+SRR740980,PAIRED,Pan paniscus,Bono,M
+SRR741194,PAIRED,Pan paniscus,Natalie,F
+SRR741205,PAIRED,Pan paniscus,Natalie,F
+SRR741254,PAIRED,Pan paniscus,Natalie,F
+SRR741276,PAIRED,Pan paniscus,Natalie,F
+SRR741327,PAIRED,Pan paniscus,Natalie,F
+SRR741390,PAIRED,Pan paniscus,Natalie,F
+SRR741768,PAIRED,Pan paniscus,Salonga,F
+SRR741770,PAIRED,Pan paniscus,Salonga,F
+SRR741785,PAIRED,Pan paniscus,Salonga,F
+SRR741813,PAIRED,Pan paniscus,Salonga,F
+SRR741824,PAIRED,Pan paniscus,Salonga,F
+SRR747643,PAIRED,Pan paniscus,Kumbuka,F
+SRR747644,PAIRED,Pan paniscus,Kumbuka,F
+SRR747645,PAIRED,Pan paniscus,Kumbuka,F
+SRR747646,PAIRED,Pan paniscus,Kumbuka,F
+SRR747647,PAIRED,Pan paniscus,Kumbuka,F
+SRR747648,PAIRED,Pan paniscus,Kumbuka,F
+SRR747651,PAIRED,Gorilla beringei graueri,Kaisi,M
+SRR747652,PAIRED,Gorilla beringei graueri,Kaisi,M
+SRR747653,PAIRED,Gorilla beringei graueri,Kaisi,M
+SRR747654,PAIRED,Gorilla beringei graueri,Kaisi,M
+SRR747655,PAIRED,Gorilla beringei graueri,Kaisi,M
+SRR747656,PAIRED,Gorilla beringei graueri,Kaisi,M
+SRR747963,PAIRED,Gorilla gorilla gorilla,Sandra,F
+SRR747964,PAIRED,Gorilla gorilla gorilla,Sandra,F
+SRR747965,PAIRED,Gorilla gorilla gorilla,Sandra,F
+SRR747966,PAIRED,Gorilla gorilla gorilla,Sandra,F
+SRR747972,PAIRED,Gorilla gorilla gorilla,Mimi,F
+SRR747973,PAIRED,Gorilla gorilla gorilla,Mimi,F
+SRR747974,PAIRED,Gorilla gorilla gorilla,Mimi,F
+SRR747975,PAIRED,Gorilla gorilla gorilla,Mimi,F
+SRR747976,PAIRED,Gorilla gorilla gorilla,Mimi,F
+SRR747977,PAIRED,Gorilla gorilla gorilla,Mimi,F
+SRR747978,PAIRED,Gorilla gorilla gorilla,Dian,F
+SRR747979,PAIRED,Gorilla gorilla gorilla,Dian,F
+SRR747980,PAIRED,Gorilla gorilla gorilla,Dian,F
+SRR747981,PAIRED,Gorilla gorilla gorilla,Dian,F
+SRR747982,PAIRED,Gorilla gorilla gorilla,Dian,F
+SRR747983,PAIRED,Gorilla gorilla gorilla,Dian,F
+SRR748053,PAIRED,Pan troglodytes verus,Jimmie,F
+SRR748054,PAIRED,Pan troglodytes verus,Jimmie,F
+SRR748055,PAIRED,Pan troglodytes verus,Jimmie,F
+SRR748056,PAIRED,Pan troglodytes troglodytes,Vaillant,M
+SRR748057,PAIRED,Pan troglodytes troglodytes,Vaillant,M
+SRR748058,PAIRED,Pan troglodytes troglodytes,Vaillant,M
+SRR748059,PAIRED,Pan troglodytes troglodytes,Vaillant,M
+SRR748060,PAIRED,Pan troglodytes troglodytes,Vaillant,M
+SRR748061,PAIRED,Pan troglodytes troglodytes,Doris,F
+SRR748062,PAIRED,Pan troglodytes troglodytes,Doris,F
+SRR748063,PAIRED,Pan troglodytes troglodytes,Doris,F
+SRR748064,PAIRED,Pan troglodytes troglodytes,Doris,F
+SRR748065,PAIRED,Pan troglodytes troglodytes,Doris,F
+SRR748066,PAIRED,Pan troglodytes troglodytes,Julie_A959,F
+SRR748067,PAIRED,Pan troglodytes troglodytes,Julie_A959,F
+SRR748068,PAIRED,Pan troglodytes troglodytes,Julie_A959,F
+SRR748069,PAIRED,Pan troglodytes troglodytes,Julie_A959,F
+SRR748070,PAIRED,Pan troglodytes troglodytes,Julie_A959,F
+SRR748071,PAIRED,Pan troglodytes troglodytes,Clara,F
+SRR748072,PAIRED,Pan troglodytes troglodytes,Clara,F
+SRR748073,PAIRED,Pan troglodytes troglodytes,Clara,F
+SRR748074,PAIRED,Pan troglodytes troglodytes,Clara,F
+SRR748075,PAIRED,Pan troglodytes troglodytes,Clara,F
+SRR748076,PAIRED,Gorilla gorilla gorilla,Amani,F
+SRR748077,PAIRED,Gorilla gorilla gorilla,Amani,F
+SRR748078,PAIRED,Gorilla gorilla gorilla,Amani,F
+SRR748079,PAIRED,Gorilla gorilla gorilla,Amani,F
+SRR748080,PAIRED,Gorilla gorilla gorilla,Amani,F
+SRR748081,PAIRED,Pan troglodytes verus,Koby,M
+SRR748082,PAIRED,Pan troglodytes verus,Koby,M
+SRR748083,PAIRED,Pan troglodytes verus,Koby,M
+SRR748084,PAIRED,Pan troglodytes verus,Koby,M
+SRR748085,PAIRED,Gorilla gorilla gorilla,Kokamo,F
+SRR748086,PAIRED,Gorilla gorilla gorilla,Kokamo,F
+SRR748087,PAIRED,Gorilla gorilla gorilla,Kokamo,F
+SRR748088,PAIRED,Gorilla gorilla gorilla,Kokamo,F
+SRR748089,PAIRED,Gorilla gorilla gorilla,Abe,M
+SRR748090,PAIRED,Gorilla gorilla gorilla,Abe,M
+SRR748091,PAIRED,Gorilla gorilla gorilla,Abe,M
+SRR748092,PAIRED,Gorilla gorilla gorilla,Abe,M
+SRR748093,PAIRED,Gorilla gorilla gorilla,Tzambo,M
+SRR748094,PAIRED,Gorilla gorilla gorilla,Tzambo,M
+SRR748095,PAIRED,Gorilla gorilla gorilla,Tzambo,M
+SRR748096,PAIRED,Gorilla gorilla gorilla,Tzambo,M
+SRR748097,PAIRED,Gorilla gorilla gorilla,Akiba Beri,F
+SRR748098,PAIRED,Gorilla gorilla gorilla,Akiba Beri,F
+SRR748099,PAIRED,Gorilla gorilla gorilla,Akiba Beri,F
+SRR748100,PAIRED,Gorilla gorilla gorilla,Akiba Beri,F
+SRR748101,PAIRED,Gorilla gorilla gorilla,Choomba,F
+SRR748102,PAIRED,Gorilla gorilla gorilla,Choomba,F
+SRR748103,PAIRED,Gorilla gorilla gorilla,Choomba,F
+SRR748104,PAIRED,Gorilla gorilla gorilla,Choomba,F
+SRR748105,PAIRED,Gorilla gorilla gorilla,Paki,F
+SRR748106,PAIRED,Gorilla gorilla gorilla,Paki,F
+SRR748107,PAIRED,Gorilla gorilla gorilla,Paki,F
+SRR748108,PAIRED,Gorilla gorilla gorilla,Paki,F
+SRR748109,PAIRED,Gorilla gorilla diehli,Nyango,F
+SRR748110,PAIRED,Gorilla gorilla diehli,Nyango,F
+SRR748111,PAIRED,Gorilla gorilla diehli,Nyango,F
+SRR748112,PAIRED,Gorilla gorilla diehli,Nyango,F
+SRR748113,PAIRED,Gorilla gorilla gorilla,Anthal,F
+SRR748114,PAIRED,Gorilla gorilla gorilla,Anthal,F
+SRR748115,PAIRED,Gorilla gorilla gorilla,Anthal,F
+SRR748116,PAIRED,Gorilla gorilla gorilla,Anthal,F
+SRR748117,PAIRED,Gorilla gorilla gorilla,Katie_B650,F
+SRR748118,PAIRED,Gorilla gorilla gorilla,Katie_B650,F
+SRR748119,PAIRED,Gorilla gorilla gorilla,Katie_B650,F
+SRR748120,PAIRED,Gorilla gorilla gorilla,Katie_B650,F
+SRR748121,PAIRED,Pan troglodytes ellioti,Akwaya-Jean,M
+SRR748122,PAIRED,Pan troglodytes ellioti,Akwaya-Jean,M
+SRR748123,PAIRED,Pan troglodytes ellioti,Akwaya-Jean,M
+SRR748124,PAIRED,Pan troglodytes ellioti,Akwaya-Jean,M
+SRR748125,PAIRED,Pan troglodytes ellioti,Banyo,F
+SRR748126,PAIRED,Pan troglodytes ellioti,Banyo,F
+SRR748127,PAIRED,Pan troglodytes ellioti,Banyo,F
+SRR748128,PAIRED,Pan troglodytes ellioti,Banyo,F
+SRR748129,PAIRED,Pan troglodytes ellioti,Basho,M
+SRR748130,PAIRED,Pan troglodytes ellioti,Basho,M
+SRR748131,PAIRED,Pan troglodytes ellioti,Basho,M
+SRR748132,PAIRED,Pan troglodytes ellioti,Basho,M
+SRR748133,PAIRED,Pan troglodytes ellioti,Damian,M
+SRR748134,PAIRED,Pan troglodytes ellioti,Damian,M
+SRR748135,PAIRED,Pan troglodytes ellioti,Damian,M
+SRR748136,PAIRED,Pan troglodytes ellioti,Damian,M
+SRR748137,PAIRED,Pan troglodytes ellioti,Damian,M
+SRR748138,PAIRED,Pan troglodytes ellioti,Julie_LWC21,F
+SRR748139,PAIRED,Pan troglodytes ellioti,Julie_LWC21,F
+SRR748140,PAIRED,Pan troglodytes ellioti,Julie_LWC21,F
+SRR748141,PAIRED,Pan troglodytes ellioti,Julie_LWC21,F
+SRR748142,PAIRED,Pan troglodytes ellioti,Julie_LWC21,F
+SRR748143,PAIRED,Pan troglodytes ellioti,Kopongo,F
+SRR748144,PAIRED,Pan troglodytes ellioti,Kopongo,F
+SRR748145,PAIRED,Pan troglodytes ellioti,Kopongo,F
+SRR748146,PAIRED,Pan troglodytes ellioti,Kopongo,F
+SRR748147,PAIRED,Pan troglodytes ellioti,Koto,M
+SRR748148,PAIRED,Pan troglodytes ellioti,Koto,M
+SRR748149,PAIRED,Pan troglodytes ellioti,Koto,M
+SRR748150,PAIRED,Pan troglodytes ellioti,Koto,M
+SRR748151,PAIRED,Pan troglodytes ellioti,Koto,M
+SRR748152,PAIRED,Pan troglodytes ellioti,Paquita,F
+SRR748153,PAIRED,Pan troglodytes ellioti,Paquita,F
+SRR748154,PAIRED,Pan troglodytes ellioti,Paquita,F
+SRR748155,PAIRED,Pan troglodytes ellioti,Paquita,F
+SRR748156,PAIRED,Pan troglodytes ellioti,Taweh,M
+SRR748157,PAIRED,Pan troglodytes ellioti,Taweh,M
+SRR748158,PAIRED,Pan troglodytes ellioti,Taweh,M
+SRR748159,PAIRED,Pan troglodytes ellioti,Taweh,M
+SRR748160,PAIRED,Pan troglodytes ellioti,Taweh,M
+SRR748161,PAIRED,Pan troglodytes ellioti,Tobi,F
+SRR748162,PAIRED,Pan troglodytes ellioti,Tobi,F
+SRR748163,PAIRED,Pan troglodytes ellioti,Tobi,F
+SRR748164,PAIRED,Pan troglodytes ellioti,Tobi,F
+SRR748165,PAIRED,Gorilla gorilla gorilla,Carolyn,F
+SRR748166,PAIRED,Gorilla gorilla gorilla,Carolyn,F
+SRR748167,PAIRED,Gorilla gorilla gorilla,Porta,F
+SRR748168,PAIRED,Gorilla gorilla gorilla,Porta,F
+SRR748169,PAIRED,Gorilla gorilla gorilla,Vila,F
+SRR748170,PAIRED,Gorilla gorilla gorilla,Vila,F
+SRR748171,PAIRED,Gorilla gorilla gorilla,Helen,F
+SRR748172,PAIRED,Gorilla gorilla gorilla,Helen,F
+SRR748173,PAIRED,Gorilla gorilla gorilla,Oko,F
+SRR748174,PAIRED,Gorilla gorilla gorilla,Oko,F
+SRR748175,PAIRED,Gorilla gorilla gorilla,Dolly,F
+SRR748176,PAIRED,Gorilla gorilla gorilla,Dolly,F
+SRR748177,PAIRED,Gorilla gorilla gorilla,Katie_KB4986,F
+SRR748178,PAIRED,Gorilla gorilla gorilla,Katie_KB4986,F
+SRR748179,PAIRED,Pan troglodytes verus,Clint,M
+SRR748180,PAIRED,Pan troglodytes verus,Clint,M
+SRR748181,PAIRED,Pan troglodytes verus,Clint,M
+SRR748182,PAIRED,Pan troglodytes verus,Clint,M
+SRR748183,PAIRED,Pan troglodytes verus,Clint,M
+SRR748184,PAIRED,Pan troglodytes verus,Clint,M
+SRR748185,PAIRED,Pan troglodytes verus,Clint,M
+SRR748186,PAIRED,Pan troglodytes verus,Clint,M
+SRR748187,PAIRED,Gorilla beringei graueri,Victoria,F
+SRR748188,PAIRED,Gorilla beringei graueri,Victoria,F
+SRR748189,PAIRED,Gorilla beringei graueri,Victoria,F
+SRR748190,PAIRED,Gorilla beringei graueri,Victoria,F
+SRR748191,PAIRED,Gorilla beringei graueri,Victoria,F
+SRR748192,PAIRED,Gorilla beringei graueri,Victoria,F
+SRR748194,SINGLE,Gorilla gorilla gorilla,Mimi,F
+SRR748195,SINGLE,Gorilla gorilla gorilla,Mimi,F
+SRR748196,SINGLE,Gorilla gorilla gorilla,Dian,F
+SRR748197,SINGLE,Gorilla gorilla gorilla,Dian,F
+SRR726607,PAIRED,Pan paniscus,Hortense,F
+SRR726608,PAIRED,Pan paniscus,Hortense,F
+SRR726609,PAIRED,Pan paniscus,Hortense,F
+SRR726610,PAIRED,Pan paniscus,Hortense,F
+SRR740829,SINGLE,Pan paniscus,Kombote,F
+SRR740830,SINGLE,Pan paniscus,Kombote,F
+SRR741002,SINGLE,Pan paniscus,Bono,M
+SRR741062,SINGLE,Pan paniscus,Bono,M
+SRR741444,SINGLE,Pan paniscus,Natalie,F
+SRR741494,SINGLE,Pan paniscus,Natalie,F
+SRR747649,SINGLE,Pan paniscus,Kumbuka,F
+SRR747650,SINGLE,Pan paniscus,Kumbuka,F
+SRR747657,SINGLE,Gorilla beringei graueri,Kaisi,M
+SRR747658,SINGLE,Gorilla beringei graueri,Kaisi,M
+SRR747927,PAIRED,Pan paniscus,LB502,F
+SRR747928,PAIRED,Pan paniscus,LB502,F
+SRR747929,PAIRED,Pan paniscus,LB502,F
+SRR747930,PAIRED,Pan paniscus,LB502,F
+SRR747931,PAIRED,Gorilla gorilla gorilla,Kowali,F
+SRR747932,PAIRED,Gorilla gorilla gorilla,Kowali,F
+SRR747933,PAIRED,Gorilla gorilla gorilla,Kowali,F
+SRR747934,PAIRED,Gorilla gorilla gorilla,Kowali,F
+SRR747935,PAIRED,Gorilla gorilla gorilla,Bulera,F
+SRR747936,PAIRED,Gorilla gorilla gorilla,Bulera,F
+SRR747937,PAIRED,Gorilla gorilla gorilla,Bulera,F
+SRR747938,PAIRED,Gorilla gorilla gorilla,Bulera,F
+SRR747939,PAIRED,Gorilla gorilla gorilla,Azizi,M
+SRR747940,PAIRED,Gorilla gorilla gorilla,Azizi,M
+SRR747941,PAIRED,Gorilla gorilla gorilla,Azizi,M
+SRR747942,PAIRED,Gorilla gorilla gorilla,Azizi,M
+SRR747943,PAIRED,Gorilla gorilla gorilla,Suzie,F
+SRR747944,PAIRED,Gorilla gorilla gorilla,Suzie,F
+SRR747945,PAIRED,Gorilla gorilla gorilla,Suzie,F
+SRR747946,PAIRED,Gorilla gorilla gorilla,Suzie,F
+SRR747947,PAIRED,Pan troglodytes verus x troglodytes,Donald,M
+SRR747948,PAIRED,Pan troglodytes verus x troglodytes,Donald,M
+SRR747949,PAIRED,Pan troglodytes verus x troglodytes,Donald,M
+SRR747950,PAIRED,Pan troglodytes verus x troglodytes,Donald,M
+SRR747951,PAIRED,Pan troglodytes verus,Bosco,M
+SRR747952,PAIRED,Pan troglodytes verus,Bosco,M
+SRR747953,PAIRED,Pan troglodytes verus,Bosco,M
+SRR747954,PAIRED,Pan troglodytes verus,Bosco,M
+SRR747955,PAIRED,Pan troglodytes schweinfurthii,Harriet,F
+SRR747956,PAIRED,Pan troglodytes schweinfurthii,Harriet,F
+SRR747957,PAIRED,Pan troglodytes schweinfurthii,Harriet,F
+SRR747958,PAIRED,Pan troglodytes schweinfurthii,Harriet,F
+SRR747959,PAIRED,Gorilla beringei graueri,Mkubwa,M
+SRR747960,PAIRED,Gorilla beringei graueri,Mkubwa,M
+SRR747961,PAIRED,Gorilla beringei graueri,Mkubwa,M
+SRR747962,PAIRED,Gorilla beringei graueri,Mkubwa,M
+SRR747967,PAIRED,Gorilla gorilla gorilla,Banjo,M
+SRR747968,PAIRED,Gorilla gorilla gorilla,Banjo,M
+SRR747969,PAIRED,Gorilla gorilla gorilla,Banjo,M
+SRR747970,PAIRED,Gorilla gorilla gorilla,Banjo,M
+SRR747971,PAIRED,Gorilla gorilla gorilla,Banjo,M
+SRR747984,PAIRED,Gorilla gorilla gorilla,Delphi,F
+SRR747985,PAIRED,Gorilla gorilla gorilla,Delphi,F
+SRR747986,PAIRED,Gorilla gorilla gorilla,Delphi,F
+SRR747987,PAIRED,Gorilla gorilla gorilla,Delphi,F
+SRR747988,PAIRED,Gorilla gorilla gorilla,Delphi,F
+SRR747989,PAIRED,Gorilla gorilla gorilla,Delphi,F
+SRR747990,PAIRED,Gorilla gorilla gorilla,Coco,F
+SRR747991,PAIRED,Gorilla gorilla gorilla,Coco,F
+SRR747992,PAIRED,Gorilla gorilla gorilla,Coco,F
+SRR747993,PAIRED,Gorilla gorilla gorilla,Coco,F
+SRR747994,PAIRED,Gorilla gorilla gorilla,Coco,F
+SRR747995,PAIRED,Gorilla gorilla gorilla,Kolo,F
+SRR747996,PAIRED,Gorilla gorilla gorilla,Kolo,F
+SRR747997,PAIRED,Gorilla gorilla gorilla,Kolo,F
+SRR747998,PAIRED,Gorilla gorilla gorilla,Kolo,F
+SRR747999,PAIRED,Pongo pygmaeus,Nonja,F
+SRR748000,PAIRED,Pongo pygmaeus,Nonja,F
+SRR748001,PAIRED,Pongo pygmaeus,Nonja,F
+SRR748002,PAIRED,Pongo pygmaeus,Nonja,F
+SRR748003,PAIRED,Pongo pygmaeus,Nonja,F
+SRR748004,PAIRED,Pongo pygmaeus,Temmy,F
+SRR748005,PAIRED,Pongo pygmaeus,Temmy,F
+SRR748006,PAIRED,Pongo pygmaeus,Temmy,F
+SRR748007,PAIRED,Pongo pygmaeus,Temmy,F
+SRR748008,PAIRED,Pongo pygmaeus,Sari,F
+SRR748009,PAIRED,Pongo pygmaeus,Sari,F
+SRR748010,PAIRED,Pongo pygmaeus,Sari,F
+SRR748011,PAIRED,Pongo pygmaeus,Sari,F
+SRR748012,PAIRED,Pongo pygmaeus,Tilda,F
+SRR748013,PAIRED,Pongo pygmaeus,Tilda,F
+SRR748014,PAIRED,Pongo pygmaeus,Tilda,F
+SRR748015,PAIRED,Pongo pygmaeus,Tilda,F
+SRR748016,PAIRED,Pongo pygmaeus,Tilda,F
+SRR748017,PAIRED,Pongo pygmaeus,Tilda,F
+SRR748018,PAIRED,Pongo pygmaeus,Napoleon,M
+SRR748019,PAIRED,Pongo pygmaeus,Napoleon,M
+SRR748020,PAIRED,Pongo pygmaeus,Napoleon,M
+SRR748021,PAIRED,Pongo pygmaeus,Napoleon,M
+SRR748022,PAIRED,Pongo pygmaeus,Napoleon,M
+SRR748023,PAIRED,Pongo pygmaeus,Napoleon,M
+SRR748024,PAIRED,Pongo abelii,Elsi,F
+SRR748025,PAIRED,Pongo abelii,Elsi,F
+SRR748026,PAIRED,Pongo abelii,Elsi,F
+SRR748027,PAIRED,Pongo abelii,Elsi,F
+SRR748028,PAIRED,Pongo abelii,Elsi,F
+SRR748029,PAIRED,Pongo abelii,Elsi,F
+SRR748030,PAIRED,Pongo abelii,Kiki,F
+SRR748031,PAIRED,Pongo abelii,Kiki,F
+SRR748032,PAIRED,Pongo abelii,Kiki,F
+SRR748033,PAIRED,Pongo abelii,Kiki,F
+SRR748034,PAIRED,Pongo abelii,Kiki,F
+SRR748035,PAIRED,Pongo abelii,Dunja,F
+SRR748036,PAIRED,Pongo abelii,Dunja,F
+SRR748037,PAIRED,Pongo abelii,Dunja,F
+SRR748038,PAIRED,Pongo abelii,Dunja,F
+SRR748039,PAIRED,Pongo abelii,Dunja,F
+SRR748040,PAIRED,Pongo abelii,Dunja,F
+SRR748041,PAIRED,Pongo abelii,Babu,F
+SRR748042,PAIRED,Pongo abelii,Babu,F
+SRR748043,PAIRED,Pongo abelii,Babu,F
+SRR748044,PAIRED,Pongo abelii,Babu,F
+SRR748045,PAIRED,Pongo abelii,Babu,F
+SRR748046,PAIRED,Pongo abelii,Buschi,M
+SRR748047,PAIRED,Pongo abelii,Buschi,M
+SRR748048,PAIRED,Pongo abelii,Buschi,M
+SRR748049,PAIRED,Pongo abelii,Buschi,M
+SRR748050,PAIRED,Pongo abelii,Buschi,M
+SRR748051,PAIRED,Pan troglodytes verus,Jimmie,F
+SRR748052,PAIRED,Pan troglodytes verus,Jimmie,F
+HGDP00998,PAIRED,Homo sapiens,Karitiana,M
+HGDP00521,PAIRED,Homo sapiens,French,M
+HGDP01284,PAIRED,Homo sapiens,Mandenka,M
+HGDP01307,PAIRED,Homo sapiens,Dai,M
+HGDP00542,PAIRED,Homo sapiens,Papuan,M
+HGDP00665,PAIRED,Homo sapiens,Sardinian,M
+HGDP00778,PAIRED,Homo sapiens,Han,M
+HGDP0456,PAIRED,Homo sapiens,Mbuti,M
+HGDP01029,PAIRED,Homo sapiens,San,M
+HG002,PAIRED,Homo sapiens,Son,M
+HG003,PAIRED,Homo sapiens,Father,M
+HG004,PAIRED,Homo sapiens,Mother,F
+NA12878,PAIRED,Homo sapiens,Daughter2,F
+NA12889,PAIRED,Homo sapiens,Father2,M
+NA12890,PAIRED,Homo sapiens,Mother2,F
