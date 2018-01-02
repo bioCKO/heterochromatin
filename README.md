@@ -78,6 +78,7 @@ Use datasets trimmed to 100bp reads if available.
 
 ####5. Merge identified repeat motifs into single table
 	scripts: run_merging.sh
+	 ./run_merging.sh rawcounts.sortedFilt; ./run_merging.sh rawlengths.sortedFilt;
 	
 *Input*: rawcounts.sortedFilt or rawlengths.sortedFilt
 
