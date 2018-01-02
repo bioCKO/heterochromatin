@@ -68,6 +68,8 @@ Use datasets trimmed to 100bp reads if available.
 ####4. Filter repeat motifs based on minimum frequency
 	scripts: filter_raw_files.sh
 	
+	for file in *.rawcounts; do echo $file; sbatch filter_raw_files.sh $file; sleep 0.1; done;
+	
 *Input*: .rawcounts (automatically processes also .rawlengths)
 
 *Output*: .rawcounts.sortedFilt and .rawlengths.sortedFilt
