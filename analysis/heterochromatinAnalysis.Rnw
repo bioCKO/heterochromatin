@@ -182,8 +182,8 @@ uniq_names<-c("Homo_sapiens","Pan_troglodytes_schweinfurthii","Pan_troglodytes_t
 
 #colSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,])!=0
 
-#calculate mean of repeat densities for each individual; individuals must match correct species name (rows) and only non-zero repeat motifs will be considered (columns)
-repVariability<-lapply(uniq_names, function(x) rowMeans(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,colSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,])!=0],na.rm = TRUE))
+#calculate sum of repeat densities for each individual; individuals must match correct species name (rows) and only non-zero repeat motifs will be considered (columns)
+repVariability<-lapply(uniq_names, function(x) rowSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,colSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,])!=0],na.rm = TRUE))
 
 sd<-unlist(lapply(repVariability, function(x) round(sd(x),2)))
 min<-unlist(lapply(repVariability, function(x) x[which.min(abs(x))]))
@@ -214,7 +214,7 @@ plot.new()
 uniq_names<-c("Homo","Pan_troglodytes","Pan_paniscus","Gorilla","Pongo")
 myColors<-c("gray30","darkgreen","dodgerblue","firebrick1","gold")
 
-repVariabilityBig<-lapply(uniq_names, function(x) rowMeans(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,colSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,])!=0],na.rm = TRUE))
+repVariabilityBig<-lapply(uniq_names, function(x) rowSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,colSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,])!=0],na.rm = TRUE))
 boxplot(repVariabilityBig,names=paste(uniq_names,lengths(repVariabilityBig)),las=2,col=myColors,outline=TRUE)
 
 foldStat<-function(species) {
