@@ -22,12 +22,71 @@ source("http://www.sthda.com/upload/rquery_cormat.r")
 <<>>=
 working_directory<-"/Users/alice/Desktop/projects/heterochromatin/refactored/"
 setwd(working_directory)
-#load(paste0(working_directory,"abundant.Rda"))
+@
+
+<<FILTER FOR SPECIES FREQUENCY AND IDENTIFY DESIRED filtered_repeat_motifs>>=
+tmp<-frequency
+
+if (length(filtered_files)==length(colnames(frequency))) {
+  individual_id<-paste(lapply(strsplit(filtered_files,"\\|"), function(x) paste(x[3],x[2],x[4])))
+  colnames(tmp)<-individual_id
+} else {
+  stop("Data import problem.")
+}
+unique_col_names <- unique(individual_id)
+tmp_abundantRepeatsVsIndividuals <- sapply(unique_col_names, function(name)
+{
+  subs <- tmp[, colnames(tmp) == name]
+  if(is.data.frame(subs))
+    apply(subs,1,median)
+  else
+    subs
+})
+
+#MEDIAN ACROSS TECHNICAL REPLICATES
+#tmp_abundantSpeciesVsRepeats contains SPECIES as ROWS and REPEATS as columns
+tmp_abundantSpeciesVsRepeats<-t(tmp_abundantRepeatsVsIndividuals)
+l<-rownames(tmp_abundantSpeciesVsRepeats)
+l[grepl("Pan_paniscus",l)==TRUE]<-"Bonobo"
+l[grepl("Pan",l)==TRUE]<-"Chimpanzee"
+l[grepl("Gorilla",l)==TRUE]<-"Gorilla"
+l[grepl("Pongo",l)==TRUE]<-"Orangutan"
+l[grepl("Homo",l)==TRUE]<-"Homo"
+groupCodes <-l
+rownames(tmp_abundantSpeciesVsRepeats)<-groupCodes
+colnames(tmp_abundantSpeciesVsRepeats)<-rownames(tmp)
+
+#MEAN ACROSS BIOLOGICAL REPLICATES
+tmp_bio<-as.data.frame(t(tmp_abundantSpeciesVsRepeats))
+tmp_bio <- sapply(unique(colnames(tmp_bio)), function(name)
+{
+  subs <- tmp_bio[,colnames(tmp_bio) == name]
+  if(is.data.frame(subs))
+    apply(subs,1,mean)
+  else
+    subs
+})
+
+require(tibble)
+
+tmp_bio<-as.data.frame(tmp_bio)
+tmp_bio<-tmp_bio %>% rownames_to_column('repeat_motif') 
+tmp_bio<-filter_at(tmp_bio, vars(-repeat_motif), any_vars(. > 10))
+tmp_bio<-tmp_bio %>% column_to_rownames('repeat_motif')
+
+filtered_repeat_motifs<-rownames(tmp_bio)
+
+frequency<-frequency[filtered_repeat_motifs,]
+density<-density[filtered_repeat_motifs,]
+
+print(dim(frequency))
+print(dim(density))
 @
 
 
+
 <<DATA FORMATTING>>=
-top<-abundant
+top<-density
 
 if (length(filtered_files)==length(colnames(top))) {
   colnames(top)<-paste(lapply(strsplit(filtered_files,"\\|"), function(x) paste(x[3],x[2],x[4])))
@@ -43,84 +102,20 @@ abundantRepeatsVsIndividuals <- sapply(unique_col_names, function(name)
   else
     subs
 })
-#rownames(abundantRepeatsVsIndividuals)<-top[,1]
-#abundantRepeatsVsIndividuals<-abundantRepeatsVsIndividuals[,-1]
 
 #abundantRepeatsVsIndividuals contains REPEATS as ROWS and INDIVIDUALS with full names as columns
 abundantIndividualsVsRepeats<-t(abundantRepeatsVsIndividuals)
-abundantSpeciesVsRepeats<-t(abundantRepeatsVsIndividuals)
 
+#abundantSpeciesVsRepeats contains SPECIES as ROWS and REPEATS as columns
+abundantSpeciesVsRepeats<-t(abundantRepeatsVsIndividuals)
 l<-rownames(abundantSpeciesVsRepeats)
 l[grepl("Pan_paniscus",l)==TRUE]<-"Bonobo"
 l[grepl("Pan",l)==TRUE]<-"Chimpanzee"
 l[grepl("Gorilla",l)==TRUE]<-"Gorilla"
 l[grepl("Pongo",l)==TRUE]<-"Orangutan"
 l[grepl("Homo",l)==TRUE]<-"Homo"
-
 groupCodes <-l
 rownames(abundantSpeciesVsRepeats)<-groupCodes
-#abundantSpeciesVsRepeats contains SPECIES as ROWS and REPEATS as columns
-@
-
-
-<<sanity checks>>=
-trimmed<-top[,32:100]
-rownames(trimmed) <- as.character(unlist(trimmed[,1]))
-trimmed = trimmed[,-1 ]
-
-sampleToCluster<-t(trimmed)
-sampleToCluster<-as.data.frame(sampleToCluster)
-l<-rownames(sampleToCluster)
-l[grepl("Pan_paniscus",l)==TRUE]<-"Bonobo"
-l[grepl("Pan",l)==TRUE]<-"Chimpanzee"
-l[grepl("Gorilla",l)==TRUE]<-"Gorilla"
-l[grepl("Pongo",l)==TRUE]<-"Orangutan"
-l[grepl("Homo",l)==TRUE]<-"Homo"
-
-groupCodes <-l
-colorCodes <- c(Bonobo="blue", Chimpanzee="darkgreen", Gorilla="red", Orangutan="orange", Homo="black")
-
-sampleToCluster<-apply(sampleToCluster, 2, as.numeric)
-
-rownames(sampleToCluster)<-make.names(groupCodes, unique=TRUE)
-dist<-as.dist(1-cor((t(sampleToCluster)))) #distance based on correlation
-hcSingle <- hclust(dist,method="single") 
-dendSingle <- as.dendrogram(hcSingle)
-
-names_and_sexes<-paste(lapply(strsplit(colnames(trimmed)," "), function(x) x[1]),lapply(strsplit(colnames(trimmed)," "), function(x) x[3]))
-
-names_of_individuals<-paste(lapply(strsplit(colnames(trimmed)," "), function(x) x[1]))
-
-# Assigning the labels of dendrogram object with new colors:
-labels_colors(dendSingle) <- colorCodes[groupCodes][order.dendrogram(dendSingle)]
-labels(dendSingle)<-names_and_sexes[order.dendrogram(dendSingle)]
-
-#plot(dendSingle, main = "Clustering using linkage function 'single'",cex=0.3)
-
-tr<-as.data.frame(t(trimmed[1:10,]))
-tr$names<-names_of_individuals
-palette(rainbow(6)) 
-fit <- aov(AATGG ~ names, data=tr)
-summary(fit)
-
-#biological replicate sd
-aggregate(AATGG ~ names, tr, function(x) c(mean = mean(x), sd = sd(x)))
-
-technical<-(tr %>% group_by(names) %>% summarise_each(funs(sd),-names))
-total <- tr %>% summarise_each(funs(sd),-names)
-
-#par(mfrow=c(1,2))
-technicalbox<-colMeans(technical[2:ncol(technical)])
-totalbox<-colMeans(total[2:ncol(total)])
-                  
-#boxplot(technicalbox,col="gold",main="Technical sd",outline=FALSE,ylim=c(0,1000))
-#boxplot(totalbox,col="green",main="Total sd",outline=FALSE,ylim=c(0,1000))
-
-fun <- function(x){
-    ICCbare(tr$names,x,tr)
-}  
-clmns<-colnames(tr)[1:ncol(tr)-1]
-#boxplot(unlist(lapply(clmns,fun)),na.rm=TRUE,outline=FALSE,col="gold",main="intraclass corelation coefficient",sub=paste("n=",length(clmns)))
 @
 
 
@@ -131,7 +126,9 @@ binary<-abundantSpeciesVsRepeats
 binary[binary>0]<-1
 binary<-as.data.frame(binary)
 
-binary <- sapply(unique(rownames(binary)), function(name) {
+unique_species<-c("Homo","Chimpanzee","Bonobo","Gorilla","Orangutan")
+
+binary <- sapply(unique_species, function(name) {
   subs <- binary[rownames(binary) == name,]
   if(is.data.frame(subs))
     colSums(subs)
@@ -139,9 +136,12 @@ binary <- sapply(unique(rownames(binary)), function(name) {
     subs
 })
 
-sample_sizes<-c(19,13,27,10,11)
+sample_sizes<-c(11,19,13,27,10) #sample sizes for "Homo","Chimpanzee","Bonobo","Gorilla","Orangutan"
+stopifnot(sum(sample_sizes)==length(rownames(abundantSpeciesVsRepeats)))
+stopifnot(ncol(binary)==length(unique_species))
+
 binary<-sweep(binary, 2, sample_sizes, `/`)
-mycol<-colorRampPalette(c("white","black" ), bias=1) 
+mycol<-colorRampPalette(c("white","black" ), bias=1)(n=1000) 
 heatmap.2(binary[,c("Homo","Chimpanzee","Bonobo","Gorilla","Orangutan")],dendrogram="none", Colv=FALSE, trace='none',col=mycol,cexRow=0.1,cexCol=0.75)
 binary<-as.data.frame(binary)
 
@@ -165,7 +165,7 @@ table(rowSums(binary==1))
 
 <<Venn diagram>>=
 #human, chimp, bonobo, gorilla, orangutan
-
+plot.new()
 keep<-binary[!(binary$Chimpanzee==0 & binary$Bonobo==0 & binary$Gorilla==0 & binary$Orangutan==0 & binary$Homo==0),]
 
 area1<-length(rownames((keep[keep$Chimpanzee>=0 & keep$Bonobo>=0 & keep$Gorilla>=0 & keep$Orangutan>=0 & keep$Homo>0,]))) #human
@@ -240,7 +240,10 @@ return(larger/smaller)
 uniq_names<-c("Homo_sapiens","Pan_troglodytes_schweinfurthii","Pan_troglodytes_troglodytes","Pan_troglodytes_ellioti","Pan_troglodytes_verus","Pan_paniscus","Gorilla_gorilla_gorilla","Gorilla_beringei_graueri","Pongo_pygmaeus","Pongo_abelii")
 
 #colSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,])!=0
+
+#calculate mean of repeat densities for each individual; individuals must match correct species name (rows) and only non-zero repeat motifs will be considered (columns)
 repVariability<-lapply(uniq_names, function(x) rowMeans(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,colSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,])!=0],na.rm = TRUE))
+
 sd<-unlist(lapply(repVariability, function(x) round(sd(x),2)))
 min<-unlist(lapply(repVariability, function(x) x[which.min(abs(x))]))
 max<-unlist(lapply(repVariability, function(x) x[which.max(abs(x))]))
@@ -281,7 +284,7 @@ apply(dt,2,foldStat)
 @
 
 <<FIGURE3>>=
-par(mfrow=c(1,5),cex=1.01, mai = c(5, 0.5, 0.3, 0.3))
+par(mfrow=c(1,5),cex=1.01, mai = c(5, 0.48, 0.3, 0.1))
 myList<-c("Homo","Chimpanzee","Bonobo","Gorilla","Orangutan")
 
 for (ape in myList) {
@@ -299,6 +302,7 @@ for (ape in myList) {
   #colnames(reordered) <- rnames
   
   boxplot(reordered[,1:12]/1000,col="gold",las=2,main=paste(ape,"most abundant"))
+  #boxplot(log(reordered[,1:12]),ylim=c(6,13),col="gold",las=2,main=paste(ape,"most abundant")) #logs
 }
 @
 
@@ -306,12 +310,14 @@ for (ape in myList) {
 par(mfrow=c(2,3))
 pca_data<-as.data.frame(na.omit(abundantSpeciesVsRepeats[,]))
 pca_data$species<-rownames(pca_data)
-pca_data<-pca_data[with(pca_data, order(species)), ]
-
 pca_data$species<-factor(pca_data$species)
+sex<-paste(lapply(strsplit(rownames(abundantIndividualsVsRepeats)," "), function(x) x[3]))
+pca_data$sex<-sex
+pca_data<-pca_data[with(pca_data, order(species)), ]
+#View(pca_data[,(ncol(pca_data)-1):(ncol(pca_data))])
 
 #RUN PRINCIPAL COMPONENT ANALYSIS (PCA) based on SPECIES
-pc <- princomp(pca_data[,1:(ncol(pca_data)-1)], cor=FALSE, scores=TRUE)
+pc <- princomp(pca_data[,1:160], cor=FALSE, scores=TRUE)
 summary(pc)
 plot(pc,type="lines",main="Variance explained") #plot variance explained by each component
 
@@ -322,8 +328,8 @@ plot3d(pc$scores[,1:3],col=as.numeric(pca_data$species),cex=2,size=10)
 legend(x="topleft", legend = levels(pca_data$species), col = unique(as.numeric(pca_data$species)),lty=1,bty = "n")
 
 #plot first two principal components in 2D space
-#autoplot(prcomp(pca_data[,1:(ncol(pca_data)-1)]),colour=as.numeric(as.factor(pca_data$species)))
-
+a<-autoplot(prcomp(pca_data[,1:(ncol(pca_data)-2)]),label=FALSE,colour=as.numeric(as.factor(pca_data$species)),shape=as.numeric(as.factor(pca_data$sex))+15,size=3)
+a + theme_linedraw()
 @
 
 <<FIGURE4b,eval=TRUE>>=
