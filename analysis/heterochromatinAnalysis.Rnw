@@ -24,67 +24,6 @@ working_directory<-"/Users/alice/Desktop/projects/heterochromatin/refactored/"
 setwd(working_directory)
 @
 
-<<FILTER FOR SPECIES FREQUENCY AND IDENTIFY DESIRED filtered_repeat_motifs>>=
-tmp<-frequency
-
-if (length(filtered_files)==length(colnames(frequency))) {
-  individual_id<-paste(lapply(strsplit(filtered_files,"\\|"), function(x) paste(x[3],x[2],x[4])))
-  colnames(tmp)<-individual_id
-} else {
-  stop("Data import problem.")
-}
-unique_col_names <- unique(individual_id)
-tmp_abundantRepeatsVsIndividuals <- sapply(unique_col_names, function(name)
-{
-  subs <- tmp[, colnames(tmp) == name]
-  if(is.data.frame(subs))
-    apply(subs,1,median)
-  else
-    subs
-})
-
-#MEDIAN ACROSS TECHNICAL REPLICATES
-#tmp_abundantSpeciesVsRepeats contains SPECIES as ROWS and REPEATS as columns
-tmp_abundantSpeciesVsRepeats<-t(tmp_abundantRepeatsVsIndividuals)
-l<-rownames(tmp_abundantSpeciesVsRepeats)
-l[grepl("Pan_paniscus",l)==TRUE]<-"Bonobo"
-l[grepl("Pan",l)==TRUE]<-"Chimpanzee"
-l[grepl("Gorilla",l)==TRUE]<-"Gorilla"
-l[grepl("Pongo",l)==TRUE]<-"Orangutan"
-l[grepl("Homo",l)==TRUE]<-"Homo"
-groupCodes <-l
-rownames(tmp_abundantSpeciesVsRepeats)<-groupCodes
-colnames(tmp_abundantSpeciesVsRepeats)<-rownames(tmp)
-
-#MEAN ACROSS BIOLOGICAL REPLICATES
-tmp_bio<-as.data.frame(t(tmp_abundantSpeciesVsRepeats))
-tmp_bio <- sapply(unique(colnames(tmp_bio)), function(name)
-{
-  subs <- tmp_bio[,colnames(tmp_bio) == name]
-  if(is.data.frame(subs))
-    apply(subs,1,mean)
-  else
-    subs
-})
-
-require(tibble)
-
-tmp_bio<-as.data.frame(tmp_bio)
-tmp_bio<-tmp_bio %>% rownames_to_column('repeat_motif') 
-tmp_bio<-filter_at(tmp_bio, vars(-repeat_motif), any_vars(. > 10))
-tmp_bio<-tmp_bio %>% column_to_rownames('repeat_motif')
-
-filtered_repeat_motifs<-rownames(tmp_bio)
-
-frequency<-frequency[filtered_repeat_motifs,]
-density<-density[filtered_repeat_motifs,]
-
-print(dim(frequency))
-print(dim(density))
-@
-
-
-
 <<DATA FORMATTING>>=
 top<-density
 
