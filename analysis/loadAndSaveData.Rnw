@@ -66,6 +66,22 @@ getFilteredReadCounts <- function(files) {
   return(read_counts)
 }
 
+getReadLengths <- function(files) {
+  SRR_ids<-gsub( "\\|.*$", "", files)
+  merged<-merge(SRR_ids,read_lengths,by=1)
+  rl<-merged[match(SRR_ids,merged$x),]$read_length
+  
+  if (!length(SRR_ids)==length(rl)) {
+    stop("Discrepancies in the association table.")
+  }
+  
+  if (any(is.na(rl))) {
+    stop("Discrepancies in the read length association.")
+  }
+  
+  return(rl)
+}
+
 
 #filters = list(species="Pan paniscus")
 filters = list() #no filters here, however filters could be potentially specified
@@ -161,7 +177,9 @@ filtered_files<-dropFamilyRelatedFiles(filtered_files)
 @
 
 <<FREQUENCY>>=
-d<-read.table("/Users/alice/Desktop/projects/heterochromatin/refactored/big.table.with.header.1.fastq.dat_Header.txt.rawcounts.sortedFilt.txt",sep=" ",header=TRUE,row.names=1,na.strings=NA,fill=TRUE)
+#d<-read.table("/Users/alice/Desktop/projects/heterochromatin/great_ape_diversity/counts75/threshold100/sort/big.table.with.header.txt",sep=" ",header=TRUE,row.names=1,na.strings=NA,fill=TRUE)
+  
+d<-read.table("/Users/alice/Desktop/projects/heterochromatin/refactored/big.table.with.header.rawcounts.sortedFilt.txt",sep=" ",header=TRUE,row.names=1,na.strings=NA,fill=TRUE)
 d<-as.data.frame(d) #convert to dataframe
 d[is.na(d)] <- 0
 
@@ -173,10 +191,17 @@ rep.row<-function(x,n){
    matrix(rep(x,each=n),nrow=n) #transforms normalization vector into matrix
 }
 
+#NORMALIZE BY READ COUNTS per million reads
 normalization_factor=1000000
 normalization_matrix<-rep.row(getFilteredReadCounts(filtered_files),dim(data)[1])
 data<-as.data.frame(data) #convert to dataframe from data table
-data[,2:ncol(data)]<-data[2:ncol(data)]/normalization_matrix*normalization_factor #normalization of data by read counts
+data<-data/normalization_matrix*normalization_factor #normalization of data by read counts
+
+#NORMALIZE BY READ LENGTH per 100bp reads
+normalization_factor=100
+normalization_matrix<-rep.row(getReadLengths(filtered_files),dim(data)[1])
+data<-as.data.frame(data) #convert to dataframe from data table
+data<-data/normalization_matrix*normalization_factor #normalization of data by read counts
 
 #FREQUENCY
 frequency<-data[,columns_to_select] #RESTRICT ONLY TO FILTERED FILES
@@ -188,7 +213,7 @@ plot(table(nchar(as.character(rownames(frequency)))),ylab="number of distinct re
 @
 
 <<DENSITY>>=
-d<-read.table("/Users/alice/Desktop/projects/heterochromatin/refactored/big.table.with.header.1.fastq.dat_Header.txt.rawlengths.sortedFilt.txt",sep=" ",header=TRUE,row.names=1,na.strings=NA,fill=TRUE)
+d<-read.table("/Users/alice/Desktop/projects/heterochromatin/refactored/big.table.with.header.rawlengths.sortedFilt.txt",sep=" ",header=TRUE,row.names=1,na.strings=NA,fill=TRUE)
 d<-as.data.frame(d) #convert to dataframe
 d[is.na(d)] <- 0
 
@@ -200,16 +225,26 @@ rep.row<-function(x,n){
    matrix(rep(x,each=n),nrow=n) #transforms normalization vector into matrix
 }
 
+#NORMALIZE BY READ COUNTS
 normalization_factor=1000000
 normalization_matrix<-rep.row(getFilteredReadCounts(filtered_files),dim(data)[1])
 data<-as.data.frame(data) #convert to dataframe from data table
-data[,2:ncol(data)]<-data[2:ncol(data)]/normalization_matrix*normalization_factor #normalization of data by read counts
+data<-data/normalization_matrix*normalization_factor #normalization of data by read counts
+
+#NORMALIZE BY READ LENGTH
+normalization_factor=100
+normalization_matrix<-rep.row(getReadLengths(filtered_files),dim(data)[1])
+data<-as.data.frame(data) #convert to dataframe from data table
+data<-data/normalization_matrix*normalization_factor #normalization of data by read counts
 
 #DENSITY
-density<-data[,columns_to_select] #RESTRICT ONLY TO FILTERED FILES
-density<-density[order(rowSums(density),decreasing=T),]
-density<-density[nchar(as.character(rownames(density)))<=50,] #remove handful of repeat motifs with unit sizes over 50
-density<-as.data.frame(density)
+density<-data[rownames(frequency),columns_to_select] #restrict only to filtered files and match filtering of frequency variable
 
 plot(table(nchar(as.character(rownames(density)))),ylab="number of distinct repeat motifs",xlab="unit size")
 @
+
+<<stat>>=
+print(dim(frequency))
+print(dim(density))
+@
+
