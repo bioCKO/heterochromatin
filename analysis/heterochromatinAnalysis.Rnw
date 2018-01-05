@@ -268,7 +268,7 @@ for (ape in myList) {
   #boxplot(reordered[,1:12]/100,col="gold",las=2,main=paste(ape,"most abundant"))
   boxplot(log(reordered[,1:12]),ylim=c(6,16),col="gold",las=2,main=paste(ape,"most abundant")) #logs
   
-  most_abundant_for_each_species[ape]<-list(colnames(log(reordered[,1:12])))
+  most_abundant_for_each_species[ape]<-list(colnames(log(reordered[,1:500])))
 }
 @
 
@@ -296,7 +296,7 @@ print(summary(pca_calculation))
 #PREDICT SPECIES BASED ON REPEATS USING LDA
 library(MASS)
 
-matrix_of_most_abundant<-as.data.frame(sapply(most_abundant_for_each_species, function(x) { x[1:12] }))
+matrix_of_most_abundant<-as.data.frame(sapply(most_abundant_for_each_species[], function(x) { x[1:12] }))
 unique_list_of_most_abundant_for_each_species<-unique(as.vector(t(matrix_of_most_abundant)))
 most_abundant_pca_data<-pca_data[,c(unique_list_of_most_abundant_for_each_species,"species","sex")]
 
@@ -347,9 +347,9 @@ l<-rownames(sampleToCluster)
 l[grepl("Pan_paniscus",l)==TRUE]<-"Bonobo"
 l[grepl("Pan",l)==TRUE]<-"Chimpanzee"
 l[grepl("Gorilla",l)==TRUE]<-"Gorilla"
-#l[grepl("Pongo",l)==TRUE]<-"Orangutan"
-l[grepl("Pongo_pygmaeus",l)==TRUE]<-"Bornean"
-l[grepl("Pongo_abelii",l)==TRUE]<-"Sumatran"
+l[grepl("Pongo",l)==TRUE]<-"Orangutan"
+#l[grepl("Pongo_pygmaeus",l)==TRUE]<-"Bornean"
+#l[grepl("Pongo_abelii",l)==TRUE]<-"Sumatran"
 l[grepl("Homo",l)==TRUE]<-"Homo"
 
 groupCodes <-l
@@ -469,8 +469,8 @@ par(mfrow=c(2,3))
 #DIVIDE BY SPECIES
 setwd("/Users/alice/Desktop/projects/heterochromatin/phylogeny")
 
-myList = c("Homo", "Pan_paniscus", "Pan_troglodytes", "Gorilla", "Pongo")
-#myList = c("Homo")
+#myList = c("Homo", "Pan_paniscus", "Pan_troglodytes", "Gorilla", "Pongo")
+myList = c("Homo","Chimpanzee","Bonobo","Gorilla","Orangutan")
 
 returnCorrelationVector <- function(vector) {
   #identify data for which correlation cannot be calculated
@@ -495,7 +495,20 @@ returnCorrelationVector <- function(vector) {
 for (ape in myList) {
   print(ape)
   
-  corData <- abundantIndividualsVsRepeats[grepl(ape, rownames(abundantIndividualsVsRepeats)) == TRUE, ]
+  #get most abundant repeats for each species
+  corData <- sampleToCluster
+  repeat_motifs_to_use<-as.character(unlist(most_abundant_for_each_species[ape]))
+  corData<-corData[grepl(ape, rownames(corData)) == TRUE,repeat_motifs_to_use[1:500]] #subsample first n repeats
+  print(dim(corData))
+  
+  source("http://www.sthda.com/upload/rquery_cormat.r")
+  #correlation plot
+  corTable<-t(corData)
+  corTable<-as.matrix(corTable)
+  class(corTable) <- "numeric"
+  colnames(corTable)<-make.names(colnames(corTable),unique=TRUE)
+  rquery.cormat(t(corTable)[,1:500], type="upper",graphType="heatmap")
+  
   #get vector of all correlation coefficients that could be calculated
   corValues<-returnCorrelationVector(corData)
   
@@ -516,7 +529,7 @@ for (ape in myList) {
   #df<-df[with(df, order(F)),] #sort by F column that denotes means
   df$x<-seq(1,length(df$F),1)
   
-  plot(df$x, df$F,ylim=c(-1,1),type='l',col="red",main=ape,ylab = "correlation coefficient")
+  plot(df$x, df$F,ylim=c(-1,1),type='l',col="red",main=ape,ylab = "correlation coefficient",cex.axis=1.8,cex.lab=1.8,xlab="repeat motifs")
   
   #make polygon where coordinates start with lower limit and 
   # then upper limit in reverse order
