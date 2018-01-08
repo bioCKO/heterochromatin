@@ -265,8 +265,8 @@ for (ape in myList) {
   #  paste0(nchar(colnames(reordered)), "mer")[nchar(rnames) > 5]
   #colnames(reordered) <- rnames
   
-  #boxplot(reordered[,1:12]/100,col="gold",las=2,main=paste(ape,"most abundant"))
-  boxplot(log(reordered[,1:12]),ylim=c(6,16),col="gold",las=2,main=paste(ape,"most abundant")) #logs
+  boxplot(reordered[,1:12]/100,col="gold",las=2,main=paste(ape,"most abundant"))
+  #boxplot(log(reordered[,1:12]),ylim=c(6,16),col="gold",las=2,main=paste(ape,"most abundant")) #logs
   
   most_abundant_for_each_species[ape]<-list(colnames(log(reordered[,1:500])))
 }
@@ -557,6 +557,81 @@ for (ape in myList) {
 rownames((keep[keep$Chimpanzee==0 & keep$Bonobo==0 & keep$Gorilla>0 & keep$Orangutan==0 & keep$Homo==0,]))
 @
 
+<<identify candidates>>=
+
+#merge by species
+#for each species
+  #filter out non-density repeats
+  #run t-test and assess significance
+  #report top 5 significant repeats
+
+#compare how much identifies repeats overlap between species by clustering
+library("pwr")
+library("gsubfn")
+#library(MVR)
+
+getCandidatesForSpecies <- function(colName,species,threshold) {
+    transposed<-pca_data[c(colName,"species","sex")]
+    transposed<-transposed[grep(species, rownames(transposed)),]
+    colnames(transposed)<-c("counts","species","sex")
+    transposed<-transform(transposed,counts = as.numeric(counts))
+    
+    if (mean(transposed$counts)>threshold) {
+    
+    print(colName)  
+    print(paste("mean species level density: ",sum(transposed$counts)))
+    toPlotAggregated<-aggregate(counts ~ sex + species, data=transposed, FUN=mean)
+    print(toPlotAggregated)
+    male_individuals<-as.numeric(table(transposed$sex)["M"])
+    female_individuals<-as.numeric(table(transposed$sex)["F"])
+    
+    means<-mean(toPlotAggregated[toPlotAggregated$sex=="M",,drop=FALSE]$counts)-mean(toPlotAggregated[toPlotAggregated$sex=="F",,drop=FALSE]$counts)
+    ratios<-mean(toPlotAggregated[toPlotAggregated$sex=="M",,drop=FALSE]$counts)/mean(toPlotAggregated[toPlotAggregated$sex=="F",,drop=FALSE]$counts)
+    
+    d<-round(as.numeric(means))
+    r<-round(as.numeric(ratios),2)
+    #power<-pwr.t2n.test(male_individuals,female_individuals,abs(d),alternative="less")$power
+    #effect size needs to be calculated as absolute difference in means divided by the pooled std
+    
+    pvalue<-NaN
+    #we can only run statistical test if we have positive number of male and female samples
+    if (sum(transposed$sex=="M")>0 & sum(transposed$sex=="F")>0) {
+      pvalue<-wilcox.test(alternative="less",transposed[transposed$sex=="F",,drop=FALSE]$counts,transposed[transposed$sex=="M",,drop=FALSE]$counts)$p.value 
+      pvalue<-round(as.numeric(pvalue),2)
+      }
+    if (pvalue<=0.2) {
+      return(c(colName,pvalue,round(mean(transposed$counts)),r,d))
+      }
+    }
+}
+
+getTopCandidatesForSpecies <- function(species,threshold) {
+  repeats_to_iterate_over<-colnames(pca_data)[1:(ncol(pca_data)-2),drop=FALSE]
+  pvalues<-lapply(repeats_to_iterate_over,getCandidatesForSpecies,species=species,threshold=threshold)
+  candidates<-as.data.frame(do.call(rbind,pvalues))
+  colnames(candidates)<-c("unit","pvalue","avg_density","ratio","difference")
+  candidates<-candidates[order(as.numeric(as.character(candidates$avg_density)),decreasing=TRUE) , ,drop=FALSE]
+  return(candidates)
+}
+
+threshold<-50000 #minimum density for a repeat to be considered
+#1,000,000 reads translate into 100,000,000 bp, thus 0.0005 (0.05%) repeat will cover 50,000 bps
+Candidates_Chimpanzee<-getTopCandidatesForSpecies("Chimpanzee",threshold)
+Candidates_Bonobo<-getTopCandidatesForSpecies("Bonobo",threshold)
+Candidates_Gorilla<-getTopCandidatesForSpecies("Gorilla",threshold)
+Candidates_Orangutan<-getTopCandidatesForSpecies("Orangutan",threshold)
+Candidates_Human<-getTopCandidatesForSpecies("Homo",threshold)
+
+
+print(Candidates_Chimpanzee)
+print(Candidates_Bonobo)
+print(Candidates_Gorilla)
+print(Candidates_Orangutan)
+print(Candidates_Human)
+
+top_candidates_uniq<-unique(c(as.vector(Candidates_Chimpanzee$unit),as.vector(Candidates_Bonobo$unit),as.vector(Candidates_Gorilla$unit),as.vector(Candidates_Orangutan$unit)))
+#print(top_candidates_uniq)
+@
 
 <<FIGURE8>>=
 
