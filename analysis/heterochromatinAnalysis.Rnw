@@ -585,8 +585,8 @@ getCandidatesForSpecies <- function(colName,species,threshold) {
     male_individuals<-as.numeric(table(transposed$sex)["M"])
     female_individuals<-as.numeric(table(transposed$sex)["F"])
     
-    means<-mean(toPlotAggregated[toPlotAggregated$sex=="M",,drop=FALSE]$counts)-mean(toPlotAggregated[toPlotAggregated$sex=="F",,drop=FALSE]$counts)
-    ratios<-mean(toPlotAggregated[toPlotAggregated$sex=="M",,drop=FALSE]$counts)/mean(toPlotAggregated[toPlotAggregated$sex=="F",,drop=FALSE]$counts)
+    means<-mean(transposed[transposed$sex=="M",,drop=FALSE]$counts)-mean(transposed[transposed$sex=="F",,drop=FALSE]$counts)
+    ratios<-mean(transposed[transposed$sex=="M",,drop=FALSE]$counts)/mean(transposed[transposed$sex=="F",,drop=FALSE]$counts)
     
     d<-round(as.numeric(means))
     r<-round(as.numeric(ratios),2)
@@ -633,6 +633,59 @@ top_candidates_uniq<-unique(c(as.vector(Candidates_Chimpanzee$unit),as.vector(Ca
 #print(top_candidates_uniq)
 @
 
-<<FIGURE8>>=
+<<male-biased candidates, their abundance and frequency>>=
+match(as.character(unlist(most_abundant_for_each_species["Chimpanzee"])),Candidates_Chimpanzee$unit)
+match(as.character(unlist(most_abundant_for_each_species["Bonobo"])),Candidates_Bonobo$unit)
+match(as.character(unlist(most_abundant_for_each_species["Gorilla"])),Candidates_Gorilla$unit)
+match(as.character(unlist(most_abundant_for_each_species["Orangutan"])),Candidates_Orangutan$unit)
 
+print(binary[Candidates_Chimpanzee$unit,])
+print(binary[Candidates_Bonobo$unit,])
+print(binary[Candidates_Gorilla$unit,])
+print(binary[Candidates_Orangutan$unit,])
+@
+
+
+<<FIGURE6 violin plots>>=
+library(vioplot)
+par(mfrow=c(1,2))
+
+plotViolin <- function(repeatName) {
+  colName<-repeatName
+  
+  getMales <- function(colName,species) {
+    transposed<-pca_data[c(colName,"species","sex")]
+    transposed<-transposed[grep(species, rownames(transposed)),]
+    colnames(transposed)<-c("counts","species","sex")
+    transposed<-transform(transposed,counts = as.numeric(counts))
+    return(transposed[transposed$sex=="M",,drop=FALSE]$counts)
+  }
+  
+  getFemales <- function(colName,species) {
+    transposed<-pca_data[c(colName,"species","sex")]
+    transposed<-transposed[grep(species, rownames(transposed)),]
+    colnames(transposed)<-c("counts","species","sex")
+    transposed<-transform(transposed,counts = as.numeric(counts))
+    return(transposed[transposed$sex=="F",,drop=FALSE]$counts)
+  }
+  
+  my.vioplot(getFemales(colName,"Homo"),getMales(colName,"Homo"),getFemales(colName,"Chimpanzee"),getMales(colName,"Chimpanzee"),getFemales(colName,"Bonobo"),getMales(colName,"Bonobo"),getFemales(colName,"Gorilla"),getMales(colName,"Gorilla"),getFemales(colName,"Orangutan"),getMales(colName,"Orangutan"),col=c("tomato","skyblue","tomato","skyblue","tomato","skyblue","tomato","skyblue","tomato","skyblue"),names=c("Homo","Homo","Chimpanzee","Chimpanzee","Bonobo","Bonobo","Gorilla","Gorilla","Orangutan","Orangutan"))
+  
+  tHomo<-wilcox.test(alternative="less",getFemales(colName,"Homo"),getMales(colName,"Homo"))
+  tChimpanzee<-wilcox.test(alternative="less",getFemales(colName,"Chimpanzee"),getMales(colName,"Chimpanzee"))
+  tBonobo<-wilcox.test(alternative="less",getFemales(colName,"Bonobo"),getMales(colName,"Bonobo"))
+  tGorilla<-wilcox.test(alternative="less",getFemales(colName,"Gorilla"),getMales(colName,"Gorilla"))
+  tOrangutan<-wilcox.test(alternative="less",getFemales(colName,"Orangutan"),getMales(colName,"Orangutan"))
+  
+  mtext(as.character(round(tHomo$p.value,2)),col=ifelse(tHomo$p.value<=0.05,"red","black"),at=2)
+  mtext(as.character(round(tChimpanzee$p.value,2)),col=ifelse(tChimpanzee$p.value<=0.05,"red","black"),at=4)
+  mtext(as.character(round(tBonobo$p.value,2)),col=ifelse(tBonobo$p.value<=0.05,"red","black"),at=6)
+  mtext(as.character(round(tGorilla$p.value,2)),col=ifelse(tGorilla$p.value<=0.05,"red","black"),at=8)
+  mtext(as.character(round(tOrangutan$p.value,2)),col=ifelse(tOrangutan$p.value<=0.05,"red","black"),at=10)
+}
+
+plotViolin("AATGG") 
+text(1,getFemales(colName,"Homo"),labels=".",cex=3) #add single value for human females to the plot
+
+plotViolin("AAACATGGAAATATCTACACCGCTATCTGTAT")
 @
