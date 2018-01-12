@@ -48,7 +48,7 @@ output=open(output_name, 'w')
 
 fDict=collections.OrderedDict()
 rDict=collections.OrderedDict()
-matches=defaultdict(int)
+joint_matches=defaultdict(int)
 fList=[]
 rList=[]
 
@@ -118,23 +118,33 @@ for i in intersection:
         first=f.split(" ")[2]
         for r in repeatR:
             second=r.split(" ")[2]
+    
+            first_length=int(f.split(" ")[6])
+            second_length=int(r.split(" ")[6])
+
             if (first==second): #repeat motif matches
                 #print("match")
                 #['1 100 AAACATGGAAATACCTACACCGCTATCTCTAT AAATACCTACACCGCTATCTCTATAAACATGG 32 3.1 100']
-                first_length=int(f.split(" ")[6])
-                second_length=int(r.split(" ")[6])
+
                 #only count if repeats in both reads are over threshold
                 if ((first_length>=threshold) and (second_length>=threshold)):
                     #print(str(first) + " first_length " + str(first_length) + " " + str(second) + " second_length " + str(second_length))
-                    matches[first]+=1
+                    joint_matches[first]+=1
 
-#print matches
-sorted_keys = sorted(matches, key=matches.get, reverse=True)
+#print joint_matches
+
+output.write("repeat joint_count forward_count reverse_count tandemness_fraction\n") #print header
+
+sorted_keys = sorted(joint_matches, key=joint_matches.get, reverse=True)
 for s in sorted_keys:
-    print s, matches[s]
-    output.write(s + " " + str(matches[s]) + " " + str(len(intersection)) + "\n")
+    print s, joint_matches[s]
     repeatOnForwardStrand=getNumberOfValidRepeats(s,fDict)
     repeatOnReverseStrand=getNumberOfValidRepeats(s,rDict)
+    fraction=(int(joint_matches[s])*2)/float(repeatOnForwardStrand+repeatOnReverseStrand)
+    fraction=round(fraction*100,2)
+    output.write(s + " " + str(joint_matches[s]) + " " + str(repeatOnForwardStrand) + " " + str(repeatOnReverseStrand) + " " + str(fraction) + "\n")
+    sys.stdout.flush()
+
     print(str(s) + " repeat on forward strand: " + str(repeatOnForwardStrand))
     print(str(s) + " repeat on reverse strand: " + str(repeatOnReverseStrand))
 
