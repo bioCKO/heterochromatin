@@ -94,6 +94,17 @@ Filters: the cummulative repeat frequency per million reads needs to be at least
 
 *Output*: R variables frequency and density
 
+### Additional analysis ###
+
+####Analysis of tandemness
+	scripts: calculateJointStat.sh and giveJointStatForRepeat.py
+	
+	for a in *1.fastq.dat_Header.txt; do echo $a; b=`echo $a | sed s'/1.fastq/2.fastq/g'`; echo $b; sbatch calculateJointStat.sh ${a} ${b}; sleep 0.1; done; 
+	
+*Input*: .dat_Header.txt
+
+*Output*: .joinedRepeatFreq.txt
+
 
 ### Who do I talk to? ###
 
