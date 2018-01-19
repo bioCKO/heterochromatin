@@ -1,7 +1,6 @@
 #!/usr/local/bin/python
 # parses Tandem Repeat Finder output and applies several constraints (e.g. removes redundancy in the output)
 import sys
-import test
 import os
 import re
 import subprocess
@@ -127,6 +126,7 @@ def analyzeRepeatsFromOneSequence():
 
     #output filtered repeats
     #print ("**********")
+
     for r in filtered_repeats:
         #print (r.start + " " + r.end + " " + r.unit + " " + r.original + " " + str(len(r.unit)) + " " + str(r.cycles) + " " + str(r.length))
         f.write(r.start + " " + r.end + " " + r.unit + " " + r.original + " " + str(len(r.unit)) + " " + str(r.cycles) + " " + str(r.length) + "\n")
@@ -134,16 +134,22 @@ def analyzeRepeatsFromOneSequence():
 
 def parseTRF(file):
     number_of_sequences=0
+    header=None
+    previous_header=None
+
     for line in open(file):
         li=line.strip()
         fields=li.split()
         
         if (line.startswith("@")):
+            previous_header=header
+            header=line
             number_of_sequences=number_of_sequences+1
-            f.write(fields[0]+"\n") #write header of the sequence
+
             if (number_of_sequences>1):
 
                 if (len(repeats)>0): #tandem repeat finder must have found something
+                    f.write(str(previous_header))
                     analyzeRepeatsFromOneSequence() #analyze repeats from the previous sequence
                     repeats.clear()
                     filtered_repeats.clear()
@@ -157,6 +163,7 @@ def parseTRF(file):
             #print ("Skipping header.")
     #analyze last sequence
     if (len(repeats)>0):
+        f.write(str(header))
         analyzeRepeatsFromOneSequence()
         repeats.clear()
         filtered_repeats.clear()
