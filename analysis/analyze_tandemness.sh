@@ -16,11 +16,7 @@ while read mf; do #for each repeat motif
 		tmpfile=$(mktemp ${sp}.XXXXXX)
 		egrep --color "\b${mf}\b" ${species_files}
 		egrep --color "\b${mf}\b" ${species_files} >${tmpfile}
-		awk '{ sum+=$2} END {printf sum}' ${tmpfile} >>${sp} #joint
-		echo -n " " >>${sp}
-		awk '{ sum+=$3} END {printf sum}' ${tmpfile} >>${sp} #forward
-		echo -n " " >>${sp}
-		awk '{ sum+=$4} END {printf sum}' ${tmpfile} >>${sp} #reverse
+		awk '{ joint+=$2; forward+=$3 } END {if (forward!=0) {printf (joint/forward)*100}}' ${tmpfile} >>${sp} #joint/forward
 		echo "" >>${sp}
 		rm ${tmpfile}
 	done
