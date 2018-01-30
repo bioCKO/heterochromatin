@@ -1,0 +1,54 @@
+\documentclass{article}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+<<abundance heatmap>>=
+library(gplots) 
+at<-read.table("/Users/alice/Desktop/projects/heterochromatin/abundance_heatmap/long_abundance.txt",sep="\t",header=TRUE,row.names=1)
+atm<-as.matrix(at)
+mycol<-colorRampPalette(c("#bdcce5","blue","darkblue"), bias=1) 
+heatmap.2(atm,col=mycol, dendrogram="none", Rowv=FALSE,Colv=FALSE, trace='none')
+@
+
+<<length_profiles>>=
+par(mfrow=c(2,3))
+files <- list.files(path="/Users/alice/Desktop/projects/heterochromatin/figures/NoRF_lengths/subsets", pattern="*.table", full.names=T, recursive=FALSE)
+
+querybp<-list()
+rlengths<-list()
+
+for (f in files) {
+    t <- read.table(f, header=T, sep="\t", comment.char="") # load file
+    # apply function
+    name<-gsub(".subset.fasta.table","",as.character(basename(f)))
+    querybp[[name]] <- sort(as.vector(t$querybp))
+    querybp[[paste0(name,"_read_length")]] <- sort(as.vector(t$seqLen))
+    rlengths[[name]] <- sort(as.vector(t$seqLen))
+    plot(t$querybp,main=name)
+}
+
+dat <- lapply(querybp, function(x) cbind(x = seq_along(x), y = x))
+
+list.names <- names(dat)
+lns <- sapply(dat, nrow)
+dat <- as.data.frame(do.call("rbind", dat))
+dat$group <- rep(list.names, lns)
+
+library(ggplot2)
+library(scales)
+library(RColorBrewer)
+library(plotly)
+
+ggplot(dat, aes(x = y, y = x, colour = group)) +
+    theme_bw() +
+    labs(x = "length", y="index", title="Repeat motifs per 1,000 PacBio reads") +
+    geom_point(size=3, shape=".") +
+    geom_line(linetype = "solid", size=2) +
+    scale_x_continuous(labels = comma) +
+    theme(axis.text=element_text(size=12),axis.title=element_text(size=14,face="bold")) +
+    scale_colour_brewer(palette = "Paired")
+@
+
+
+\end{document}
