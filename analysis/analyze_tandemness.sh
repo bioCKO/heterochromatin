@@ -1,9 +1,20 @@
+#!/bin/bash
+#SBATCH -C new
+#SBATCH --nodes=1
+#SBATCH --ntasks=2
+#SBATCH -t 0
+
+if [[ ! -f 10_most_abundant.fa ]] ; then
+    echo 'File "10_most_abundant.fa" is not there, aborting.'
+    exit
+fi
+
 grep -v ">" 10_most_abundant.fa | sort | uniq | sort >tmp
 
 species=(Pongo Pan_paniscus Gorilla); 
 
 for sp in "${species[@]}"; do #remove before writing
-	rm ${sp}
+	rm -f ${sp}
 done
 
 while read mf; do #for each repeat motif
@@ -18,7 +29,7 @@ while read mf; do #for each repeat motif
 		egrep --color "\b${mf}\b" ${species_files} >${tmpfile}
 		awk '{ joint+=$2; forward+=$3 } END {if (forward!=0) {printf (joint/forward)*100}}' ${tmpfile} >>${sp} #joint/forward
 		echo "" >>${sp}
-		rm ${tmpfile}
+		rm -f ${tmpfile}
 	done
 done <tmp
 
@@ -35,5 +46,6 @@ function multijoin() {
 multijoin species.table.txt ${species[@]}
 echo "repeat_motif" ${species[@]} >species.table.txt.with.header.txt
 cat species.table.txt >>species.table.txt.with.header.txt
+rm -f tmp
 
 echo "DONE"
