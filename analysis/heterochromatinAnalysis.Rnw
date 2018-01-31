@@ -272,6 +272,7 @@ for (ape in myList) {
 }
 @
 
+
 <<FIGURE4,eval=TRUE>>=
 pca_data<-as.data.frame(na.omit(abundantSpeciesVsRepeats[,]))
 pca_data$species<-rownames(pca_data)
@@ -289,7 +290,7 @@ palette(c("blue","darkgreen","red","black","orange")) #pick color scheme
 
 #plot first two principal components in 2D space
 pca_calculation<-prcomp(pca_data[,1:(ncol(pca_data)-2)])
-a<-autoplot(pca_dataset,label=FALSE,colour=as.numeric(as.factor(pca_data$species)),shape=as.numeric(as.factor(pca_data$sex))+15,size=3)
+a<-autoplot(pca_calculation,label=FALSE,colour=as.numeric(as.factor(pca_data$species)),shape=as.numeric(as.factor(pca_data$sex))+15,size=3)
 a + theme_linedraw()
 print(summary(pca_calculation))
 
@@ -323,6 +324,41 @@ rf=randomForest(most_abundant_pca_data$species~.,data=most_abundant_pca_data[,1:
 importance(rf) #textual representation of how important the variables were
 varImpPlot(rf) #graphical representation
 print(rf)
+@
+
+<<chimpanzee_bonobo_geography>>=
+library(ggfortify)
+library(as.color)
+chimpbono<-abundantIndividualsVsRepeats
+l<-rownames(chimpbono)
+l[grepl("Pan",rownames(chimpbono))==FALSE]<-"other" #exclude all non-Pan species
+#l[grepl("Pan_paniscus",rownames(chimpbono))==TRUE]<-"other" #exclude bonobo
+
+l[grepl("Pan_troglodytes_ellioti",rownames(chimpbono))==TRUE]<-"Pan_troglodytes_ellioti" #"Nigeria-Cameroon"
+l[grepl("Pan_troglodytes_verus",rownames(chimpbono))==TRUE]<-"Pan_troglodytes_verus" #"Westernll"
+l[grepl("Pan_troglodytes_troglodytes",rownames(chimpbono))==TRUE]<-"Pan_troglodytes_troglodytes" #"Central"
+l[grepl("Pan_troglodytes_schweinfurthii",rownames(chimpbono))==TRUE]<-"Pan_troglodytes_schweinfurthii" #"Eastern"
+l[grepl("Pan_paniscus",rownames(chimpbono))==TRUE]<-"Pan_paniscus" #"Bonobo"
+
+chimpbono<-chimpbono[l!="other",]
+rownames(chimpbono)<-l[l!="other"]
+l<-l[l!="other"]
+
+pca_chimpbono<-as.data.frame(chimpbono)
+rownames(pca_chimpbono) = make.names(rownames(pca_chimpbono), unique=TRUE)
+pca_chimpbono$species<-l
+
+#pca_chimpbono_data<-prcomp(pca_chimpbono[,1:2])
+#print(dim(pca_chimpbono[,1:2]))
+
+pca_chimpbono_data<-prcomp(pca_chimpbono[,unique_list_of_most_abundant_for_each_species])
+print(dim(pca_chimpbono[,unique_list_of_most_abundant_for_each_species]))
+
+a<-NULL
+a<-autoplot(pca_chimpbono_data,label=TRUE,size=2,shape=FALSE,colour=as.color(pca_chimpbono$species,alpha=1,seed=423017885))
+a + theme_linedraw()
+
+
 @
 
 <<FIGURE5>>=
@@ -648,7 +684,7 @@ print(binary[Candidates_Orangutan$unit,])
 
 <<FIGURE6 violin plots>>=
 library(vioplot)
-par(mfrow=c(1,2))
+par(mfrow=c(1,2),cex=1.3)
 
 plotViolin <- function(repeatName) {
   colName<-repeatName
