@@ -5,10 +5,15 @@
 
 <<abundance heatmap>>=
 library(gplots) 
-at<-read.table("/Users/alice/Desktop/projects/heterochromatin/abundance_heatmap/long_abundance.txt",sep="\t",header=TRUE,row.names=1)
-atm<-as.matrix(at)
-mycol<-colorRampPalette(c("#bdcce5","blue","darkblue"), bias=1) 
-heatmap.2(atm,col=mycol, dendrogram="none", Rowv=FALSE,Colv=FALSE, trace='none')
+at<-t(as.data.frame(read.table("/Users/alice/Desktop/projects/heterochromatin/abundance_heatmap/species.table.txt.with.header.txt",sep=" ",header=TRUE,row.names=1)))
+atsorted<-at[,order(colSums(at,na.rm=TRUE),decreasing=T)]
+atm<-as.matrix(atsorted)
+mycol<-colorRampPalette(c("#bdcce5","blue","darkblue"), bias=1)
+
+lmat = rbind(c(4,3),c(2,1),c(0,0))
+lwid = c(1.5,6)
+lhei = c(1.5,2,4)
+heatmap.2(atm,col=mycol, dendrogram="none", Rowv=TRUE,Colv=FALSE, trace='none',lmat = lmat, lwid = lwid, lhei = lhei)
 @
 
 <<length_profiles>>=
