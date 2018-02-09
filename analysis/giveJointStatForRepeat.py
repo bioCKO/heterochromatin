@@ -20,12 +20,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("forward")
 parser.add_argument("reverse")
 parser.add_argument('bp_threshold', help='number of repeat bp required', type=int)
+parser.add_argument("folder")
 
 args = parser.parse_args()
 
 forward=args.forward
 reverse=args.reverse
 threshold=args.bp_threshold
+output_folder=args.folder
 
 if (os.path.isfile(forward)!=True):
     print("File " + forward + " does not exist. No joining can be performed.")
@@ -38,7 +40,12 @@ if (os.path.isfile(reverse)!=True):
 f = open(forward)
 r = open(reverse)
 
-output_name=(forward+"joinedRepeatFreq.txt")
+
+output_name=(basename(forward)+"joinedRepeatFreq.txt")
+
+if args.folder:
+    output_name=(output_folder + "/" + basename(forward) + "joinedRepeatFreq.txt")
+
 # Do not overwrite existing file
 #if (os.path.exists(output_name)):
 #    print("File " + output_name + " already exists. Quit.")
@@ -63,6 +70,21 @@ def getNumberOfValidRepeats(motif,myDict):
                     #print(str(i) + " " + str(r) + " " + str(l))
                     motifCount+=1
     return(motifCount)
+
+def getNumberOfValidRepeatsFromIntersectionForward(s,intersection):
+    forward_repeat_count=0
+    for i in intersection:
+        repeatF=fDict[i] #list of forward repeats
+
+        for f in repeatF:
+            rep=f.split(" ")[2]
+            rep_length=int(f.split(" ")[6])
+            if (first_length>=threshold):
+                if (rep==s):
+                    print "BINGO"
+                    forward_repeat_count+=1
+    return forward_repeat_count
+
 
 
 with open(forward) as f:
@@ -138,8 +160,12 @@ output.write("repeat joint_count forward_count reverse_count tandemness_fraction
 sorted_keys = sorted(joint_matches, key=joint_matches.get, reverse=True)
 for s in sorted_keys:
     print s, joint_matches[s]
-    repeatOnForwardStrand=getNumberOfValidRepeats(s,fDict)
-    repeatOnReverseStrand=getNumberOfValidRepeats(s,rDict)
+    #getNumberOfValidRepeatsFromIntersection(s,fDict) #all repeats from forward reads, some of these will be joint and some will be from reads that don't have partners
+    #getNumberOfValidRepeatsFromIntersection(s,rDict) #all repeats from reverse reads, some of these will be joint and some will be from reads that don't have partners
+
+    repeatOnForwardStrand=getNumberOfValidRepeatsFromIntersectionForward(s,intersection) #all repeats from forward reads that have partners
+    repeatOnReverseStrand=getNumberOfValidRepeatsFromIntersectionReverse(s,intersection) #all repeats from forward reads that have partners
+
     fraction=(int(joint_matches[s])*2)/float(repeatOnForwardStrand+repeatOnReverseStrand)
     fraction=round(fraction*100,2)
     output.write(s + " " + str(joint_matches[s]) + " " + str(repeatOnForwardStrand) + " " + str(repeatOnReverseStrand) + " " + str(fraction) + "\n")
