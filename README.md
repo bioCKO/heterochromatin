@@ -97,7 +97,7 @@ Filters: the cummulative repeat frequency per million reads needs to be at least
 ### Additional analysis ###
 
 ####Analysis of tandemness
-	scripts: calculateJointStat.sh and giveJointStatForRepeat.py
+	scripts: calculateJointStat.sh, giveJointStatForRepeat.py and analyze_tandemness.sh
 	
 	for a in *1.fastq.dat_Header.txt; do echo $a; b=`echo $a | sed s'/1.fastq/2.fastq/g'`; echo $b; sbatch calculateJointStat.sh ${a} ${b}; sleep 0.1; done; 
 	
