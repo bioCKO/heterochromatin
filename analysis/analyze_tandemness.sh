@@ -4,14 +4,14 @@
 #SBATCH --ntasks=2
 #SBATCH -t 0
 
-if [[ ! -f 10_most_abundant.fa ]] ; then
-    echo 'File "10_most_abundant.fa" is not there, aborting.'
+if [[ ! -f most_abundant.fa ]] ; then
+    echo 'File "most_abundant.fa" is not there, aborting.'
     exit
 fi
 
-grep -v ">" 10_most_abundant.fa | sort | uniq | sort >tmp
+grep -v ">" most_abundant.fa | sort | uniq | sort >tmp
 
-species=(Pongo Pan_paniscus Gorilla); 
+species=(Homo Pan_troglodytes Pan_paniscus Gorilla Pongo_pygmaeus Pongo_abelii); 
 
 for sp in "${species[@]}"; do #remove before writing
 	rm -f ${sp}
