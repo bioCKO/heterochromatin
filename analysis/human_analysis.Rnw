@@ -21,21 +21,19 @@ read_and_normalize <-function(input_file) {
   return(as.data.frame(input))
 }
 
-motherAshkenazim <- read_and_normalize("/Users/alice/Desktop/projects/heterochromatin/Ashkenazim/mother_f4.dat_output.txt.counts.trimmed5")
-fatherAshkenazim <- read_and_normalize("/Users/alice/Desktop/projects/heterochromatin/Ashkenazim/father_f4.dat_output.txt.counts.trimmed5")
-sonAshkenazim <- read_and_normalize("/Users/alice/Desktop/projects/heterochromatin/Ashkenazim/son_f4.dat_output.txt.counts.trimmed5")
-mother1463 <- read_and_normalize("/Users/alice/Desktop/projects/heterochromatin/Ashkenazim/NA12890.mother_1.fastq.counts")
-father1463 <- read_and_normalize("/Users/alice/Desktop/projects/heterochromatin/Ashkenazim/NA12889.father_1.fastq.counts")
-daughter1463 <- read_and_normalize("/Users/alice/Desktop/projects/heterochromatin/Ashkenazim/NA12878.daughter_1.fastq.counts")
-mother1463Filt75 <- read_and_normalize("/Users/alice/Desktop/projects/heterochromatin/Ashkenazim/NA12890.mother_1.fastq.counts.sortedFilt75")
-father1463Filt75 <- read_and_normalize("/Users/alice/Desktop/projects/heterochromatin/Ashkenazim/NA12889.father_1.fastq.counts.sortedFilt75")
-daughter1463Filt75 <- read_and_normalize("/Users/alice/Desktop/projects/heterochromatin/Ashkenazim/NA12878.daughter_1.fastq.counts.sortedFilt75")
-
+setwd("/Volumes/disk/projects_backup/projects/heterochromatin/human_heterochromatin/densities")
+motherAshkenazim <- read_and_normalize("HG004_Homo_sapiens_Mother_F_1.fastq.dat_Header.txt.rawlengths.sortedFilt")
+fatherAshkenazim <- read_and_normalize("HG003_Homo_sapiens_Father_M_1.fastq.dat_Header.txt.rawlengths.sortedFilt")
+sonAshkenazim <- read_and_normalize("HG002_Homo_sapiens_Son_M_1.fastq.dat_Header.txt.rawlengths.sortedFilt")
+mother1463 <- read_and_normalize("NA12890_Homo_sapiens_Mother2_F_1.fastq.dat_Header.txt.rawlengths.sortedFilt")
+father1463 <- read_and_normalize("NA12889_Homo_sapiens_Father2_M_1.fastq.dat_Header.txt.rawlengths.sortedFilt")
+daughter1463 <- read_and_normalize("NA12878_Homo_sapiens_Daughter2_F_1.fastq.dat_Header.txt.rawlengths.sortedFilt")
 
 #LOAD REPEAT COUNTS FOR ALL DATASETS
-filenames<-c("mother","father","son","mother2","father2","daughter2","mother2Filt75","father2Filt75","daughter2Filt75")
-read_counts<-c(70000000,70000000,70000000,72528212,75062767,59671707,72528212,75062767,59671707) #TODO!!! FIRST THREE NUMBERS ARE MADE-UP
-files<-list(motherAshkenazim,fatherAshkenazim,sonAshkenazim,mother1463,father1463,daughter1463,mother1463Filt75,father1463Filt75,daughter1463Filt75)
+filenames<-c("mother","father","son","mother2","father2","daughter2")
+read_counts<-c(50131591,40459116,50312390,72528212,75062767,59671707)
+
+files<-list(motherAshkenazim,fatherAshkenazim,sonAshkenazim,mother1463,father1463,daughter1463)
 
 dt_list <- lapply(files, function(x) {
   out <- as.data.table(x)
@@ -56,49 +54,51 @@ normalization_factor=1000000
 normalization_matrix<-rep.row(read_counts,nrow(data))
 data<-as.data.frame(data) #convert to dataframe from data table
 data[,2:(ncol(data)-1)]<-(data[,2:(ncol(data)-1)]/normalization_matrix)*normalization_factor #normalization of data by read counts
-data[,2:(ncol(data)-1)]<-log(data[,2:(ncol(data)-1)]+0.01)
-data<-data[rowSums(data[,2:(ncol(data)-1)])>(log(600)),] #keep only rows where all six libraries have at least 300 repeats total
+#data[,2:(ncol(data)-1)]<-log(data[,2:(ncol(data)-1)]+0.01)
+#data<-data[rowSums(data[,2:(ncol(data)-1)])>(log(600)),] #keep only rows where all six libraries have at least 300 repeats total
 
 data<-data[order(rowSums(data[,2:(ncol(data)-1)]),decreasing=T),]
+#data<-data[order(data$son,decreasing=T),]
 #data<-head(data,n=1000) #set more meaningful threshold based on replicates
 
-subset<-head(data[,2:(ncol(data)-1)],n=100)
+subset<-head(data,n=1000)
 
-barplot(apply(subset,2,sum),col=rainbow(3),main=paste("Total repeat content of ",nrow(subset),"repeats"))
+barplot(apply(subset[,2:(ncol(data)-1)],2,sum),col=rainbow(3),ylab="sum of repeat densities",main=paste("Total repeat content for ",nrow(subset),"repeats"))
 
-cor(subset)
+cor(subset[,2:(ncol(data)-1)])
 source("http://www.sthda.com/upload/rquery_cormat.r")
-rquery.cormat(subset, type="upper")
+rquery.cormat(subset[,2:(ncol(data)-1)], type="upper")
 
 dist<-as.dist(1-cor((head(data[,2:(ncol(data)-1)],n=1000)),method="spearman")) #distance based on correlation
-hcSingle <- hclust(dist,method="single") 
+hcSingle <- hclust(dist,method="ward.D2") 
 dendSingle <- as.dendrogram(hcSingle)
-plot(dendSingle, main = "Clustering using linkage function 'single'",cex=0.3)
+#plot(dendSingle, main = "Clustering using linkage function 'complete'",cex=0.3)
 
 
-plot(subset[,2:(ncol(subset)-1)])
+#plot(subset[,2:(ncol(subset)-1)])
 
 #from wide to long format
 library(tidyr)
 library(ggplot2)
-data_long <- gather(data, member, count, mother:daughter2Filt75, factor_key=TRUE)
-
+library(Rmisc) 
+library(scales)
+data_long <- gather(subset, member, count, mother:daughter2, factor_key=TRUE)
 
 ggplot(data_long, aes(rep(1:(nrow(data_long)/length(filenames)),times=length(filenames)),count, col=member)) + 
   xlab("index") + 
-  labs(title=paste("Using ",(nrow(data_long)/length(filenames)),"repeats")) + 
+  scale_y_continuous(labels = comma) +
+  labs(title=paste("Using ",(nrow(data_long)/length(filenames)),"repeat motifs"),y="repeat motif density") + 
   theme_bw() + 
   stat_smooth() 
 
-#tgc <- summarySE(data_long, measurevar="count", groupvars=c("ulength","member"))
+tgc <- summarySE(data_long, measurevar="count", groupvars=c("ulength","member"))
 #
-#ggplot(tgc, aes(x=ulength, y=count, colour=member)) + 
-#    geom_errorbar(aes(ymin=count-se, ymax=count+se), width=.1) +
-#    geom_line() +
-#    geom_point() +
-#    xlim(5, 80) +
-#    ylim(-0.5, 1)
+ggplot(tgc, aes(x=ulength, y=count, colour=member)) +
+    geom_errorbar(aes(ymin=count-se, ymax=count+se), width=.1) +
+    geom_line() +
+    geom_point() 
 
+#  
 @
 
 <<>>=
