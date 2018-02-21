@@ -20,7 +20,7 @@ source("http://www.sthda.com/upload/rquery_cormat.r")
 @
 
 <<>>=
-working_directory<-"/Users/alice/Desktop/projects/heterochromatin/refactored/"
+working_directory<-"/Users/polly/Desktop/projects/heterochromatin/refactored/"
 setwd(working_directory)
 @
 
@@ -503,7 +503,7 @@ for (ape in unique(Fsp)) {
 <<FIGURE7,eval=FALSE>>=
 par(mfrow=c(2,3))
 #DIVIDE BY SPECIES
-setwd("/Users/alice/Desktop/projects/heterochromatin/phylogeny")
+setwd("/Users/polly/Desktop/projects/heterochromatin/phylogeny")
 
 #myList = c("Homo", "Pan_paniscus", "Pan_troglodytes", "Gorilla", "Pongo")
 myList = c("Homo","Chimpanzee","Bonobo","Gorilla","Orangutan")
