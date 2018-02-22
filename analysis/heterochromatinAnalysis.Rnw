@@ -51,7 +51,8 @@ l<-rownames(abundantSpeciesVsRepeats)
 l[grepl("Pan_paniscus",l)==TRUE]<-"Bonobo"
 l[grepl("Pan",l)==TRUE]<-"Chimpanzee"
 l[grepl("Gorilla",l)==TRUE]<-"Gorilla"
-l[grepl("Pongo",l)==TRUE]<-"Orangutan"
+l[grepl("abelii",l)==TRUE]<-"Sumatran"
+l[grepl("pygmaeus",l)==TRUE]<-"Bornean"
 l[grepl("Homo",l)==TRUE]<-"Homo"
 groupCodes <-l
 rownames(abundantSpeciesVsRepeats)<-groupCodes
@@ -67,7 +68,7 @@ binary<-abundantSpeciesVsRepeats
 binary[binary>0]<-1
 binary<-as.data.frame(binary)
 
-unique_species<-c("Homo","Chimpanzee","Bonobo","Gorilla","Orangutan")
+unique_species<-c("Homo","Chimpanzee","Bonobo","Gorilla","Sumatran","Bornean")
 
 binary <- sapply(unique_species, function(name) {
   subs <- binary[rownames(binary) == name,]
@@ -77,29 +78,32 @@ binary <- sapply(unique_species, function(name) {
     subs
 })
 
-sample_sizes<-c(11,19,13,27,10) #sample sizes for "Homo","Chimpanzee","Bonobo","Gorilla","Orangutan"
+sample_sizes<-c(11,19,13,27,5,5) #sample sizes for "Homo","Chimpanzee","Bonobo","Gorilla","Sumatran","Bornean"
 stopifnot(sum(sample_sizes)==length(rownames(abundantSpeciesVsRepeats)))
 stopifnot(ncol(binary)==length(unique_species))
 
 binary<-sweep(binary, 2, sample_sizes, `/`)
-mycol<-colorRampPalette(c("white","black" ), bias=1)(n=1000) 
-heatmap.2(binary[,c("Homo","Chimpanzee","Bonobo","Gorilla","Orangutan")],dendrogram="none", Colv=FALSE, trace='none',col=mycol,cexRow=0.1,cexCol=0.75)
+mycol<-colorRampPalette(c("white","red" ), bias=1)(n=1000) 
+heatmap.2(binary[,c("Homo","Chimpanzee","Bonobo","Gorilla","Sumatran","Bornean")],dendrogram="none", Colv=FALSE, trace='none',col=mycol,cexRow=0.1,cexCol=0.75)
 binary<-as.data.frame(binary)
 
 #shared among all species
-dim(binary[binary$Chimpanzee>0 & binary$Bonobo>0 & binary$Gorilla>0 & binary$Orangutan>0 & binary$Homo>0,])
-table(sort(nchar(rownames((binary[binary$Chimpanzee>0 & binary$Bonobo>0 & binary$Gorilla>0 & binary$Orangutan>0 & binary$Homo>0,])))))
+dim(binary[binary$Homo>0 & binary$Chimpanzee>0 & binary$Bonobo>0 & binary$Gorilla>0 & binary$Sumatran>0 & binary$Bornean>0,])
+table(sort(nchar(rownames((binary[binary$Homo>0 & binary$Chimpanzee>0 & binary$Bonobo>0 & binary$Gorilla>0 & binary$Sumatran>0 & binary$Bornean>0,])))))
 
 #specific to human
-length(rownames((binary[binary$Chimpanzee==0 & binary$Bonobo==0 & binary$Gorilla==0 & binary$Orangutan==0 & binary$Homo>0,])))
-#specific to orangutan
-length(rownames((binary[binary$Chimpanzee==0 & binary$Bonobo==0 & binary$Gorilla==0 & binary$Orangutan>0 & binary$Homo==0,])))
-#specific to gorilla
-length(rownames((binary[binary$Chimpanzee==0 & binary$Bonobo==0 & binary$Gorilla>0 & binary$Orangutan==0 & binary$Homo==0,])))
-#specific to bonobo
-length(rownames((binary[binary$Chimpanzee==0 & binary$Bonobo>0 & binary$Gorilla==0 & binary$Orangutan==0 & binary$Homo==0,])))
+length(rownames((binary[binary$Homo>0 & binary$Chimpanzee==0 & binary$Bonobo==0 & binary$Gorilla==0 & binary$Sumatran==0 & binary$Bornean==0,])))
 #specific to chimpanzee
-length(rownames((binary[binary$Chimpanzee>0 & binary$Bonobo==0 & binary$Gorilla==0 & binary$Orangutan==0 & binary$Homo==0,])))
+length(rownames((binary[binary$Homo==0 & binary$Chimpanzee>0 & binary$Bonobo==0 & binary$Gorilla==0 & binary$Sumatran==0 & binary$Bornean==0,])))
+#specific to bonobo
+length(rownames((binary[binary$Homo==0 & binary$Chimpanzee==0 & binary$Bonobo>0 & binary$Gorilla==0 & binary$Sumatran==0 & binary$Bornean==0,])))
+#specific to gorilla
+length(rownames((binary[binary$Homo==0 & binary$Chimpanzee==0 & binary$Bonobo==0 & binary$Gorilla>0 & binary$Sumatran==0 & binary$Bornean==0,])))
+#specific to Sumatran
+length(rownames((binary[binary$Homo==0 & binary$Chimpanzee==0 & binary$Bonobo==0 & binary$Gorilla==0 & binary$Sumatran>0 & binary$Bornean==0,])))
+#specific to Bornean
+length(rownames((binary[binary$Homo==0 & binary$Chimpanzee==0 & binary$Bonobo==0 & binary$Gorilla==0 & binary$Sumatran==0 & binary$Bornean>0,])))
+
 
 table(rowSums(binary==1))
 @
@@ -246,8 +250,8 @@ apply(dt,2,foldStat)
 @
 
 <<FIGURE3>>=
-par(mfrow=c(1,5),cex=1.01, mai = c(5, 0.62, 0.3, 0.1))
-myList<-c("Homo","Chimpanzee","Bonobo","Gorilla","Orangutan")
+par(mfrow=c(1,6),cex=1.01, mai = c(5, 0.62, 0.3, 0.1))
+myList<-c("Homo","Chimpanzee","Bonobo","Gorilla","Sumatran","Bornean")
 
 most_abundant_for_each_species<-NULL
 
@@ -265,11 +269,29 @@ for (ape in myList) {
   #  paste0(nchar(colnames(reordered)), "mer")[nchar(rnames) > 5]
   #colnames(reordered) <- rnames
   
-  boxplot(reordered[,1:12]/100,col="gold",las=2,main=paste(ape,"most abundant"))
-  #boxplot(log(reordered[,1:12]),ylim=c(6,16),col="gold",las=2,main=paste(ape,"most abundant")) #logs
+  #boxplot(reordered[,1:12]/100,col="gold",las=2,main=paste(ape,"most abundant"))
+  boxplot(log(reordered[,1:12]),ylim=c(6,16),col="gold",las=2,main=paste(ape,"most abundant")) #logs
   
   most_abundant_for_each_species[ape]<-list(colnames(log(reordered[,1:500])))
 }
+
+@
+
+<<most abundant>>=
+par(cex=0.5)
+par(mar=c(5,0,4,2))
+matrix_of_most_abundant<-as.data.frame(sapply(most_abundant_for_each_species[], function(x) { x[1:12] }))
+unique_list_of_most_abundant_for_each_species<-unique(as.vector(t(matrix_of_most_abundant)))
+
+data_for_heatmap<-abundantSpeciesVsRepeats[,unique_list_of_most_abundant_for_each_species]
+data_for_heatmap[data_for_heatmap == 0] <- NA
+data_for_heatmap<-data_for_heatmap[,order(colSums(is.na(data_for_heatmap)),-colSums(data_for_heatmap,na.rm=TRUE))]
+print(colnames(data_for_heatmap))
+
+my_palette <- colorRampPalette(c("darksalmon", "firebrick1"))(n = 1000)
+#heatmap.2(data_for_heatmap,dendrogram="none", Colv=FALSE, Rowv=TRUE, trace='none',col=my_palette,cexCol=0.5,keysize=0.75,main=paste("unique list of ",length(unique_list_of_most_abundant_for_each_species),"repeats with highest repeat density")) #,cexRow=0.1,cexCol=0.75
+
+heatmap.2(log(data_for_heatmap),dendrogram="none", Colv=FALSE, Rowv=TRUE, trace='none',col=my_palette,cexCol=0.5,keysize=0.75,main=paste("unique list of ",length(unique_list_of_most_abundant_for_each_species),"repeats with highest repeat density; log scale")) #,cexRow=0.1,cexCol=0.75
 @
 
 
@@ -289,7 +311,7 @@ pca_data<-pca_data[with(pca_data, order(species)), ]
 palette(c("blue","darkgreen","red","black","orange")) #pick color scheme
 
 #plot first two principal components in 2D space
-pca_calculation<-prcomp(pca_data[,1:(ncol(pca_data)-2)])
+pca_calculation<-princomp(pca_data[,1:(ncol(pca_data)-2)])
 a<-autoplot(pca_calculation,label=FALSE,colour=as.numeric(as.factor(pca_data$species)),shape=as.numeric(as.factor(pca_data$sex))+15,size=3)
 a + theme_linedraw()
 print(summary(pca_calculation))
@@ -297,8 +319,6 @@ print(summary(pca_calculation))
 #PREDICT SPECIES BASED ON REPEATS USING LDA
 library(MASS)
 
-matrix_of_most_abundant<-as.data.frame(sapply(most_abundant_for_each_species[], function(x) { x[1:12] }))
-unique_list_of_most_abundant_for_each_species<-unique(as.vector(t(matrix_of_most_abundant)))
 most_abundant_pca_data<-pca_data[,c(unique_list_of_most_abundant_for_each_species,"species","sex")]
 
 plot.new()
@@ -372,7 +392,7 @@ sampleToCluster<-abundantIndividualsVsRepeats
 #sampleToCluster<-sampleToCluster[,nchar(colnames(sampleToCluster))==32] #exluding 32-mers
 
 #present in both orangutans, but absent from the other great ape species
-#dim(sampleToCluster[,(sampleToCluster["Bornean",]>0 & sampleToCluster["Sumatran",]>0 & sampleToCluster["Homo",]==0 & sampleToCluster["Gorilla",]==0 & sampleToCluster["Chimpanzee",]==0) & sampleToCluster["Bonobo",]==0])
+#dim(sampleToCluster[,(sampleToCluster["Bornean",]>0 & sampleToCluster["Sumatran",]>0 & sampleToCluster["Homo",]==0 & sampleToCluster["Gorilla",]==0 & sampleToCluster["Chimpanzee",]==0) & sampleToCluster["Bonobo",]==0]) WARNING: chimpanzee has weird bracketing
 
 #columns_present_in_enough_individuals<-apply(sampleToCluster, MARGIN = 2, function(x) all(x>0))
 #columns_present_in_enough_individuals<-names(na.omit(columns_present_in_enough_individuals[columns_present_in_enough_individuals==TRUE]))
@@ -383,9 +403,9 @@ l<-rownames(sampleToCluster)
 l[grepl("Pan_paniscus",l)==TRUE]<-"Bonobo"
 l[grepl("Pan",l)==TRUE]<-"Chimpanzee"
 l[grepl("Gorilla",l)==TRUE]<-"Gorilla"
-l[grepl("Pongo",l)==TRUE]<-"Orangutan"
-#l[grepl("Pongo_pygmaeus",l)==TRUE]<-"Bornean"
-#l[grepl("Pongo_abelii",l)==TRUE]<-"Sumatran"
+#l[grepl("Pongo",l)==TRUE]<-"Orangutan"
+l[grepl("Pongo_pygmaeus",l)==TRUE]<-"Bornean"
+l[grepl("Pongo_abelii",l)==TRUE]<-"Sumatran"
 l[grepl("Homo",l)==TRUE]<-"Homo"
 
 groupCodes <-l
