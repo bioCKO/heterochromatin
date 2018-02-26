@@ -32,12 +32,17 @@ if (length(filtered_files)==length(colnames(top))) {
 } else {
   stop("Data import problem.")
 }
+
+medianWithoutNA<-function(x) {
+   median(x[which(!is.na(x))])
+}
+
 unique_col_names <- unique(colnames(top))
 abundantRepeatsVsIndividuals <- sapply(unique_col_names, function(name)
 {
   subs <- top[, colnames(top) == name]
   if(is.data.frame(subs))
-    apply(subs,1,median)
+    apply(subs,1,medianWithoutNA)
   else
     subs
 })
@@ -73,12 +78,12 @@ unique_species<-c("Homo","Chimpanzee","Bonobo","Gorilla","Sumatran","Bornean")
 binary <- sapply(unique_species, function(name) {
   subs <- binary[rownames(binary) == name,]
   if(is.data.frame(subs))
-    colSums(subs)
+    colSums(subs,na.rm = TRUE)
   else
     subs
 })
 
-sample_sizes<-c(11,19,13,27,5,5) #sample sizes for "Homo","Chimpanzee","Bonobo","Gorilla","Sumatran","Bornean"
+sample_sizes<-c(13,19,13,27,5,5) #sample sizes for "Homo","Chimpanzee","Bonobo","Gorilla","Sumatran","Bornean"
 stopifnot(sum(sample_sizes)==length(rownames(abundantSpeciesVsRepeats)))
 stopifnot(ncol(binary)==length(unique_species))
 
@@ -259,7 +264,7 @@ for (ape in myList) {
   print(ape)
   subset<-abundantSpeciesVsRepeats[grepl(ape,rownames(abundantSpeciesVsRepeats))==TRUE,]
   print(dim(subset))
-  reordered<-subset[,order(colSums(-subset,na.rm=TRUE))]
+  reordered<-subset[,order(colMeans(-subset,na.rm=TRUE))]
   #print(colnames(reordered)[1:10])
   print(binary[colnames(reordered)[1:10],])
   
@@ -745,3 +750,17 @@ text(1,getFemales(colName,"Homo"),labels=".",cex=3) #add single value for human 
 
 plotViolin("AAACATGGAAATATCTACACCGCTATCTGTAT")
 @
+
+
+<<controls>>=
+
+density_by_sample<-as.data.frame(colSums(density))
+density_by_sample$Run<-gsub("\\_.*","",rownames(density_by_sample))
+colnames(density_by_sample)<-c("density","Run")
+
+density_vs_count<-merge(density_by_sample,rc_by_sample)
+plot(density_vs_count$rCount,density_vs_count$density,main ="Number of reads in a sample is independent of the repeat density in a sample",xlab="number of reads",ylab="repeat density",cex=2)
+cor(density_vs_count$rCount,density_vs_count$density,method="spearman")
+
+@
+
