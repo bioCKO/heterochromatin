@@ -181,30 +181,61 @@ filtered_files<-dropFamilyRelatedFiles(filtered_files)
   
 d<-read.table("/Users/polly/Desktop/projects/heterochromatin/refactored/big.table.with.header.rawcounts.sortedFilt.txt",sep=" ",header=TRUE,row.names=1,na.strings=NA,fill=TRUE)
 d<-as.data.frame(d) #convert to dataframe
-d[is.na(d)] <- 0
+#d[is.na(d)] <- 0
 
 columns_to_select<-paste0(gsub( "\\|", "_",filtered_files),".dat_Header.txt.rawcounts.sortedFilt")
 data<-d[order(-rowSums(d)),columns_to_select] 
-#View(d)
+print(dim(data))
 
+rc_by_sample<-readC_afterF
+rc_by_sample$minCount<-(rc_by_sample$rCount/20000000*100)
+
+idstobekept<-gsub("\\|.*","",filtered_files)
+dim(rc_by_sample[rc_by_sample$Run %in% idstobekept,])
+rc_by_sample<-rc_by_sample[rc_by_sample$Run %in% idstobekept,]
+
+sample_names<-as.data.frame(gsub("\\_.*","",colnames(data)))
+colnames(sample_names)<-c("Run")
+mincount_df<-merge(sample_names,rc_by_sample,sort=FALSE)
+print(head(mincount_df))
+
+stopifnot(identical(as.vector(unlist(mincount_df$Run)),as.vector(unlist(sample_names))))
+
+set_threshold_sample<-function(repeat_row) {
+  stopifnot(nrow(repeat_row)==1)
+  repeat_row[repeat_row<mincount_df$minCount]<-NA
+  return(repeat_row)
+}
+#set_threshold_sample(data[5,]) #test on single repeated motif 
+#View(t(data[10:20,]))
+#View((apply(data[10:20,],1,set_threshold_sample)))
+
+filtered_data<-t(apply(data,1,set_threshold_sample)) #todo: why do I need transposition?
+print(dim(filtered_data))
+@
+
+<<frequency_continuation>>=
 rep.row<-function(x,n){
    matrix(rep(x,each=n),nrow=n) #transforms normalization vector into matrix
 }
 
 #NORMALIZE BY READ COUNTS per million reads
 normalization_factor=1000000
-normalization_matrix<-rep.row(getFilteredReadCounts(filtered_files),dim(data)[1])
-data<-as.data.frame(data) #convert to dataframe from data table
-data<-data/normalization_matrix*normalization_factor #normalization of data by read counts
+normalization_matrix<-rep.row(getFilteredReadCounts(filtered_files),dim(filtered_data)[1])
+filtered_data<-as.data.frame(filtered_data) #convert to dataframe from data table
+filtered_data<-filtered_data/normalization_matrix*normalization_factor #normalization of data by read counts
 
 #NORMALIZE BY READ LENGTH per 100bp reads
 normalization_factor=100
-normalization_matrix<-rep.row(getReadLengths(filtered_files),dim(data)[1])
-data<-as.data.frame(data) #convert to dataframe from data table
-data<-data/normalization_matrix*normalization_factor #normalization of data by read counts
+normalization_matrix<-rep.row(getReadLengths(filtered_files),dim(filtered_data)[1])
+filtered_data<-as.data.frame(filtered_data) #convert to dataframe from data table
+filtered_data<-filtered_data/normalization_matrix*normalization_factor #normalization of data by read counts
 
 #FREQUENCY
-frequency<-data[,columns_to_select] #RESTRICT ONLY TO FILTERED FILES
+#here keep only repeated motifs that have minimal number of loci required
+frequency<-filtered_data[rowSums(is.na(filtered_data))!=ncol(filtered_data),] #normalized frequency
+frequency[is.na(frequency)] <- 0 #set missing values as 0s => repeated motif not detected
+
 frequency<-frequency[order(rowSums(frequency),decreasing=T),]
 frequency<-frequency[nchar(as.character(rownames(frequency)))<=50,] #remove handful of repeat motifs with unit sizes over 50
 frequency<-as.data.frame(frequency)
@@ -246,108 +277,14 @@ plot(table(nchar(as.character(rownames(density)))),ylab="number of distinct repe
 <<stat>>=
 print(dim(frequency))
 print(dim(density))
+stopifnot(dim(frequency)==dim(density))
+
+mean(as.numeric(filtered_data["AATGG",]),na.RM=TRUE)
+mean(as.numeric(frequency["AATGG",]),na.RM=TRUE)
+mean(as.numeric(density["AATGG",]),na.RM=TRUE)
 @
 
-<<load plotting functions>>=
-my.vioplot=function (x, ..., range = 1.5, h = NULL, ylim = NULL, names = NULL, 
-    horizontal = FALSE, col = "magenta", border = "black", lty = 1, 
-    lwd = 1, rectCol = "black", colMed = "white", pchMed = 19, 
-    at, add = FALSE, wex = 1, drawRect = TRUE) 
-{
-    datas <- list(x, ...)
-    n <- length(datas)
-    if (missing(at)) 
-        at <- 1:n
-    upper <- vector(mode = "numeric", length = n)
-    lower <- vector(mode = "numeric", length = n)
-    q1 <- vector(mode = "numeric", length = n)
-    q3 <- vector(mode = "numeric", length = n)
-    med <- vector(mode = "numeric", length = n)
-    base <- vector(mode = "list", length = n)
-    height <- vector(mode = "list", length = n)
-    baserange <- c(Inf, -Inf)
-    args <- list(display = "none")
-    if (!(is.null(h))) 
-        args <- c(args, h = h)
-    for (i in 1:n) {
-        data <- datas[[i]]
-        data.min <- min(data)
-        data.max <- max(data)
-        q1[i] <- quantile(data, 0.25)
-        q3[i] <- quantile(data, 0.75)
-        med[i] <- median(data)
-        iqd <- q3[i] - q1[i]
-        upper[i] <- min(q3[i] + range * iqd, data.max)
-        lower[i] <- max(q1[i] - range * iqd, data.min)
-        est.xlim <- c(min(lower[i], data.min), max(upper[i], 
-            data.max))
-        smout <- do.call("sm.density", c(list(data, xlim = est.xlim), 
-            args))
-        hscale <- 0.4/max(smout$estimate) * wex
-        base[[i]] <- smout$eval.points
-        height[[i]] <- smout$estimate * hscale
-        t <- range(base[[i]])
-        baserange[1] <- min(baserange[1], t[1])
-        baserange[2] <- max(baserange[2], t[2])
-    }
-    if (!add) {
-        xlim <- if (n == 1) 
-            at + c(-0.5, 0.5)
-        else range(at) + min(diff(at))/2 * c(-1, 1)
-        if (is.null(ylim)) {
-            ylim <- baserange
-        }
-    }
-    if (is.null(names)) {
-        label <- 1:n
-    }
-    else {
-        label <- names
-    }
-    boxwidth <- 0.05 * wex
-    if (!add) 
-        plot.new()
-    if (!horizontal) {
-        if (!add) {
-            plot.window(xlim = xlim, ylim = ylim)
-            axis(2)
-            axis(1, at = at, label = label)
-        }
-        box()
-        for (i in 1:n) {
-            polygon(c(at[i] - height[[i]], rev(at[i] + height[[i]])), 
-                c(base[[i]], rev(base[[i]])), col = col[i], border = border, 
-                lty = lty, lwd = lwd)
-            if (drawRect) {
-                lines(at[c(i, i)], c(lower[i], upper[i]), lwd = lwd, 
-                  lty = lty)
-                rect(at[i] - boxwidth/2, q1[i], at[i] + boxwidth/2, 
-                  q3[i], col = rectCol)
-                points(at[i], med[i], pch = pchMed, col = colMed)
-            }
-        }
-    }
-    else {
-        if (!add) {
-            plot.window(xlim = ylim, ylim = xlim)
-            axis(1)
-            axis(2, at = at, label = label)
-        }
-        box()
-        for (i in 1:n) {
-            polygon(c(base[[i]], rev(base[[i]])), c(at[i] - height[[i]], 
-                rev(at[i] + height[[i]])), col = col[i], border = border, 
-                lty = lty, lwd = lwd)
-            if (drawRect) {
-                lines(c(lower[i], upper[i]), at[c(i, i)], lwd = lwd, 
-                  lty = lty)
-                rect(q1[i], at[i] - boxwidth/2, q3[i], at[i] + 
-                  boxwidth/2, col = rectCol)
-                points(med[i], at[i], pch = pchMed, col = colMed)
-            }
-        }
-    }
-    invisible(list(upper = upper, lower = lower, median = med, 
-        q1 = q1, q3 = q3))
-}
+<<>>=
+geterrmessage()
 @
+
