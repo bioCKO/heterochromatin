@@ -235,7 +235,7 @@ plot.new()
 dotchart(dt,labels="",gcol="black",col="black",lcolor="white",xlab="repeat density per 1 million bps",pch=20,cex=1.2)
 plot.new()
 
-uniq_names<-c("Homo","Pan_troglodytes","Pan_paniscus","Gorilla","Pongo")
+uniq_names<-c("Homo","Pan_troglodytes","Pan_paniscus","Gorilla","Pongo_abelii","Pongo_pygmaeus")
 myColors<-c("gray30","darkgreen","dodgerblue","firebrick1","gold")
 
 repVariabilityBig<-lapply(uniq_names, function(x) rowSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,colSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,])!=0],na.rm = TRUE))
@@ -266,7 +266,7 @@ for (ape in myList) {
   print(dim(subset))
   reordered<-subset[,order(colMeans(-subset,na.rm=TRUE))]
   #print(colnames(reordered)[1:10])
-  print(binary[colnames(reordered)[1:10],])
+  print(binary[colnames(reordered)[1:12],])
   
   #use only unit length as a label for repeats with long units
   #rnames <- colnames(reordered)
@@ -289,14 +289,43 @@ matrix_of_most_abundant<-as.data.frame(sapply(most_abundant_for_each_species[], 
 unique_list_of_most_abundant_for_each_species<-unique(as.vector(t(matrix_of_most_abundant)))
 
 data_for_heatmap<-abundantSpeciesVsRepeats[,unique_list_of_most_abundant_for_each_species]
+
 data_for_heatmap[data_for_heatmap == 0] <- NA
-data_for_heatmap<-data_for_heatmap[,order(colSums(is.na(data_for_heatmap)),-colSums(data_for_heatmap,na.rm=TRUE))]
+data_for_heatmap<-data_for_heatmap[,order(colSums(is.na(data_for_heatmap)),colSums(data_for_heatmap,na.rm=TRUE))]
+
+data_for_heatmap<-as.data.frame(data_for_heatmap)
 print(colnames(data_for_heatmap))
 
-my_palette <- colorRampPalette(c("darksalmon", "firebrick1"))(n = 1000)
-#heatmap.2(data_for_heatmap,dendrogram="none", Colv=FALSE, Rowv=TRUE, trace='none',col=my_palette,cexCol=0.5,keysize=0.75,main=paste("unique list of ",length(unique_list_of_most_abundant_for_each_species),"repeats with highest repeat density")) #,cexRow=0.1,cexCol=0.75
 
-heatmap.2(log(data_for_heatmap),dendrogram="none", Colv=FALSE, Rowv=TRUE, trace='none',col=my_palette,cexCol=0.5,keysize=0.75,main=paste("unique list of ",length(unique_list_of_most_abundant_for_each_species),"repeats with highest repeat density; log scale")) #,cexRow=0.1,cexCol=0.75
+my_palette <- colorRampPalette(c("lightsalmon", "firebrick2"))(n = 1000)
+
+heatmap.2(t(log(data_for_heatmap)),dendrogram="none", Colv=TRUE, Rowv=FALSE, trace='none',col=my_palette,cexCol=0.5,keysize=0.75,main=paste("unique list of ",length(unique_list_of_most_abundant_for_each_species),"repeats with highest repeat density; log")) #,cexRow=0.1,cexCol=0.75
+
+data_for_heatmap$species<-rownames(data_for_heatmap)
+density_mean_per_species<-data_for_heatmap %>% group_by(species) %>% summarise_all(funs(mean), na.rm = TRUE)
+rownames(density_mean_per_species)<-density_mean_per_species$species
+density_mean_per_species<-as.data.frame(density_mean_per_species)
+
+heatmap.2(t(log(density_mean_per_species[,-1])),dendrogram="none", Colv=TRUE, Rowv=FALSE, trace='none',col=my_palette,keysize=0.75,main=paste("unique list of ",length(unique_list_of_most_abundant_for_each_species),"repeats with highest repeat density; log scale")) #,cexRow=0.1,cexCol=0.75
+
+@
+
+<<density versus level of shared repeats,eval=TRUE>>=
+
+denshar<-data_for_heatmap
+#dlabels<-colnames(denshar)
+#dlabels[grepl("Pan_paniscus",dlabels)==TRUE]<-"Bonobo"
+#dlabels[grepl("Pan",dlabels)==TRUE]<-"Chimpanzee"
+#dlabels[grepl("Gorilla",dlabels)==TRUE]<-"Gorilla"
+#dlabels[grepl("Pongo_pygmaeus",dlabels)==TRUE]<-"Bornean"
+#dlabels[grepl("Pongo_abelii",dlabels)==TRUE]<-"Sumatran"
+#dlabels[grepl("Homo",dlabels)==TRUE]<-"Homo"
+
+
+#plot(colSums(denshar!=0),colSums(denshar),ylab="density per sample",xlab="number of detected repeated motifs in a sample",col=factor(dlabels),pch=19)
+#legend('topleft', legend = levels(factor(dlabels)), col = 1:6, cex = 0.8, pch = 19)
+
+plot((nrow(denshar)-colSums(is.na(denshar))),log(colMeans(denshar,na.rm=TRUE)),ylab="log of average density of repeated motif across all individuals",xlab="number of individuals that carry this repeated motif",col="blue",pch=19,cex=1.5,cex.lab=1.5,main="39 most abundant repeated motifs")
 @
 
 
