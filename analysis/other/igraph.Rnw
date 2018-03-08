@@ -10,26 +10,35 @@ setwd("/Users/polly/Desktop/projects/heterochromatin/homology")
 #links <- read.csv("Dataset1-Media-Example-EDGES.csv", header=T, as.is=T)
 
 nodes <- read.csv("toymatrix.csv", header=T, as.is=T)
-links <- read.csv("toyedges.csv", header=T, as.is=T)
+links <- read.csv("distance_column_NAout.csv", header=T, as.is=T)
 
 net <- graph_from_data_frame(d=links, vertices=nodes, directed=T) 
 
 class(net)
 
-colrs <- c("gold", "tomato", "gray50")
-
 nchars<-as.factor(V(net)$repeat.nchar)
+colrs <- rainbow(length(nchars)) #c("gold", "tomato", "gray50")
+
 V(net)$color <- colrs[nchars]
-V(net)$size <- V(net)$repeat.density*0.7
+V(net)$size <- V(net)$repeat.density*10
 V(net)$label.color <- "black"
-V(net)$label <- V(net)$sequence
+V(net)$label.cex <- 1
+V(net)$label <-nchar(V(net)$sequence) 
+#V(net)$label <-V(net)$sequence
 E(net)$width <- E(net)$weight/6
 
 E(net)$arrow.size <- .2
 E(net)$edge.color <- "gray80"
-E(net)$width <- 1+E(net)$weight/12
+E(net)$width <- E(net)$weight/17
 
 plot(net)
+
+cut.off <- quantile(links$weight,probs=c(0.8)) 
+net.sp <- delete_edges(net, E(net)[weight<cut.off])
+
+plot(net.sp) 
+
+
 @
 
 
