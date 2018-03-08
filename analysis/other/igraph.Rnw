@@ -5,73 +5,28 @@
 
 <<>>=
 library(igraph)
-setwd("/Users/polly/Desktop/projects/heterochromatin/figures/igraph")
-nodes <- read.csv("Dataset1-Media-Example-NODES.csv", header=T, as.is=T)
+setwd("/Users/polly/Desktop/projects/heterochromatin/homology")
+#nodes <- read.csv("Dataset1-Media-Example-NODES.csv", header=T, as.is=T)
+#links <- read.csv("Dataset1-Media-Example-EDGES.csv", header=T, as.is=T)
 
-links <- read.csv("Dataset1-Media-Example-EDGES.csv", header=T, as.is=T)
+nodes <- read.csv("toymatrix.csv", header=T, as.is=T)
+links <- read.csv("toyedges.csv", header=T, as.is=T)
+
 net <- graph_from_data_frame(d=links, vertices=nodes, directed=T) 
-
-head(nodes)
-
-head(links)
-
-nrow(nodes); length(unique(nodes$id))
-
-nrow(links); nrow(unique(links[,c("from", "to")]))
 
 class(net)
 
-nodes2 <- read.csv("Dataset2-Media-User-Example-NODES.csv", header=T, as.is=T)
+colrs <- c("gold", "tomato", "gray50")
 
-links2 <- read.csv("Dataset2-Media-User-Example-EDGES.csv", header=T, row.names=1)
-
-net <- graph_from_data_frame(d=links, vertices=nodes, directed=T) 
-net2 <- graph_from_incidence_matrix(links2)
-net2.bp <- bipartite.projection(net2)
-
-class(net)
-plot(net2.bp$proj1, vertex.label.color="black", vertex.label.dist=1,
-
-     vertex.size=7, vertex.label=nodes2$media[!is.na(nodes2$media.type)])
-
-# Generate colors based on media type:
-
-colrs <- c("gray50", "tomato", "gold")
-
-V(net)$color <- colrs[V(net)$media.type]
-
-
-
-# Set node size based on audience size:
-
-V(net)$size <- V(net)$audience.size*0.7
-
-
-
-# The labels are currently node IDs.
-
-# Setting them to NA will render no labels:
-
+nchars<-as.factor(V(net)$repeat.nchar)
+V(net)$color <- colrs[nchars]
+V(net)$size <- V(net)$repeat.density*0.7
 V(net)$label.color <- "black"
-
-V(net)$label <- NA
-
-
-
-# Set edge width based on weight:
-
+V(net)$label <- V(net)$sequence
 E(net)$width <- E(net)$weight/6
 
-
-
-#change arrow size and edge color:
-
 E(net)$arrow.size <- .2
-
 E(net)$edge.color <- "gray80"
-
-
-
 E(net)$width <- 1+E(net)$weight/12
 
 plot(net)
