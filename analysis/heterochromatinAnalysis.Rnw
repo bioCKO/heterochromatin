@@ -72,11 +72,14 @@ par(mar=c(10,4,4,2))
 binary<-abundantSpeciesVsRepeats
 binary[binary>0]<-1
 binary<-as.data.frame(binary)
+print(dim(binary))
 
+Nsubsampled<-5
 unique_species<-c("Homo","Chimpanzee","Bonobo","Gorilla","Sumatran","Bornean")
 
 binary <- sapply(unique_species, function(name) {
   subs <- binary[rownames(binary) == name,]
+  #subs <- subs[sample(seq(1:nrow(subs)),5,replace=FALSE),] #print(dim(subs))
   if(is.data.frame(subs))
     colSums(subs,na.rm = TRUE)
   else
@@ -84,11 +87,14 @@ binary <- sapply(unique_species, function(name) {
 })
 
 sample_sizes<-c(13,19,13,27,5,5) #sample sizes for "Homo","Chimpanzee","Bonobo","Gorilla","Sumatran","Bornean"
+#sample_sizes<-c(5,5,5,5,5,5) #sample sizes subsampled
+
 stopifnot(sum(sample_sizes)==length(rownames(abundantSpeciesVsRepeats)))
 stopifnot(ncol(binary)==length(unique_species))
 
 binary<-sweep(binary, 2, sample_sizes, `/`)
 mycol<-colorRampPalette(c("white","red" ), bias=1)(n=1000) 
+
 heatmap.2(binary[,c("Homo","Chimpanzee","Bonobo","Gorilla","Sumatran","Bornean")],dendrogram="none", Colv=FALSE, trace='none',col=mycol,cexRow=0.1,cexCol=0.75)
 binary<-as.data.frame(binary)
 
@@ -97,21 +103,28 @@ dim(binary[binary$Homo>0 & binary$Chimpanzee>0 & binary$Bonobo>0 & binary$Gorill
 table(sort(nchar(rownames((binary[binary$Homo>0 & binary$Chimpanzee>0 & binary$Bonobo>0 & binary$Gorilla>0 & binary$Sumatran>0 & binary$Bornean>0,])))))
 
 #specific to human
-length(rownames((binary[binary$Homo>0 & binary$Chimpanzee==0 & binary$Bonobo==0 & binary$Gorilla==0 & binary$Sumatran==0 & binary$Bornean==0,])))
+human_specific<-length(rownames((binary[binary$Homo>0 & binary$Chimpanzee==0 & binary$Bonobo==0 & binary$Gorilla==0 & binary$Sumatran==0 & binary$Bornean==0,])))
 #specific to chimpanzee
-length(rownames((binary[binary$Homo==0 & binary$Chimpanzee>0 & binary$Bonobo==0 & binary$Gorilla==0 & binary$Sumatran==0 & binary$Bornean==0,])))
+chimpanzee_specific<-length(rownames((binary[binary$Homo==0 & binary$Chimpanzee>0 & binary$Bonobo==0 & binary$Gorilla==0 & binary$Sumatran==0 & binary$Bornean==0,])))
 #specific to bonobo
-length(rownames((binary[binary$Homo==0 & binary$Chimpanzee==0 & binary$Bonobo>0 & binary$Gorilla==0 & binary$Sumatran==0 & binary$Bornean==0,])))
+bonobo_specific<-length(rownames((binary[binary$Homo==0 & binary$Chimpanzee==0 & binary$Bonobo>0 & binary$Gorilla==0 & binary$Sumatran==0 & binary$Bornean==0,])))
 #specific to gorilla
-length(rownames((binary[binary$Homo==0 & binary$Chimpanzee==0 & binary$Bonobo==0 & binary$Gorilla>0 & binary$Sumatran==0 & binary$Bornean==0,])))
+gorilla_specific<-length(rownames((binary[binary$Homo==0 & binary$Chimpanzee==0 & binary$Bonobo==0 & binary$Gorilla>0 & binary$Sumatran==0 & binary$Bornean==0,])))
 #specific to Sumatran
-length(rownames((binary[binary$Homo==0 & binary$Chimpanzee==0 & binary$Bonobo==0 & binary$Gorilla==0 & binary$Sumatran>0 & binary$Bornean==0,])))
+Sumatran_specific<-length(rownames((binary[binary$Homo==0 & binary$Chimpanzee==0 & binary$Bonobo==0 & binary$Gorilla==0 & binary$Sumatran>0 & binary$Bornean==0,])))
 #specific to Bornean
-length(rownames((binary[binary$Homo==0 & binary$Chimpanzee==0 & binary$Bonobo==0 & binary$Gorilla==0 & binary$Sumatran==0 & binary$Bornean>0,])))
+Bornean_specific<-length(rownames((binary[binary$Homo==0 & binary$Chimpanzee==0 & binary$Bonobo==0 & binary$Gorilla==0 & binary$Sumatran==0 & binary$Bornean>0,])))
 
 
-table(rowSums(binary==1))
+print(table(rowSums(binary==1)))
 @
+
+
+<<binary_subsampling>>=
+#Do we get consistent result for 5 individuals per species?
+
+@
+
 
 <<Venn diagram>>=
 #human, chimp, bonobo, gorilla, orangutan
@@ -208,8 +221,12 @@ sd<-unlist(lapply(repVariability, function(x) round(sd(x),2)))
 min<-unlist(lapply(repVariability, function(x) round(x[which.min(abs(x))],0)))
 max<-unlist(lapply(repVariability, function(x) round(x[which.max(abs(x))],0)))
 skewness<-unlist(lapply(repVariability, function(x) skewness(x)))
-mean_fold_dif<-unlist(lapply(repVariability, function(x) mean(apply(combn(x,2),2, myDivision))))
 
+mean_fold_dif<-unlist(lapply(repVariability, function(x) mean(apply(combn(x,2),2, myDivision))))
+print(mean_fold_dif)
+
+
+par(mfrow=c(2,1))
 #human_without_son<-as.vector(repVariability[[1]])[2:length(repVariability[[1]])]
 distribution_summary<-as.data.frame(cbind(uniq_names,as.numeric(min),as.numeric(max),sd,mean_fold_dif))
 colnames(distribution_summary)<-c("species","min","max","sd","mean_fold_dif")
@@ -245,12 +262,28 @@ repVariabilityBig<-lapply(repVariabilityBig,divideBy100) #normalize 100bp reads 
 boxplot(repVariabilityBig,names=paste(uniq_names,lengths(repVariabilityBig)),las=2,col=myColors,outline=TRUE)
 #CALCULATE MEANS OF REPEAT DENSITIES
 print(paste(uniq_names,lapply(repVariabilityBig,mean)))
+@
 
-
-foldStat<-function(species) {
-  paste(round(min(species,na.rm=TRUE)),round(max(species,na.rm=TRUE)),round(max(species,na.rm=TRUE)/min(species,na.rm=TRUE),digits=2))
+<<calculations with fold differencies>>=
+getMeanFoldDif <- function(list_to_pick_pairs_from) {
+  return(mean(apply(combn(list_to_pick_pairs_from,2),2, myDivision)))
 }
-apply(dt,2,foldStat)
+
+getTuples <- function(full_set,subsetn) {
+  tuple_df<-apply(combn(full_set,subsetn),2,getMeanFoldDif) #e.g. if n=5, we are picking 5 individuals to calculate mean pairwise fold difference
+  tuple_df<-as.vector(tuple_df)
+  
+  real_fold_difference<-getMeanFoldDif(full_set)
+  
+  splabel=unlist(strsplit(names(full_set)," "))
+  
+  hist(as.numeric(tuple_df),col="gold",xlab="Mean fold difference for sets of tuples",main=paste("Average fold difference for randomly picked",subsetn,"individuals out of",length(full_set),";\n using",length(tuple_df),"subsets"),sub=splabel[2])
+  abline(v=real_fold_difference,col="red",lw=3)
+  return(real_fold_difference)
+}
+
+par(mfrow=c(3,2))
+lapply(repVariabilityBig,function(x) getTuples(x,5))
 
 @
 
@@ -326,10 +359,26 @@ denshar<-data_for_heatmap
 #legend('topleft', legend = levels(factor(dlabels)), col = 1:6, cex = 0.8, pch = 19)
 
 plot((nrow(denshar)-colSums(is.na(denshar))),log(colMeans(denshar,na.rm=TRUE)),ylab="log of average density of repeated motif across all individuals",xlab="number of individuals that carry this repeated motif",col="blue",pch=19,cex=1.5,cex.lab=1.5,main="39 most abundant repeated motifs")
+
+
+denshar<-density_mean_per_species
+colors_shared<-as.factor(colSums(is.na(denshar[,2:ncol(denshar)]))>0)
+plot(1:39,log(colMeans(denshar[,2:ncol(denshar)],na.rm=TRUE)),ylab="log of average density of repeated motif across 6 species",xlab="index of repeated motif",pch=19,cex=1.5,cex.lab=1.5,main="39 most abundant repeated motifs",col=colors_shared)
+legend(22, 14, legend=c("repeated motifs in all 6 species", "repeated motifs shared among subset of species"),col=c("black", "red"), pch=19)
+
+species_specific<-c(human_specific,chimpanzee_specific,bonobo_specific,gorilla_specific,Sumatran_specific,Bornean_specific)
+mean_repeat_density_for_species<-as.numeric(lapply(repVariabilityBig,mean))
+
+plot(log(mean_repeat_density_for_species),log(species_specific),xlab="log of mean repeat density for a species",ylab="log of number of species-specific repeats",col="blue",cex.lab=1.4,cex.axis=1.4) #"Homo"       "Chimpanzee" "Bonobo"     "Gorilla"    "Sumatran"   "Bornean" 
+text(log(mean_repeat_density_for_species),log(species_specific)+0.15,labels=myList,cex=1.4)
 @
 
 
 <<FIGURE4,eval=TRUE>>=
+library("ggplot2")
+library("ggfortify")
+library("plot3D")
+library("rgl")
 pca_data<-as.data.frame(na.omit(abundantSpeciesVsRepeats[,]))
 pca_data$species<-rownames(pca_data)
 pca_data$species<-factor(pca_data$species)
@@ -338,17 +387,38 @@ pca_data$sex<-sex
 pca_data<-pca_data[with(pca_data, order(species)), ]
 #View(pca_data[,(ncol(pca_data)-1):(ncol(pca_data))])
 
-#Human (black), bonobo (blue), chimpanzee (green), gorilla (red) and orangutan (orange) are plotted in the 3D space defined by first three principal components
+#Human (black), bonobo (blue), chimpanzee (green), gorilla (red) and orangutan (gold and orange) are plotted in the 3D space defined by first three principal components
 
 #unique(gsub("\\..*","",rownames(pca_data[,1:(ncol(pca_data)-2)])))
 #         "Bonobo" "Chimpanzee" "Gorilla" "Homo" "Orangutan" 
-palette(c("blue","darkgreen","red","black","orange")) #pick color scheme
+palette(c("blue","gold","darkgreen","red","black","orange")) #pick color scheme
 
 #plot first two principal components in 2D space
-pca_calculation<-princomp(pca_data[,1:(ncol(pca_data)-2)])
+pca_calculation<-prcomp(pca_data[,unique_list_of_most_abundant_for_each_species])
 a<-autoplot(pca_calculation,label=FALSE,colour=as.numeric(as.factor(pca_data$species)),shape=as.numeric(as.factor(pca_data$sex))+15,size=3)
 a + theme_linedraw()
 print(summary(pca_calculation))
+
+#plot first three principal components in 3D space
+pc <- princomp(pca_data[,unique_list_of_most_abundant_for_each_species], cor=FALSE, scores=TRUE)
+summary(pc)
+#plot(pc,type="lines",main="Variance explained") #plot variance explained by each component
+plot3d(pc$scores[,1:3],col=as.numeric(pca_data$species),cex=2,size=10)
+legend(x="topleft", legend = levels(pca_data$species), col = unique(as.numeric(pca_data$species)),lty=1,bty = "n")
+
+#RUN PRINCIPAL COMPONENT ANALYSIS (PCA) based on SEX
+pc_sex <- princomp(pca_data_sex[,1:(ncol(pca_data_sex)-1)], cor=TRUE,scores=TRUE)
+summary(pc_sex)
+#plot(pc_sex,type="lines") #plot variance explained by each component
+
+#Females (pink) and males (black) are plotted in the 3D space defined by fourth, fifth and sixth principal components.
+palette(c("black","deeppink"))
+plot3d(pc$scores[,1:3],col=as.numeric(factor(sex))+1,cex=2,size=10)
+plot.new()
+legend(x="topleft", legend = unique(sex), col = unique(as.numeric(as.factor(sex)))+1,lty=1,bty = "n")
+
+
+##################################################
 
 #PREDICT SPECIES BASED ON REPEATS USING LDA
 library(MASS)
