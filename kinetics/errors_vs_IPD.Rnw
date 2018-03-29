@@ -3,36 +3,21 @@
 \begin{document}
 \SweaveOpts{concordance=TRUE}
 
+
 <<>>=
 par(mfrow = c(2, 4))
-library("outliers")
-library("data.table")
-setwd("/Users/alice/Desktop/projects/kinetics/errors_vs_IPD")
-
-if (!require("gplots")) {
-  install.packages("gplots", dependencies = TRUE)
-  library(gplots)
-}
-if (!require("RColorBrewer")) {
-  install.packages("RColorBrewer", dependencies = TRUE)
-  library(RColorBrewer)
+require(grDevices)
+log_mean <- function(data) {
+  return(log(mean(data, na.rm = TRUE) + 0.01))
 }
 
-
-
-calculatePvalue <- function(i, dataErrors, meanIPDperRow, output) {
-  errorName<-i
-  #print(errorName)
-  errorPerRow <- as.numeric(as.character(dataErrors[,c(errorName)]))
-  #print(length(errorPerRow))
-  #print(length(meanIPDperRow))
-  #boxplot(errorPerRow,col="gold")
-  
-  df <- data.frame(cbind(meanIPDperRow, errorPerRow))
-  if (nrow(df) >= 100) {
-    mylm <- lm(log(meanIPDperRow + 0.0001) ~ errorPerRow, data = df)
-    #plot(mylm)
-    
+runRegression <-
+  function(vectorErrors,
+           vectorIPDs,
+           type,
+           metric,
+           file) {
+    mylm <- lm(vectorIPDs ~ vectorErrors)
     summary(mylm)
     pvalue <-
       as.numeric(round(coef(summary(mylm))[, "Pr(>|t|)"][2], 3))
@@ -40,194 +25,169 @@ calculatePvalue <- function(i, dataErrors, meanIPDperRow, output) {
       as.numeric(round(coef(summary(mylm))[, "Estimate"][2], 3))
     rsquare <- as.numeric(round(summary(mylm)$r.squared, 3))
     
-    if (output == TRUE) {
-      plot(
-        errorPerRow,
-        log(meanIPDperRow + 0.0001),
-        pch = ".",
-        col = "darkgray",
-        main = errorName,
-        sub = file,
-        xlim = c(0, 100),
-        xlab = "% ERROR RATE",
-        ylab = "log(mean IPD per window)"
-      )
-      mtext(
-        paste("p-value:", pvalue, "slope:", slope, "r-square", rsquare),
-        col = ifelse(pvalue < 0.05, 'red', 'blue'),
-        side = 4,
-        line = 0.5
-      )
-      abline(mylm, col = "red")
-    }
-    
-    return(list(pvalue=pvalue, slope=slope, rsquare=rsquare))
-  } else {
-    print("not sufficient sample size")
-    return(list(NULL,NULL,NULL))
-  }
-}
-plotFile <- function(dataOriginal) {
-  dataErrors <- data.matrix(dataOriginal[,c("TOTAL","MISMATCHES","INSERTION","DELETION")])
-  dataIPDs <- data.matrix(dataOriginal[,c(as.character(seq(1,100,1)))])
-  
-  meanIPDperRow <-
-    apply(dataIPDs, 1, function(x)
-      mean(x, na.rm = TRUE))
-  
-  pvaluesForMotif <-
-    sapply(colnames(dataErrors), function(x, y)
-      calculatePvalue(x, dataErrors, meanIPDperRow, TRUE)$pvalue)
-  slopesForMotif <-
-    sapply(colnames(dataErrors), function(x, y)
-      calculatePvalue(x, dataErrors, meanIPDperRow, FALSE)$slope)
-  rsquareForMotif <-
-    sapply(colnames(dataErrors), function(x, y)
-      calculatePvalue(x, dataErrors, meanIPDperRow, FALSE)$rsquare)
-  
-  
-  
-  return(list(pvaluesForMotif=pvaluesForMotif, slopesForMotif=slopesForMotif, rsquareForMotif=rsquareForMotif))
-}
-
-filenames <- c("APhasedRepeatsFullWindow.mf","DirectRepeatsFullWindow.mf","InvertedRepeatsFullWindow.mf","MirrorRepeatsFullWindow.mf","ZDNAMotifsFullWindow.mf","GQuadPlusFullWindow.mf","GQuadMinusFullWindow.mf")
-
-folder_with_errors <-
-  "/Users/alice/Desktop/projects/kinetics/errors_will/may8/full_windowboth/interesting/ordered/single_control/"
-folder_with_IPDs <-
-  "/Users/alice/Desktop/projects/kinetics/errors_will/may8/"
-
-summary <- NULL
-slopes <- NULL
-rsquares <- NULL
-
-for (file in (filenames)) {
-  tryCatch({
-    dataE <-
-      read.table(
-        paste0(folder_with_errors, file),
-        header = F,
-        sep = "\t",
-        fill = TRUE
-      )
-    colnames(dataE) <-
-      c("chr",
-        "start",
-        "end",
-        "TOTAL",
-        "MISMATCHES",
-        "INSERTION",
-        "DELETION")
-    
-    dataI <-
-      read.table(
-        paste0(folder_with_IPDs, file),
-        header = F,
-        sep = "\t",
-        fill = TRUE
-      )
-    colnames(dataI) <- c("chr", "start", "end", "length", seq(1, 100, 1))
-    
-    mergedData <-
-      merge(as.data.frame(dataE),
-            as.data.frame(dataI),
-            by = c("chr", "start", "end"))
-    
-    #load motif windows
-    print(file)
-    result<-plotFile(mergedData)
-    pvaluesForMf <- result[1]
-    slopesForMf <- result[2]
-    rsquareForMf <- result[3]
-    
-    print(result)
-    
-    if (is.null(pvaluesForMf)) {
-      print("skipping")
-    } else {
-      print("OK, returning values")
-      row <-
-        c(file,
-          unlist(pvaluesForMf))
-      rowSlope <-
-        c(file,
-          unlist(slopesForMf))
-      rowRsquare <-
-        c(file,
-          unlist(rsquareForMf))
-      
-      summary <- rbind(summary, row)
-      slopes <- rbind(slopes, rowSlope)
-      rsquares <- rbind(rsquares, rowRsquare)
-    }
-    
-    
-  }, error = function(err) {
-    # error handler picks up where error was generated
-    print(paste("Initial read.table didn't work!:  ", err))
-  })
-}
-@
-
-<<>>=
-
-#par(mfrow = c(1, 3), cex.lab = 1)
-plot(0,0)
-format<-function(input) {
-  toPlot<-input
-  rownames(toPlot) <-
-  gsub("OUT_", "", gsub("FeatureOnly.mf", "", toPlot[, 1]))
-  toPlot <- toPlot[,-1]
-  colnames(toPlot) <- c("TOTAL","MISMATCHES","INSERTION","DELETION")
-  toPlot <- as.matrix(toPlot)
-  class(toPlot) <- "numeric"
-  return(toPlot)
-}
-
-toPlot <- format(summary)
-slopes <- format(slopes)
-rsquares <- format(rsquares)
-
-##lmat = rbind(c(0,3),c(2,1),c(0,4))
-lmat = rbind(c(3, 4), c(2, 1))
-lwid = c(0.4, 1)
-my_palette <-
-  colorRampPalette(
-    c(
-      "red",
-      "white",
-      "white",
-      "white",
-      "white",
-      "white",
-      "white",
-      "white",
-      "white",
-      "white"
+    plot(
+      vectorErrors,
+      vectorIPDs,
+      pch = ".",
+      col = adjustcolor("darkgray", alpha.f = 0.2),
+      main = gsub("FeatureOnly.mf", "", file),
+      sub = type,
+      xlim = c(0, 0.20),
+      xlab = "% ERROR RATE",
+      ylab = paste("transformed IPD", metric)
     )
-  )(n = 101)
-heatmap.2(
-  toPlot,
-  dendrogram = 'none',
-  Rowv = TRUE,
-  Colv = TRUE,
-  col = my_palette,
-  trace = "row",
-  tracecol = "gray",
-  lmat = lmat,
-  lwid = lwid,
-  #margins = c(6.5, 6),
-  key.title = "p-values",
-  cellnote = rsquares,
-  notecol = "black"
-)
+    mtext(
+      paste("p-val:", pvalue, "slope:", slope, "r-sq", rsquare),
+      col = ifelse(pvalue < 0.05, 'red', 'blue'),
+      side = 4,
+      line = 0.5,
+      cex = 0.75
+    )
+    
+    myCor<-cor.test(vectorErrors,vectorIPDs,method="spearman")
+    mtext(
+      paste("p-value:", round(myCor$p.value,3), "cor:", round(myCor$estimate,3)),
+      col = ifelse(myCor$p.value < 0.05, 'red', 'blue'),
+      side = 3,
+      line = 0.5,
+      cex = 0.75
+    )
+    abline(mylm, col = "red")
+    
+    return(list(
+      res_lm = mylm,
+      pvalue = pvalue,
+      slope = slope,
+      rsquare = rsquare
+    ))
+  }
+
+loadData <- function(fileErrors, fileIPDs, file) {
+  dataE <-
+    read.table(fileErrors,
+               header = F,
+               fill = TRUE)
+  colnames(dataE) <-
+    c("chr",
+      "start",
+      "end",
+      "TOTAL",
+      "MISMATCHES",
+      "INSERTION",
+      "DELETION")
+  
+  #remove chr if it's present
+  dataE$chr <- sub("chr", "", dataE$chr)
+  
+  no_col <- max(count.fields(fileIPDs, sep = "\t"))
+  dataI <-
+    read.table(
+      fileIPDs,
+      sep = "\t",
+      fill = TRUE,
+      header = F,
+      col.names = c("chr", "start", "end", "length", seq(1, no_col, 1))
+    )
+  
+  #remove chr if it's present
+  dataI$chr <- sub("chr", "", dataI$chr)
+  
+  mergedData <-
+    merge(as.data.frame(dataE),
+          as.data.frame(dataI),
+          by = c("chr", "start", "end"))
+  
+  means <- as.numeric(apply(mergedData[, 9:no_col], 1, log_mean))
+  medians <-
+    as.numeric(apply(mergedData[, 9:no_col], 1, median, na.rm = TRUE))
+  
+  for (type in c("TOTAL", "MISMATCHES", "INSERTION", "DELETION")) {
+    regression_on_means <-
+      runRegression(mergedData[[type]], means, type, "mean", file)
+    regression_on_medians <-
+      runRegression(mergedData[[type]], medians, type, "median", file)
+    
+    print(
+      paste(
+        type,
+        "pvalue (means):",
+        regression_on_means$pvalue,
+        "pvalue (medians):",
+        regression_on_medians$pvalue
+      )
+    )
+  }
+  
+  return(
+    list(
+      ipd_median = median(means, na.rm = TRUE),
+      ipd_quantiles = quantile(means, na.rm = TRUE),
+      totalERRORS = mean(mergedData[["TOTAL"]], na.rm = TRUE),
+      totalERRORSquantile = quantile(mergedData[["TOTAL"]], na.rm = TRUE),
+      mismatchesERRORS = mean(mergedData[["MISMATCHES"]], na.rm = TRUE),
+      mismatchesERRORSquantile = quantile(mergedData[["MISMATCHES"]], na.rm =
+                                            TRUE),
+      insertionERRORS = mean(mergedData[["INSERTION"]], na.rm = TRUE),
+      insertionERRORSquantile = quantile(mergedData[["INSERTION"]], na.rm =
+                                           TRUE),
+      deletionERRORS = mean(mergedData[["DELETION"]], na.rm = TRUE),
+      deletionERRORSquantile = quantile(mergedData[["DELETION"]], na.rm =
+                                          TRUE)
+    )
+  )
+}
+
+getResults <- function(file) {
+  file_with_IPDs <- file
+  file_with_errors <- gsub(".mf", ".collapsed", file)
+  print(paste(file_with_errors, file_with_IPDs))
+  result <- loadData(file_with_errors, file_with_IPDs, file)
+  return(result)
+}
+
+#CHANGE PATH TO THE APPROPRIATE FOLDER HERE
+setwd("/Users/alice/Desktop/projects/kinetics/errors_vs_IPD/october19")
+filenames <- list.files(pattern = "*.mf", full.names = FALSE)
+
+results <- as.data.frame(sapply(filenames, getResults, simplify = TRUE))
+
+#for (type in c("totalERRORS", "mismatchesERRORS", "insertionERRORS", "deletionERRORS")) {
+#  e<-unlist(results[type,])
+#  i<-unlist(results["ipd_median",])
+#  quantIPD<-as.data.frame(unlist(results["ipd_quantiles",]))
+#  plot(
+#  e,
+#  i,
+#  xaxs = "i",
+#  yaxs = "i",
+#  ylim = c(round(min(quantIPD),2)-0.1,round(max(quantIPD),2)+0.1),
+#  xlim = c(round(min(e),2)-0.01,round(max(e),2)+0.01),
+#  xlab="ERRORS",
+#  ylab="log(meanIPD)",
+#  main=type,
+#  sub="errors vs IPDs",
+#  col="black",
+#  pch=16
+#  )
+#  text(e,i+abs(mean(i)/10),labels=gsub("FeatureOnly.mf","",gsub("Repeats","",colnames(results))),cex=0.75)
+
+#  q25thIPD<-quantIPD[seq(2,nrow(quantIPD),5),]
+#  q75thIPD<-quantIPD[seq(4,nrow(quantIPD),5),]
+
+#  quantERROR<-as.data.frame(unlist(results[paste(type,"quantile",sep=""),]))
+#  q25thERROR<-quantERROR[seq(2,nrow(quantERROR),5),]
+#  q75thERROR<-quantERROR[seq(4,nrow(quantERROR),5),]
+#  rect(q25thERROR,q25thIPD,q75thERROR,q75thIPD,col=adjustcolor( "red", alpha.f = 0.2))
+#}
 
 @
 
-<<>>=
-par(cex=1.75)
-boxplot(rsquares,col=rainbow(4),main="Error rate can partially predict elevation in IPDs",ylab="R-Square")
-@
+
+
+
+
+
+
 
 
 \end{document}
