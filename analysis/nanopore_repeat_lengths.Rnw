@@ -1,0 +1,84 @@
+\documentclass{article}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+<<#nanopore repeats>>=
+
+setwd("/Users/polly/Desktop/projects/heterochromatin/nanopore/run_March20/barcoded")
+
+directories<-c("barcode07","barcode08","barcode09","barcode10","barcode11","barcode12")
+
+for(directory in directories){
+  filenames <- list.files(path=directory,pattern=".*stats")
+  #print(filenames)
+  ###Load all files
+  for(filepath in filenames){
+      name<-gsub(".stats","",filepath)
+      print(name) #name of data frame
+      assign(name, read.delim(paste0(directory,"/",filepath),header=TRUE,sep = "\t"))
+  }
+}
+
+plotOneRepeat <-function(dat,list_of_names,i) {
+  dat <- lapply(dat, function(x) cbind(x = seq_along(x), y = x))
+  list.names <- gsub(".fasta","",gsub("barcode","",list_of_names))
+  
+  #replace barcodes for the species names
+  list.names<- gsub("07","Human",list.names)
+  list.names<- gsub("08","Gorilla",list.names)
+  list.names<- gsub("09","Borang",list.names)
+  list.names<- gsub("10","Bonobo",list.names)
+  list.names<- gsub("11","Sorang",list.names)
+  list.names<- gsub("12","Chimp",list.names)
+  
+  lns <- sapply(dat, nrow)
+  dat <- as.data.frame(do.call("rbind", dat))
+  dat$group <- rep(list.names, lns)
+  
+  pvar<-ggplot(dat, aes(x=group, y=y, color=group)) + 
+        geom_boxplot(show.legend=F) + 
+        geom_dotplot(binaxis='y', stackdir='center', dotsize=0.5) +
+        ylim(0,4000) +
+        ggtitle(paste0("",i)) +
+        xlab("Species") + ylab("mm") +
+        theme(axis.text.x=element_blank())
+  
+  return(pvar)
+}
+
+
+read_counts<-c(2941,4000,2839,3513,4427,2970)
+
+library(ggplot2)
+library(gridExtra)
+library(Rmisc)
+
+p <- list()
+for (i in 1:39) {
+  rep_names<-c(paste0("barcode07.fasta.rep",i),paste0("barcode08.fasta.rep",i),paste0("barcode09.fasta.rep",i),paste0("barcode10.fasta.rep",i),paste0("barcode11.fasta.rep",i),paste0("barcode12.fasta.rep",i))
+  
+  rep_data<-lapply(rep_names, function(x) as.vector(get(x)[["querybp"]]))
+  motif<-unique(unlist(lapply(rep_names, function(x) as.vector(get(x)[["motif"]]))))
+  print(motif)
+  
+  for (sp in 1:6) {
+    normalized<-unlist(rep_data[sp])/read_counts[sp]*1000
+    if (length(normalized)>0) {
+      rep_data[sp]<-list(normalized)
+    } else {
+      rep_data[sp]<-NA
+    }
+  }
+  print(rep_data)
+  p[[i]] <- plotOneRepeat(rep_data,rep_names,motif)
+}
+multiplot(plotlist = p[1:9], layout=matrix(seq(1,9,1), nrow=3, byrow=TRUE))
+multiplot(plotlist = p[10:18], layout=matrix(seq(1,9,1), nrow=3, byrow=TRUE))
+multiplot(plotlist = p[19:27], layout=matrix(seq(1,9,1), nrow=3, byrow=TRUE))
+multiplot(plotlist = p[28:36], layout=matrix(seq(1,9,1), nrow=3, byrow=TRUE))
+multiplot(plotlist = p[37:39], layout=matrix(seq(1,9,1), nrow=3, byrow=TRUE))
+
+@
+
+\end{document}
