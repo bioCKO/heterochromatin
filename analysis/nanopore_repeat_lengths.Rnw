@@ -5,13 +5,16 @@
 
 <<#nanopore repeats>>=
 
-setwd("/Users/polly/Desktop/projects/heterochromatin/nanopore/run_March20/barcoded")
+#setwd("/Users/polly/Desktop/projects/heterochromatin/nanopore/run_March20_2018/barcoded")
+setwd("/Users/polly/Desktop/projects/heterochromatin/nanopore/run_April26_2018/barcoded")
 
-directories<-c("barcode07","barcode08","barcode09","barcode10","barcode11","barcode12")
+#directories<-c("barcode07","barcode12","barcode10","barcode08","barcode11","barcode09")
+directories<-c("barcode05","barcode03","barcode06","barcode02","barcode04","barcode01")
+
 
 for(directory in directories){
   filenames <- list.files(path=directory,pattern=".*stats")
-  #print(filenames)
+  print(filenames)
   ###Load all files
   for(filepath in filenames){
       name<-gsub(".stats","",filepath)
@@ -25,38 +28,107 @@ plotOneRepeat <-function(dat,list_of_names,i) {
   list.names <- gsub(".fasta","",gsub("barcode","",list_of_names))
   
   #replace barcodes for the species names
-  list.names<- gsub("07","Human",list.names)
-  list.names<- gsub("08","Gorilla",list.names)
-  list.names<- gsub("09","Borang",list.names)
-  list.names<- gsub("10","Bonobo",list.names)
-  list.names<- gsub("11","Sorang",list.names)
-  list.names<- gsub("12","Chimp",list.names)
+  #list.names<- gsub("07","Human",list.names)
+  #list.names<- gsub("08","Gorilla",list.names)
+  #list.names<- gsub("09","Borang",list.names)
+  #list.names<- gsub("10","Bonobo",list.names)
+  #list.names<- gsub("11","Sorang",list.names)
+  #list.names<- gsub("12","Chimp",list.names)
+  
+  list.names<- gsub("05","Human",list.names)
+  list.names<- gsub("02","Gorilla",list.names)
+  list.names<- gsub("01","Borang",list.names)
+  list.names<- gsub("06","Bonobo",list.names)
+  list.names<- gsub("04","Sorang",list.names)
+  list.names<- gsub("03","Chimp",list.names)
   
   lns <- sapply(dat, nrow)
   dat <- as.data.frame(do.call("rbind", dat))
   dat$group <- rep(list.names, lns)
+  dat$group <- factor(dat$group,levels = list.names,ordered = TRUE)
   
-  pvar<-ggplot(dat, aes(x=group, y=y, color=group)) + 
-        geom_boxplot(show.legend=F) + 
-        geom_dotplot(binaxis='y', stackdir='center', dotsize=0.5) +
-        ylim(0,4000) +
+  myColors <- c("black","blue","darkgreen","red","orange","gold")
+  names(myColors) <- levels(dat$group)
+  colScale <- scale_colour_manual(name = "group",values = myColors)
+  
+  theme_set(theme_gray(base_size = 18))
+  pvar<-ggplot(dat, aes(x=group, y=y, color=factor(group))) + 
+        geom_boxplot(show.legend=F,lwd=1.5) + 
+        #geom_dotplot(binaxis='y', stackdir='center', dotsize=0.01) +
         ggtitle(paste0("",i)) +
-        xlab("Species") + ylab("mm") +
-        theme(axis.text.x=element_blank())
+        xlab("Species") + ylab("length of repeat array") +
+        theme(axis.text.x=element_blank(),plot.title = element_text(size=16)) + 
+        colScale
   
   return(pvar)
 }
 
-
-read_counts<-c(2941,4000,2839,3513,4427,2970)
+#read_counts<-c(2941,2970,3513,4000,4427,2839)
+read_counts<-c(1000,1000,1000,1000,1000,1000)
 
 library(ggplot2)
 library(gridExtra)
 library(Rmisc)
+library(RColorBrewer)
 
+speciesType <- function(type) {
+ switch(type,
+        "1" = "Borang",
+        "2" = "Gorilla",
+        "3" = "Chimp",
+        "4" = "Sorang",
+        "5" = "Human",
+        "6" = "Bonobo"
+        )
+}
+
+@
+
+<<>>=
+#plot by species
+par(mfrow=c(2,1))
+p <- list()
+for (sp in 1:6) {
+  rep_names<-paste0("barcode0",sp,".fasta.rep",seq(from=0,to=39,by=1))
+  
+  rep_data<-lapply(rep_names, function(x) as.vector(get(x)[["querybp"]]))
+  repeat_types<-lapply(rep_names, function(x) as.vector(get(x)[["motif"]]))
+  
+  for (i in seq(from=0,to=length(repeat_types),by=1)) {
+    normalized<-unlist(repeat_types[i])
+    if (length(normalized)>0) {
+      repeat_types[i]<-list(normalized)
+    } else {
+      repeat_types[i]<-NA
+    }
+  }
+  
+  motif<-unlist(lapply(repeat_types,unique))
+  print(motif)
+  
+  for (rep in seq(from=0,to=39,by=1)) {
+    normalized<-unlist(rep_data[rep])
+    if (length(normalized)>0) {
+      rep_data[rep]<-list(normalized)
+    } else {
+      rep_data[rep]<-NA
+    }
+  }
+  print(rep_data)
+  rep_data<-lapply(rep_data, `length<-`, max(lengths(rep_data)))
+  longest<-max(c(unlist(rep_data),65000),na.rm=TRUE)
+  boxplot(rep_data,col=rainbow(length(repeat_types)),ylim=c(0,longest),names=motif,las=2,main=speciesType(sp))
+  plot.new()
+}
+
+@
+
+
+<<>>=
+#plot by satellite
 p <- list()
 for (i in 1:39) {
-  rep_names<-c(paste0("barcode07.fasta.rep",i),paste0("barcode08.fasta.rep",i),paste0("barcode09.fasta.rep",i),paste0("barcode10.fasta.rep",i),paste0("barcode11.fasta.rep",i),paste0("barcode12.fasta.rep",i))
+  rep_names<-c(paste0("barcode05.fasta.rep",i),paste0("barcode03.fasta.rep",i),paste0("barcode06.fasta.rep",i),paste0("barcode02.fasta.rep",i),paste0("barcode04.fasta.rep",i),paste0("barcode01.fasta.rep",i))
   
   rep_data<-lapply(rep_names, function(x) as.vector(get(x)[["querybp"]]))
   motif<-unique(unlist(lapply(rep_names, function(x) as.vector(get(x)[["motif"]]))))
@@ -71,13 +143,17 @@ for (i in 1:39) {
     }
   }
   print(rep_data)
+  rep_data<-lapply(rep_data, `length<-`, max(lengths(rep_data)))
   p[[i]] <- plotOneRepeat(rep_data,rep_names,motif)
 }
-multiplot(plotlist = p[1:9], layout=matrix(seq(1,9,1), nrow=3, byrow=TRUE))
-multiplot(plotlist = p[10:18], layout=matrix(seq(1,9,1), nrow=3, byrow=TRUE))
-multiplot(plotlist = p[19:27], layout=matrix(seq(1,9,1), nrow=3, byrow=TRUE))
-multiplot(plotlist = p[28:36], layout=matrix(seq(1,9,1), nrow=3, byrow=TRUE))
-multiplot(plotlist = p[37:39], layout=matrix(seq(1,9,1), nrow=3, byrow=TRUE))
+multiplot(plotlist = p[c(6,7,29)], layout=matrix(seq(1,3,1), nrow=1, byrow=TRUE))
+#multiplot(plotlist = p[c(11,29)], layout=matrix(seq(1,2,1), nrow=1, byrow=TRUE))
+
+#multiplot(plotlist = p[1:9], layout=matrix(seq(1,9,1), nrow=3, byrow=TRUE))
+#multiplot(plotlist = p[10:18], layout=matrix(seq(1,9,1), nrow=3, byrow=TRUE))
+#multiplot(plotlist = p[19:27], layout=matrix(seq(1,9,1), nrow=3, byrow=TRUE))
+#multiplot(plotlist = p[28:36], layout=matrix(seq(1,9,1), nrow=3, byrow=TRUE))
+#multiplot(plotlist = p[37:39], layout=matrix(seq(1,9,1), nrow=3, byrow=TRUE))
 
 @
 
