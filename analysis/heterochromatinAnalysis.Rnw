@@ -204,15 +204,15 @@ divideBy100 <- function(argument){
 return(argument/100)
 }
 
-uniq_names<-c("Homo_sapiens","Pan_troglodytes_schweinfurthii","Pan_troglodytes_troglodytes","Pan_troglodytes_ellioti","Pan_troglodytes_verus","Pan_paniscus","Gorilla_gorilla_gorilla","Gorilla_beringei_graueri","Pongo_pygmaeus","Pongo_abelii")
+uniq_names_subspecies<-c("Homo_sapiens","Pan_troglodytes_schweinfurthii","Pan_troglodytes_troglodytes","Pan_troglodytes_ellioti","Pan_troglodytes_verus","Pan_paniscus","Gorilla_gorilla_gorilla","Gorilla_beringei_graueri","Pongo_pygmaeus","Pongo_abelii")
 
 #colSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,])!=0
 
 #calculate sum of repeat densities for each individual; individuals must match correct species name (rows) and only non-zero repeat motifs will be considered (columns)
-repVariability<-lapply(uniq_names, function(x) rowSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,colSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,])!=0],na.rm = TRUE))
+repVariability<-lapply(uniq_names_subspecies, function(x) rowSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,colSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,])!=0],na.rm = TRUE))
 repVariability<-lapply(repVariability,divideBy100) #normalize 100bp reads into bps
 
-#example: density of AATGG repeat is calculated like this: paste(uniq_names,lapply(uniq_names, function(x) round(mean(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,"AATGG"],na.rm = TRUE)/100,0)))
+#example: density of AATGG repeat is calculated like this: paste(uniq_names_subspecies,lapply(uniq_names_subspecies, function(x) round(mean(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,"AATGG"],na.rm = TRUE)/100,0)))
 
 #table(unlist(as.data.frame(apply(-density,2,rank))["AATGG",]))
 
@@ -228,7 +228,7 @@ print(mean_fold_dif)
 
 par(mfrow=c(2,1))
 #human_without_son<-as.vector(repVariability[[1]])[2:length(repVariability[[1]])]
-distribution_summary<-as.data.frame(cbind(uniq_names,as.numeric(min),as.numeric(max),sd,mean_fold_dif))
+distribution_summary<-as.data.frame(cbind(uniq_names_subspecies,as.numeric(min),as.numeric(max),sd,mean_fold_dif))
 colnames(distribution_summary)<-c("species","min","max","sd","mean_fold_dif")
 distribution_summary<-distribution_summary[order(mean_fold_dif,decreasing=F),]
 print(distribution_summary)
@@ -237,31 +237,31 @@ print(distribution_summary)
 myColors<-c(rep("gray30",1),rep("darkgreen",4),rep("dodgerblue",1),rep("firebrick1",2),rep("gold",2))
 
 #DRAW BOXPLOT OF REPEAT DENSITIES
-boxplot(repVariability,names=paste(uniq_names,lengths(repVariability)),las=2,col=myColors,outline=TRUE)
+boxplot(repVariability,names=paste(uniq_names_subspecies,lengths(repVariability)),las=2,col=myColors,outline=TRUE)
 #CALCULATE MEANS OF REPEAT DENSITIES
-print(paste(uniq_names,lapply(repVariability,mean)))
+print(paste(uniq_names_subspecies,lapply(repVariability,mean)))
 
 len <- sapply(repVariability,length)
 n <- max( len )
 len <- n - len
 dt<-mapply( function(x,y) c(rep( NA , round(y/2)), x , rep( NA , y-round(y/2)) ) , repVariability , len, SIMPLIFY = TRUE)
 rownames(dt)<-NULL
-colnames(dt)<-uniq_names
+colnames(dt)<-uniq_names_subspecies
 #dt<-as.data.frame(dt)
 plot.new()
 dotchart(dt,labels="",gcol="black",col="black",lcolor="white",xlab="repeat density per 1 million bps",pch=20,cex=1.2)
 plot.new()
 
-uniq_names<-c("Homo","Pan_troglodytes","Pan_paniscus","Gorilla","Pongo_abelii","Pongo_pygmaeus")
+uniq_names_species<-c("Homo","Pan_troglodytes","Pan_paniscus","Gorilla","Pongo_abelii","Pongo_pygmaeus")
 myColors<-c("gray30","darkgreen","dodgerblue","firebrick1","gold")
 
-repVariabilityBig<-lapply(uniq_names, function(x) rowSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,colSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,])!=0],na.rm = TRUE))
+repVariabilityBig<-lapply(uniq_names_species, function(x) rowSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,colSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,])!=0],na.rm = TRUE))
 repVariabilityBig<-lapply(repVariabilityBig,divideBy100) #normalize 100bp reads into bps
 
 #DRAW BOXPLOT OF REPEAT DENSITIES
-boxplot(repVariabilityBig,names=paste(uniq_names,lengths(repVariabilityBig)),las=2,col=myColors,outline=TRUE)
+boxplot(repVariabilityBig,names=paste(uniq_names_species,lengths(repVariabilityBig)),las=2,col=myColors,outline=TRUE)
 #CALCULATE MEANS OF REPEAT DENSITIES
-print(paste(uniq_names,lapply(repVariabilityBig,mean)))
+print(paste(uniq_names_species,lapply(repVariabilityBig,mean)))
 @
 
 <<calculations with fold differencies>>=
@@ -288,10 +288,11 @@ lapply(repVariabilityBig,function(x) getTuples(x,5))
 @
 
 <<FIGURE3>>=
-par(mfrow=c(1,6),cex=1.01, mai = c(5, 0.62, 0.3, 0.1))
+par(mfrow=c(1,1),cex=1.01,mai = c(5, 1, 0.3, 0.1))
 myList<-c("Homo","Chimpanzee","Bonobo","Gorilla","Sumatran","Bornean")
 
 most_abundant_for_each_species<-NULL
+nrepeats_subset<-100
 
 for (ape in myList) {
   print(ape)
@@ -299,7 +300,7 @@ for (ape in myList) {
   print(dim(subset))
   reordered<-subset[,order(colMeans(-subset,na.rm=TRUE))]
   #print(colnames(reordered)[1:10])
-  print(binary[colnames(reordered)[1:12],])
+  print(binary[colnames(reordered)[1:nrepeats_subset],])
   
   #use only unit length as a label for repeats with long units
   #rnames <- colnames(reordered)
@@ -307,9 +308,9 @@ for (ape in myList) {
   #  paste0(nchar(colnames(reordered)), "mer")[nchar(rnames) > 5]
   #colnames(reordered) <- rnames
   
-  #boxplot(reordered[,1:12]/100,col="gold",las=2,main=paste(ape,"most abundant"))
-  boxplot(log(reordered[,1:12]),ylim=c(6,16),col="gold",las=2,main=paste(ape,"most abundant")) #logs
-  
+  #=boxplot(reordered[,1:12]/100,col="gold",las=2,main=paste(ape,"most abundant"))
+  boxplot(reordered[,1:nrepeats_subset],col="gold",las=2,main=paste(ape,"most abundant")) #logs
+  #ylim=c(6,16)
   most_abundant_for_each_species[ape]<-list(colnames(log(reordered[,1:500])))
 }
 
@@ -317,7 +318,7 @@ for (ape in myList) {
 
 <<most abundant>>=
 par(cex=0.5)
-par(mar=c(5,0,4,2))
+par(mar=c(5,0,1,2))
 matrix_of_most_abundant<-as.data.frame(sapply(most_abundant_for_each_species[], function(x) { x[1:12] }))
 unique_list_of_most_abundant_for_each_species<-unique(as.vector(t(matrix_of_most_abundant)))
 
@@ -335,11 +336,29 @@ my_palette <- colorRampPalette(c("lightsalmon", "firebrick2"))(n = 1000)
 heatmap.2(t(log(data_for_heatmap)),dendrogram="none", Colv=TRUE, Rowv=FALSE, trace='none',col=my_palette,cexCol=0.5,keysize=0.75,main=paste("unique list of ",length(unique_list_of_most_abundant_for_each_species),"repeats with highest repeat density; log")) #,cexRow=0.1,cexCol=0.75
 
 data_for_heatmap$species<-rownames(data_for_heatmap)
-density_mean_per_species<-data_for_heatmap %>% group_by(species) %>% summarise_all(funs(mean), na.rm = TRUE)
+density_mean_per_species<-data_for_heatmap %>% group_by(species) %>% summarise_all(mean, na.rm = TRUE)
+#apply(density_mean_per_species[,-1],1,myMean)
 rownames(density_mean_per_species)<-density_mean_per_species$species
 density_mean_per_species<-as.data.frame(density_mean_per_species)
 
-heatmap.2(t(log(density_mean_per_species[,-1])),dendrogram="none", Colv=TRUE, Rowv=FALSE, trace='none',col=my_palette,keysize=0.75,main=paste("unique list of ",length(unique_list_of_most_abundant_for_each_species),"repeats with highest repeat density; log scale")) #,cexRow=0.1,cexCol=0.75
+lmat = rbind(c(0,3),c(2,1),c(0,4))
+lwid = c(1.5,4)
+lhei = c(1.5,2,1)
+layout(mat = lmat, widths = lwid, heights = lhei)
+
+roundedStr <- function(arg1){
+  rounded<-round(as.numeric(as.character(arg1)))/1000000
+  formatted<-as.character(format(rounded,format="f", big.mark=",", nsmall = 2, digits=0))
+return(paste0(as.character(formatted),"%"))
+}
+
+cell_values<-t(density_mean_per_species[,-1])
+cell_labels=data.frame(lapply(as.data.frame(cell_values),roundedStr), stringsAsFactors=FALSE)
+cell_labels[cell_labels=="NaN"]<-0
+
+
+plot.new()
+heatmap.2(log(cell_values),cellnote=cell_labels,notecol="white",dendrogram="none", Colv=TRUE, Rowv=FALSE, trace='none',col=my_palette,cexCol=0.5,keysize=0.75,main=paste("unique list of ",length(unique_list_of_most_abundant_for_each_species),"repeats with highest repeat density; log"))
 
 @
 
