@@ -212,11 +212,12 @@ uniq_names_subspecies<-c("Homo_sapiens","Pan_troglodytes_schweinfurthii","Pan_tr
 repVariability<-lapply(uniq_names_subspecies, function(x) rowSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,colSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,])!=0],na.rm = TRUE))
 repVariability<-lapply(repVariability,divideBy100) #normalize 100bp reads into bps
 
-yellow_group_GGAAT_related<-c("AAAGTGGAATGG","AAATGGAATCGAATGGAATCATC","AAATGGAATCGAATGGAATCATCATC","AAATGGAATCGAATGTAATCATCATC","AAATGGACTCGAATGGAATCATC","AACGTGGAATGG","AAGTGGAATGG","AATCATCATCGAATGGAATCGAATGG","AATCATCATGAATGGAATCGAATGG","AATCATCGAATGGAATCGAATGG","AATCATCGAATGGACTCGAATGG","AATCGAATGGAATGG","AATGGAATGGAATGGAATGTGG","AATGGAATGGAATGTGG","AATGGAATGGAGTGG","AATGGAATGTG","AATGGAATGTGG","AATGGAGTGG","AATGGAGTGGAGTGG")
-green_group_32mers<-c("AAACATGGAAATATCTACACAGCCATCTGTAT","AAACATGGAAATATCTACACCACCATCTGTAT","AAACATGGAAATATCTACACCACTATCTGTAT","AAACATGGAAATATCTACACCGCCATCTCTAT","AAACATGGAAATATCTACACCGCCATCTGTAT","AAACATGGAAATATCTACACCGCGATCTGTAT","AAACATGGAAATATCTACACCGCTATCTCTAT","AAACATGGAAATATCTACACCGCTATCTGTAT","AAACATGGAAATATCTACACCGCTATCTGTGT","AAACATGGAAATATCTACACTGCCATCTGTAT","AAACATGGAAATATCTACACTGCTATCTGTAT","AAATATCTACACAGCTATCTGTATGAACATGG","AAATATCTACACCACTATCTGTATGAACATGG","AAATATCTACACCGCCATCTGTATGAACATGG","AAATATCTACACCGCTATCTGCATGAACATGG","AAATATCTACACCGCTATCTGTATGAACATGG")
+yellow_group_GGAAT_related<-c("AATGG","AATGGAGTGG","AAGTGGAATGG","AATGGAATGTG","AAAGTGGAATGG","AACGTGGAATGG","AATGGAATGTGG","AATGGAATGGAGTGG","AATGGAGTGGAGTGG","AATCGAATGGAATGG","AATGGAATGGAATGTGG","AATGGAATGGAATGGAATGTGG","AAATGGACTCGAATGGAATCATC","AAATGGAATCGAATGGAATCATC","AATCATCGAATGGAATCGAATGG","AATCATCGAATGGACTCGAATGG","AATCATCATGAATGGAATCGAATGG","AAATGGAATCGAATGGAATCATCATC","AAATGGAATCGAATGTAATCATCATC","AATCATCATCGAATGGAATCGAATGG")
+green_group_32mers<-c("AAACATGGAAATATCTACACAGCCATCTGTAT","AAACATGGAAATATCTACACCACCATCTGTAT","AAACATGGAAATATCTACACCACTATCTGTAT","AAACATGGAAATATCTACACCGCCATCTGTAT","AAACATGGAAATATCTACACCGCTATCTGTAT","AAACATGGAAATATCTACACCGCTATCTGTGT","AAACATGGAAATATCTACACTGCCATCTGTAT","AAACATGGAAATATCTACACTGCTATCTGTAT","AAACATGGAAATATCTACACCGCGATCTGTAT","AAACATGGAAATATCTACACCGCCATCTCTAT","AAACATGGAAATATCTACACCGCTATCTCTAT","AAATATCTACACAGCTATCTGTATGAACATGG","AAATATCTACACCACTATCTGTATGAACATGG","AAATATCTACACCGCTATCTGTATGAACATGG","AAATATCTACACCGCCATCTGTATGAACATGG","AAATATCTACACCGCTATCTGCATGAACATGG")
+white_group<-c("AAAG","ACTCC","AAACATGTAAATATTTACACAGAATCTGTAT")
 
 repeatDensityForAMotifSpecies <- function(motif){
-  rd<-paste(uniq_names_species,lapply(uniq_names_species, function(x) round(mean(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,motif],na.rm = TRUE)/100000,0))) #todo, change normalization coefficients
+  rd<-paste(uniq_names_species,lapply(uniq_names_species, function(x) round(mean(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,motif],na.rm = TRUE)/100000,2))) #todo, change normalization coefficients
 return(rd)
 }
 
@@ -226,6 +227,9 @@ return(rd)
 }
 
 #SHOW DENSITIES FOR EACH SPECIES SEPARATELY
+#AATGG
+repeatDensityForAMotifSpecies("AATGG")
+
 #yellow_group_GGAAT_related
 denisities_for_yellow_group_GGAAT_related<-lapply(yellow_group_GGAAT_related,repeatDensityForAMotifSpecies)
 lapply(seq_along(1:6),function(i)
@@ -374,15 +378,25 @@ lhei = c(1.5,2,1)
 layout(mat = lmat, widths = lwid, heights = lhei)
 
 roundedStr <- function(arg1){
-  rounded<-round(as.numeric(as.character(arg1)))/1000000
-  formatted<-as.character(format(rounded,format="f", big.mark=",", nsmall = 2, digits=0))
-return(paste0(as.character(ifelse(formatted=="0.00", "<0.01", formatted)),"%"))
+  rounded<-round(as.numeric(as.character(arg1)))/100000
+  formatted<-as.numeric(format(rounded,format="f", big.mark=",", nsmall = 2, digits=0))
+  #print(paste("formatted",formatted))
+  small_numbers_correction<-as.character(paste(ifelse(formatted<0.01, "<0.01", formatted),""))
+  #print(paste("small_numbers_correction",small_numbers_correction))
+return(small_numbers_correction)
 }
 
-cell_values<-t(density_mean_per_species[,-1])
-cell_labels=data.frame(lapply(as.data.frame(cell_values),roundedStr), stringsAsFactors=FALSE)
-cell_labels[cell_labels=="NaN"]<-0
+repeat_order <- c(yellow_group_GGAAT_related,green_group_32mers,white_group)
 
+#check that loaded repeat names match those from the dataframe
+original_names<-sort(as.character(colnames(density_mean_per_species[2:ncol(density_mean_per_species)])))
+loaded_names<-sort(as.character(repeat_order))
+stopifnot(original_names==loaded_names)
+
+cell_values<-t(density_mean_per_species[,-1]) 
+cell_values<-cell_values[repeat_order,] #REORDER REPEAT ORDER
+
+cell_labels=data.frame(lapply(as.data.frame(cell_values),roundedStr), stringsAsFactors=FALSE)
 
 plot.new()
 heatmap.2(log(cell_values),cellnote=cell_labels,notecol="white",dendrogram="none", Colv=TRUE, Rowv=FALSE, trace='none',col=my_palette,cexCol=0.5,keysize=0.75,main=paste("unique list of ",length(unique_list_of_most_abundant_for_each_species),"repeats with highest repeat density; log"))
