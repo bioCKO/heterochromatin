@@ -212,7 +212,31 @@ uniq_names_subspecies<-c("Homo_sapiens","Pan_troglodytes_schweinfurthii","Pan_tr
 repVariability<-lapply(uniq_names_subspecies, function(x) rowSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,colSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,])!=0],na.rm = TRUE))
 repVariability<-lapply(repVariability,divideBy100) #normalize 100bp reads into bps
 
-#example: density of AATGG repeat is calculated like this: paste(uniq_names_subspecies,lapply(uniq_names_subspecies, function(x) round(mean(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,"AATGG"],na.rm = TRUE)/100,0)))
+yellow_group_GGAAT_related<-c("AAAGTGGAATGG","AAATGGAATCGAATGGAATCATC","AAATGGAATCGAATGGAATCATCATC","AAATGGAATCGAATGTAATCATCATC","AAATGGACTCGAATGGAATCATC","AACGTGGAATGG","AAGTGGAATGG","AATCATCATCGAATGGAATCGAATGG","AATCATCATGAATGGAATCGAATGG","AATCATCGAATGGAATCGAATGG","AATCATCGAATGGACTCGAATGG","AATCGAATGGAATGG","AATGGAATGGAATGGAATGTGG","AATGGAATGGAATGTGG","AATGGAATGGAGTGG","AATGGAATGTG","AATGGAATGTGG","AATGGAGTGG","AATGGAGTGGAGTGG")
+green_group_32mers<-c("AAACATGGAAATATCTACACAGCCATCTGTAT","AAACATGGAAATATCTACACCACCATCTGTAT","AAACATGGAAATATCTACACCACTATCTGTAT","AAACATGGAAATATCTACACCGCCATCTCTAT","AAACATGGAAATATCTACACCGCCATCTGTAT","AAACATGGAAATATCTACACCGCGATCTGTAT","AAACATGGAAATATCTACACCGCTATCTCTAT","AAACATGGAAATATCTACACCGCTATCTGTAT","AAACATGGAAATATCTACACCGCTATCTGTGT","AAACATGGAAATATCTACACTGCCATCTGTAT","AAACATGGAAATATCTACACTGCTATCTGTAT","AAATATCTACACAGCTATCTGTATGAACATGG","AAATATCTACACCACTATCTGTATGAACATGG","AAATATCTACACCGCCATCTGTATGAACATGG","AAATATCTACACCGCTATCTGCATGAACATGG","AAATATCTACACCGCTATCTGTATGAACATGG")
+
+repeatDensityForAMotifSpecies <- function(motif){
+  rd<-paste(uniq_names_species,lapply(uniq_names_species, function(x) round(mean(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,motif],na.rm = TRUE)/100000,0))) #todo, change normalization coefficients
+return(rd)
+}
+
+repeatDensityForAMotifSubSpecies <- function(motif){
+  rd<-paste(uniq_names_subspecies,lapply(uniq_names_subspecies, function(x) round(mean(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,motif],na.rm = TRUE)/100000,0))) #todo, change normalization coefficients
+return(rd)
+}
+
+#SHOW DENSITIES FOR EACH SPECIES SEPARATELY
+#yellow_group_GGAAT_related
+denisities_for_yellow_group_GGAAT_related<-lapply(yellow_group_GGAAT_related,repeatDensityForAMotifSpecies)
+lapply(seq_along(1:6),function(i)
+         unlist(lapply(denisities_for_yellow_group_GGAAT_related, `[[`, i)))
+#green_group_32mers
+denisities_for_green_group_32mers<-lapply(green_group_32mers,repeatDensityForAMotifSpecies)
+lapply(seq_along(1:6),function(i)
+         unlist(lapply(denisities_for_green_group_32mers, `[[`, i)))
+
+#old example: density of AATGG repeat is calculated like this: paste(uniq_names_subspecies,lapply(uniq_names_subspecies, function(x) round(mean(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,"AATGG"],na.rm = TRUE)/100,0)))
+
 
 #table(unlist(as.data.frame(apply(-density,2,rank))["AATGG",]))
 
@@ -237,7 +261,10 @@ print(distribution_summary)
 myColors<-c(rep("gray30",1),rep("darkgreen",4),rep("dodgerblue",1),rep("firebrick1",2),rep("gold",2))
 
 #DRAW BOXPLOT OF REPEAT DENSITIES
-boxplot(repVariability,names=paste(uniq_names_subspecies,lengths(repVariability)),las=2,col=myColors,outline=TRUE)
+boxplot(repVariability,names=paste(uniq_names_subspecies,lengths(repVariability)),las=2,col=sapply(myColors,adjustcolor,alpha=0.4),outline=TRUE)
+stripchart(repVariability, vertical = TRUE, 
+    method = "jitter", add = TRUE, pch = 20, col = 'blue')
+
 #CALCULATE MEANS OF REPEAT DENSITIES
 print(paste(uniq_names_subspecies,lapply(repVariability,mean)))
 
@@ -349,7 +376,7 @@ layout(mat = lmat, widths = lwid, heights = lhei)
 roundedStr <- function(arg1){
   rounded<-round(as.numeric(as.character(arg1)))/1000000
   formatted<-as.character(format(rounded,format="f", big.mark=",", nsmall = 2, digits=0))
-return(paste0(as.character(formatted),"%"))
+return(paste0(as.character(ifelse(formatted=="0.00", "<0.01", formatted)),"%"))
 }
 
 cell_values<-t(density_mean_per_species[,-1])
