@@ -4,7 +4,7 @@
 \SweaveOpts{concordance=TRUE}
 
 <<PCR>>=
-par(mfrow=c(3,3))
+par(mfrow=c(2,2))
 require(data.table)
 require(hexbin)
 require(ggplot2)
@@ -16,9 +16,9 @@ read_and_normalize <-function(input_file) {
   return(as.data.frame(input))
 }
 
-PCRplus1 <- read_and_normalize("/Users/alice/Desktop/projects/heterochromatin/PCR/9-24-2013_BO_R1.fastq.dat_output.txt.counts.sortedFilt75")
-PCRplus2 <- read_and_normalize("/Users/alice/Desktop/projects/heterochromatin/PCR/6-6-2013_BO_R1.fastq.dat_output.txt.counts.sortedFilt75")
-PCRminus <- read_and_normalize("/Users/alice/Desktop/projects/heterochromatin/PCR/1-13-2014_TBO51_R1.fastq.dat_output.txt.counts.sortedFilt75")
+PCRplus1 <- read_and_normalize("/Users/polly/Desktop/projects/heterochromatin/PCR/9-24-2013_BO_R1.fastq.dat_output.txt.counts.sortedFilt75")
+PCRplus2 <- read_and_normalize("/Users/polly/Desktop/projects/heterochromatin/PCR/6-6-2013_BO_R1.fastq.dat_output.txt.counts.sortedFilt75")
+PCRminus <- read_and_normalize("/Users/polly/Desktop/projects/heterochromatin/PCR/1-13-2014_TBO51_R1.fastq.dat_output.txt.counts.sortedFilt75")
 
 BO_readC1<-94110593
 BO_readC2<-3587652
@@ -47,68 +47,73 @@ data<-as.data.frame(data) #convert to dataframe from data table
 data$plus1<-data$plus1/BO_readC1*1000000
 data$plus2<-data$plus2/BO_readC2*1000000
 data$minus<-data$minus/TBO_51*1000000
-
 data<-data[order(rowSums(data[,2:(ncol(data)-1)]),decreasing=T),]
-data<-head(data,n=1000)
-subset<-scale(data[,2:4],center=FALSE,scale=FALSE)
-subset<-subset[rowSums(subset)>(log(100)),] #keep only rows where all three libraries have at least 100 reads total
-subset<-as.data.frame(subset)
 
-apply(subset,2,sum)
-
-hexplom(subset,main="1000 most abundant repeats",xlim=c(-10,10),ylim=c(-10,10))
-
-plot(apply(subset,1,sd))
-
-hist(subset$plus1-subset$minus,breaks=10,col="gold")
-abline(v=0,col="red",lw=3)
-hist(subset$plus2-subset$minus,breaks=10,col="gold")
-abline(v=0,col="red",lw=3)
-cor(subset,method="spearman")
-
-dist<-as.dist(1-cor(subset,method="spearman")) #distance based on correlation
-hcSingle <- hclust(dist,method="single") 
-dendSingle <- as.dendrogram(hcSingle)
-plot(dendSingle, main = "Clustering using linkage function 'single'",cex=0.3)
-
-plot(subset$plus1,subset$plus2)
-abline(a=c(0,0),b=(1),col="red")
-plot(subset$plus1,subset$minus)
-abline(a=c(0,0),b=(1),col="red")
-plot(subset$plus2,subset$minus)
-abline(a=c(0,0),b=(1),col="red")
-
-hist(resid(lm(subset$plus2-subset$plus1 ~ 0)),col="pink",breaks=50)
-boxplot(resid(lm(subset$plus2-subset$plus1 ~ 0)))
-summary(resid(lm(subset$plus2-subset$plus1 ~ 0)))
-
-hist(resid(lm(subset$plus1-subset$minus ~ 0)),col="pink",breaks=50)
-boxplot(resid(lm(subset$plus1-subset$minus ~ 0)))
-summary(resid(lm(subset$plus1-subset$minus ~ 0)))
-
-hist(resid(lm(subset$plus2-subset$minus ~ 0)),col="pink",breaks=50)
-boxplot(resid(lm(subset$plus2-subset$minus ~ 0)))
-summary(resid(lm(subset$plus2-subset$minus ~ 0)))
+#at which abundance the low read count library can no longer match high read count library and counts start to be dominated by noise/bias?
+plot((data$plus2/data$plus1))
+abline(v=3000,col="red")
+data[data$plus2>100,]
 @
 
 <<>>=
-par(pty="s")
-x=runif(100, 0, 100)
-    y=runif (100, 0, 100)
-    df=cbind (x,y)
-    df=as.data.frame(df)
-plot (y~x, data=df, pch=16)
-lm1<-lm(y~x, data=df)
-line (lm1)
-abline(0,1, col="red")
-#get residulas for the linear model 
-y.resid= resid (lm1)
-a=1;b=-1;c=0
-xi = (b*(b*x-a*y)-a*c) / (a^2+b^2)
-yi = (a*(-b*x+a*y)-b*c) / (a^2+b^2)
-segments(x,y,xi,yi,col="blue")
-yr = abs(a*x+b*y+c)/sqrt(a^2+b^2)
-hist(abs(yr))
+
+plot(NA,xlim=c(0,0.5),ylim=c(0,0.5),xlab="distance between PCR+ replicates", ylab="average distance of PCR- library to the PCR+ libraries",cex=1.2)
+lines(x = c(0,100), y = c(0,100))
+for (threshold in 1:10) {
+  subset<-scale(data[,2:4],center=FALSE,scale=FALSE)
+  subset<-subset[rowSums(subset)>(threshold),] #keep only rows where all three libraries have at least threshold abundance total
+  subset<-as.data.frame(subset)
+  print(dim(subset))
+  
+  apply(subset,2,sum)
+  
+  #hexplom(subset,main="1000 most abundant repeats",xlim=c(-10,10),ylim=c(-10,10))
+  
+  #plot(apply(subset,1,sd))
+  
+  #hist(subset$plus1-subset$minus,breaks=10,col="gold")
+  #abline(v=0,col="red",lw=3)
+  #hist(subset$plus2-subset$minus,breaks=10,col="gold")
+  #abline(v=0,col="red",lw=3)
+  cor(subset,method="spearman")
+  
+  dist<-as.dist(1-cor(subset,method="spearman")) #distance based on correlation
+  hcSingle <- hclust(dist,method="single") 
+  dendSingle <- as.dendrogram(hcSingle)
+  #plot(dendSingle, main = paste("Clustering using linkage function 'single'",threshold),cex=0.3)
+  m<-as.data.frame(as.matrix(dist))
+  plus_replicates<-m[2,1]
+  average_minus_distance_to_plus<-(m[3,2]+m[3,1])/2
+  text(plus_replicates,average_minus_distance_to_plus, label=threshold, col="blue") 
+}
+@
+
+<<>>=
+par(mfrow=c(2,3))
+plot(subset$plus1,subset$plus2,xlab="PCR+, replicate 1",ylab="PCR+, replicate 2",xlim=c(-10,14000),ylim=c(-10,14000),main="linear relationship between PCR+")
+abline(a=c(0,0),b=(1),col="red")
+plot(subset$plus1,subset$minus,xlab="PCR+, replicate 1",ylab="PCR-",xlim=c(-10,14000),ylim=c(-10,14000),main="PCR+ counts of rep1 are overrepresented")
+abline(a=c(0,0),b=(1),col="red")
+plot(subset$plus2,subset$minus,xlab="PCR+, replicate 2",ylab="PCR-",xlim=c(-10,14000),ylim=c(-10,14000),main="PCR+ counts of rep2 are overrepresented")
+abline(a=c(0,0),b=(1),col="red")
+
+plus2_plus1<-lm(subset$plus2-subset$plus1 ~ 0)
+#hist(resid(plus2_plus1),col="pink",breaks=50)
+
+plus2_minus<-lm(subset$plus2-subset$minus ~ 0)
+#hist(resid(plus2_minus),col="pink",breaks=50)
+
+plus1_minus<-lm(subset$plus1-subset$minus ~ 0)
+#hist(resid(plus1_minus),col="pink",breaks=50)
+
+plot(subset$plus1,resid(plus1_minus),main="linear rel. between counts and residuals",xlab="repeat counts for plus1",ylab="residuals from fitting plus1-minus on y=x")
+res_vs_counts<-lm(resid(plus1_minus)~subset$plus1)
+abline(a=c(0,0),b=(1),col="red")
+abline(res_vs_counts,col="blue")
+
+plot(subset$plus1-0.3806946*subset$plus1,subset$minus,xlim=c(-10,14000),ylim=c(-10,14000),main="linear relationship after correction",xlab="CORRECTED PCR+, replicate 1",ylab="PCR-")
+abline(a=c(0,0),b=(1),col="red")
+
 @
 
 \end{document}
