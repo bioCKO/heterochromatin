@@ -284,7 +284,7 @@ dotchart(dt,labels="",gcol="black",col="black",lcolor="white",xlab="repeat densi
 plot.new()
 
 uniq_names_species<-c("Homo","Pan_troglodytes","Pan_paniscus","Gorilla","Pongo_abelii","Pongo_pygmaeus")
-myColors<-c("gray30","darkgreen","dodgerblue","firebrick1","gold")
+myColors<-c("gray30","darkgreen","dodgerblue","firebrick1","gold","orange")
 
 repVariabilityBig<-lapply(uniq_names_species, function(x) rowSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,colSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,])!=0],na.rm = TRUE))
 repVariabilityBig<-lapply(repVariabilityBig,divideBy100) #normalize 100bp reads into bps
@@ -323,7 +323,7 @@ par(mfrow=c(1,1),cex=1.01,mai = c(5, 1, 0.3, 0.1))
 myList<-c("Homo","Chimpanzee","Bonobo","Gorilla","Sumatran","Bornean")
 
 most_abundant_for_each_species<-NULL
-nrepeats_subset<-100
+nrepeats_subset<-12
 
 for (ape in myList) {
   print(ape)
@@ -453,6 +453,8 @@ pca_data<-pca_data[with(pca_data, order(species)), ]
 #         "Bonobo" "Chimpanzee" "Gorilla" "Homo" "Orangutan" 
 palette(c("blue","gold","darkgreen","red","black","orange")) #pick color scheme
 
+stopifnot(exists("unique_list_of_most_abundant_for_each_species"))
+
 #plot first two principal components in 2D space
 pca_calculation<-prcomp(pca_data[,unique_list_of_most_abundant_for_each_species])
 a<-autoplot(pca_calculation,label=FALSE,colour=as.numeric(as.factor(pca_data$species)),shape=as.numeric(as.factor(pca_data$sex))+15,size=3)
@@ -467,8 +469,8 @@ plot3d(pc$scores[,1:3],col=as.numeric(pca_data$species),cex=2,size=10)
 legend(x="topleft", legend = levels(pca_data$species), col = unique(as.numeric(pca_data$species)),lty=1,bty = "n")
 
 #RUN PRINCIPAL COMPONENT ANALYSIS (PCA) based on SEX
-pc_sex <- princomp(pca_data_sex[,1:(ncol(pca_data_sex)-1)], cor=TRUE,scores=TRUE)
-summary(pc_sex)
+#pc_sex <- princomp(pca_data_sex[,1:(ncol(pca_data_sex)-1)], cor=TRUE,scores=TRUE)
+#summary(pc_sex)
 #plot(pc_sex,type="lines") #plot variance explained by each component
 
 #Females (pink) and males (black) are plotted in the 3D space defined by fourth, fifth and sixth principal components.
@@ -487,24 +489,27 @@ most_abundant_pca_data<-pca_data[,c(unique_list_of_most_abundant_for_each_specie
 
 plot.new()
 number_of_repeats<-length(unique_list_of_most_abundant_for_each_species)
-plot.window(xlim = c(0, number_of_repeats), ylim = c(0, 100), xlab="number of repeats used",ylab="accuracy")
+plot.window(xlim = c(0, number_of_repeats), ylim = c(75, 100), xlab="number of repeats used",ylab="accuracy")
+abline(h=95,col="red")
+abline(v=14,col="blue")
 box()
 axis(1)
 axis(4)
 
 for (i in seq(2, number_of_repeats, 1)) {
-  lda.fit=lda(most_abundant_pca_data$species~.,data=most_abundant_pca_data[,1:i],CV=TRUE) 
+  lda.fit=lda(most_abundant_pca_data$species~.,data=most_abundant_pca_data[,1:i],CV=TRUE,prior=c(1,1,1,1,1,1)/6)
   tab <- table(most_abundant_pca_data$species, lda.fit$class)
   accuracy<-sum(diag(tab))/sum(tab)*100
   print(paste(i,accuracy))
   points(i,accuracy)
   print(tab)
-  plot(t(tab),main=paste("number of repeats",i))
+  #plot(t(tab),main=paste("number of repeats",i))
 }
 
 #PREDICT SPECIES BASED ON REPEATS USING RANDOM FOREST
+set.seed(1)
 library (randomForest)
-rf=randomForest(most_abundant_pca_data$species~.,data=most_abundant_pca_data[,1:(ncol(most_abundant_pca_data)-2)],importance=TRUE) #
+rf=randomForest(most_abundant_pca_data$species~.,data=most_abundant_pca_data[,1:(ncol(most_abundant_pca_data)-2)],importance=TRUE,ntree=10000,classwt=c(1,1,1,1,1,1)/6) #
 importance(rf) #textual representation of how important the variables were
 varImpPlot(rf) #graphical representation
 print(rf)
@@ -548,12 +553,79 @@ a + theme_linedraw()
 <<FIGURE5>>=
 #Hierarchical clustering does not reproduce the expected species phylogeny
 
-par(mfrow=c(2,1))
+plotDendrogram <- function(subset_to_plot,title_of_subset_to_plot) {
+  l <- rownames(subset_to_plot)
+  l[grepl("Pan_paniscus", l) == TRUE] <- "Bonobo"
+  l[grepl("Pan", l) == TRUE] <- "Chimpanzee"
+  l[grepl("Gorilla", l) == TRUE] <- "Gorilla"
+  #l[grepl("Pongo",l)==TRUE]<-"Orangutan"
+  l[grepl("Pongo_pygmaeus", l) == TRUE] <- "Bornean"
+  l[grepl("Pongo_abelii", l) == TRUE] <- "Sumatran"
+  l[grepl("Homo", l) == TRUE] <- "Homo"
+  
+  groupCodes <- l
+  rownames(subset_to_plot) <- groupCodes
+  colorCodes <-
+    c(
+      Bonobo = "blue",
+      Chimpanzee = "darkgreen",
+      Gorilla = "red",
+      Orangutan = "orange",
+      Homo = "black"
+    )
+  colorCodes <-
+    c(
+      Bonobo = "blue",
+      Chimpanzee = "darkgreen",
+      Gorilla = "red",
+      Sumatran = "gold",
+      Bornean = "orange",
+      Homo = "black"
+    )
+  
+  dist <-
+    as.dist(1 - cor((t(subset_to_plot)), method = "spearman")) #distance based on correlation
+  
+  #OPTIONS FOR CLUSTERING LINKAGE FUNCTIONS:
+  #method="ward.D", "ward.D2", "single", "complete", "average" (= UPGMA), "mcquitty" (= WPGMA), "median" (= WPGMC) or "centroid" (= UPGMC).
+  
+  hc <- hclust(dist, method = "ward.D2")
+  hcSingle <- hclust(dist, method = "single")
+  dend <- as.dendrogram(hc)
+  dendSingle <- as.dendrogram(hcSingle)
+  
+  names_and_sexes <-
+    paste(lapply(strsplit(
+      rownames(abundantIndividualsVsRepeats), " "
+    ), function(x)
+      x[1]),
+    lapply(strsplit(
+      rownames(abundantIndividualsVsRepeats), " "
+    ), function(x)
+      x[3]))
+  
+  # Assigning the labels of dendrogram object with new colors:
+  labels_colors(dend) <-
+    colorCodes[groupCodes][order.dendrogram(dend)]
+  labels(dend) <- names_and_sexes[order.dendrogram(dend)]
+  labels_colors(dendSingle) <-
+    colorCodes[groupCodes][order.dendrogram(dendSingle)]
+  labels(dendSingle) <-
+    names_and_sexes[order.dendrogram(dendSingle)]
+  
+  plot(dend, main = paste("Clustering", title_of_subset_to_plot, "using linkage function 'complete'"))
+  plot(dendSingle, main = paste("Clustering", title_of_subset_to_plot, "using linkage function 'single'"))
+}
+
 sampleToCluster<-abundantIndividualsVsRepeats
 
-#sampleToCluster<-sampleToCluster[,1:16] #only 16 most common repeats
+par(mfrow=c(2,1))
+plotDendrogram(sampleToCluster,"all repeated motifs")
+plotDendrogram(sampleToCluster[,unique_list_of_most_abundant_for_each_species],"39 most abundant motifs")
+plotDendrogram(sampleToCluster[,nchar(colnames(sampleToCluster))!=32],"exluding 32-mers")
+
 #sampleToCluster<-sampleToCluster[,rownames((keep[keep$Chimpanzee>0 & keep$Bonobo>0 & keep$Gorilla>0 & keep$Orangutan>0 & keep$Homo>0,]))] #shared repeats
-#sampleToCluster<-sampleToCluster[,nchar(colnames(sampleToCluster))==32] #exluding 32-mers
+#sampleToCluster<-sampleToCluster[,nchar(colnames(sampleToCluster))!=32] #exluding 32-mers
 
 #present in both orangutans, but absent from the other great ape species
 #dim(sampleToCluster[,(sampleToCluster["Bornean",]>0 & sampleToCluster["Sumatran",]>0 & sampleToCluster["Homo",]==0 & sampleToCluster["Gorilla",]==0 & sampleToCluster["Chimpanzee",]==0) & sampleToCluster["Bonobo",]==0]) WARNING: chimpanzee has weird bracketing
@@ -563,39 +635,6 @@ sampleToCluster<-abundantIndividualsVsRepeats
 #print(length(columns_present_in_enough_individuals))
 #sampleToCluster<-scale(sampleToCluster[,columns_present_in_enough_individuals],center=FALSE,scale=TRUE)
 
-l<-rownames(sampleToCluster)
-l[grepl("Pan_paniscus",l)==TRUE]<-"Bonobo"
-l[grepl("Pan",l)==TRUE]<-"Chimpanzee"
-l[grepl("Gorilla",l)==TRUE]<-"Gorilla"
-#l[grepl("Pongo",l)==TRUE]<-"Orangutan"
-l[grepl("Pongo_pygmaeus",l)==TRUE]<-"Bornean"
-l[grepl("Pongo_abelii",l)==TRUE]<-"Sumatran"
-l[grepl("Homo",l)==TRUE]<-"Homo"
-
-groupCodes <-l
-rownames(sampleToCluster)<-groupCodes
-colorCodes <- c(Bonobo="blue", Chimpanzee="darkgreen", Gorilla="red", Orangutan="orange", Homo="black")
-
-dist<-as.dist(1-cor((t(sampleToCluster)),method="spearman")) #distance based on correlation
-
-#OPTIONS FOR CLUSTERING LINKAGE FUNCTIONS: 
-#method="ward.D", "ward.D2", "single", "complete", "average" (= UPGMA), "mcquitty" (= WPGMA), "median" (= WPGMC) or "centroid" (= UPGMC).
-
-hc <- hclust(dist,method="ward.D2")
-hcSingle <- hclust(dist,method="single") 
-dend <- as.dendrogram(hc)
-dendSingle <- as.dendrogram(hcSingle)
-
-names_and_sexes<-paste(lapply(strsplit(rownames(abundantIndividualsVsRepeats)," "), function(x) x[1]),lapply(strsplit(rownames(abundantIndividualsVsRepeats)," "), function(x) x[3]))
-
-# Assigning the labels of dendrogram object with new colors:
-labels_colors(dend) <- colorCodes[groupCodes][order.dendrogram(dend)]
-labels(dend)<-names_and_sexes[order.dendrogram(dend)]
-labels_colors(dendSingle) <- colorCodes[groupCodes][order.dendrogram(dendSingle)]
-labels(dendSingle)<-names_and_sexes[order.dendrogram(dendSingle)]
-
-plot(dend, main = "Clustering using linkage function 'complete'")
-plot(dendSingle, main = "Clustering using linkage function 'single'")
 @
 
 <<FIGURE6,eval=FALSE>>=
