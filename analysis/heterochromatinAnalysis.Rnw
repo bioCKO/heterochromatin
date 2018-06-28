@@ -292,7 +292,31 @@ repVariabilityBig<-lapply(repVariabilityBig,divideBy100) #normalize 100bp reads 
 #DRAW BOXPLOT OF REPEAT DENSITIES
 boxplot(repVariabilityBig,names=paste(uniq_names_species,lengths(repVariabilityBig)),las=2,col=myColors,outline=TRUE)
 #CALCULATE MEANS OF REPEAT DENSITIES
+print("MEAN OF REPEAT DENSITIES FOR ALL REPEATED MOTIFS")
 print(paste(uniq_names_species,lapply(repVariabilityBig,mean)))
+
+
+#LESS ABUNDANT REPEATED MOTIFS
+all_repeated_motifs<-colnames(abundantIndividualsVsRepeats)
+less_abundant_repeated_motifs<-all_repeated_motifs[is.na(pmatch(all_repeated_motifs,unique_list_of_most_abundant_for_each_species))]
+stopifnot(length(all_repeated_motifs)==(length(less_abundant_repeated_motifs)+length(unique_list_of_most_abundant_for_each_species)))
+
+repVariabilityLessAbundant <-
+  lapply(uniq_names_species, function(x)
+    rowSums(abundantIndividualsVsRepeats[grepl(x, rownames(abundantIndividualsVsRepeats)) ==
+                                           TRUE, colSums(abundantIndividualsVsRepeats[grepl(x, rownames(abundantIndividualsVsRepeats)) ==
+                                                                                        TRUE, less_abundant_repeated_motifs]) != 0], na.rm = TRUE))
+repVariabilityLessAbundant<-lapply(repVariabilityLessAbundant,divideBy100) #normalize 100bp reads into bps
+print("LESS ABUNDANT REPEATED MOTIFS")
+print(paste(uniq_names_species,lapply(repVariabilityLessAbundant,mean)))
+
+#MOST ABUNDANT REPEATED MOTIFS
+repVariabilityMostAbundant<-lapply(uniq_names_species, function(x) rowSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,colSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,unique_list_of_most_abundant_for_each_species])!=0],na.rm = TRUE))
+repVariabilityMostAbundant<-lapply(repVariabilityMostAbundant,divideBy100) #normalize 100bp reads into bps
+print("MOST ABUNDANT REPEATED MOTIFS")
+print(paste(uniq_names_species,lapply(repVariabilityMostAbundant,mean)))
+
+
 @
 
 <<calculations with fold differencies>>=
@@ -386,7 +410,8 @@ roundedStr <- function(arg1){
 return(small_numbers_correction)
 }
 
-repeat_order <- c(yellow_group_GGAAT_related,green_group_32mers,white_group)
+#repeat_order <- c(yellow_group_GGAAT_related,green_group_32mers,white_group)
+repeat_order<-c("AATGG","ACTCC","AAAG","AATGGAGTGG","AATGGAATGGAGTGG","AATGGAGTGGAGTGG","AAGTGGAATGG","AATGGAATGTG","AAAGTGGAATGG","AACGTGGAATGG","AATGGAATGTGG","AATGGAATGGAATGTGG","AATGGAATGGAATGGAATGTGG","AAATGGACTCGAATGGAATCATC","AATCGAATGGAATGG","AAATGGAATCGAATGGAATCATC","AATCATCGAATGGAATCGAATGG","AATCATCGAATGGACTCGAATGG","AATCATCATGAATGGAATCGAATGG","AAATGGAATCGAATGGAATCATCATC","AAATGGAATCGAATGTAATCATCATC","AATCATCATCGAATGGAATCGAATGG","AAACATGTAAATATTTACACAGAATCTGTAT","AAATATCTACACCGCTATCTGTATGAACATGG","AAATATCTACACCGCCATCTGTATGAACATGG","AAACATGGAAATATCTACACAGCCATCTGTAT","AAACATGGAAATATCTACACCACCATCTGTAT","AAACATGGAAATATCTACACCACTATCTGTAT","AAACATGGAAATATCTACACCGCCATCTGTAT","AAACATGGAAATATCTACACCGCTATCTGTAT","AAACATGGAAATATCTACACCGCTATCTGTGT","AAACATGGAAATATCTACACTGCCATCTGTAT","AAACATGGAAATATCTACACTGCTATCTGTAT","AAACATGGAAATATCTACACCGCGATCTGTAT","AAACATGGAAATATCTACACCGCCATCTCTAT","AAACATGGAAATATCTACACCGCTATCTCTAT","AAATATCTACACAGCTATCTGTATGAACATGG","AAATATCTACACCACTATCTGTATGAACATGG","AAATATCTACACCGCTATCTGCATGAACATGG")
 
 #check that loaded repeat names match those from the dataframe
 original_names<-sort(as.character(colnames(density_mean_per_species[2:ncol(density_mean_per_species)])))
@@ -395,6 +420,7 @@ stopifnot(original_names==loaded_names)
 
 cell_values<-t(density_mean_per_species[,-1]) 
 cell_values<-cell_values[repeat_order,] #REORDER REPEAT ORDER
+print(apply(cell_values,2,function(x) {sum(x,na.rm=TRUE)/100000})) #total repeat density of 39 most abundant repeats only
 
 cell_labels=data.frame(lapply(as.data.frame(cell_values),roundedStr), stringsAsFactors=FALSE)
 
@@ -868,9 +894,15 @@ getTopCandidatesForSpecies <- function(species,threshold) {
   repeats_to_iterate_over<-colnames(pca_data)[1:(ncol(pca_data)-2),drop=FALSE]
   pvalues<-lapply(repeats_to_iterate_over,getCandidatesForSpecies,species=species,threshold=threshold)
   candidates<-as.data.frame(do.call(rbind,pvalues))
-  colnames(candidates)<-c("unit","pvalue","avg_density","ratio","difference")
-  candidates<-candidates[order(as.numeric(as.character(candidates$avg_density)),decreasing=TRUE) , ,drop=FALSE]
-  return(candidates)
+  
+  if(nrow(candidates) == 0){ 
+    return(NULL)
+  } else {
+    
+    colnames(candidates)<-c("unit","pvalue","avg_density","ratio","difference")
+    candidates<-candidates[order(as.numeric(as.character(candidates$avg_density)),decreasing=TRUE) , ,drop=FALSE]
+    return(candidates) 
+  }
 }
 
 threshold<-50000 #minimum density for a repeat to be considered
@@ -878,30 +910,35 @@ threshold<-50000 #minimum density for a repeat to be considered
 Candidates_Chimpanzee<-getTopCandidatesForSpecies("Chimpanzee",threshold)
 Candidates_Bonobo<-getTopCandidatesForSpecies("Bonobo",threshold)
 Candidates_Gorilla<-getTopCandidatesForSpecies("Gorilla",threshold)
-Candidates_Orangutan<-getTopCandidatesForSpecies("Orangutan",threshold)
+Candidates_Sumatran<-getTopCandidatesForSpecies("Sumatran",threshold)
+Candidates_Bornean<-getTopCandidatesForSpecies("Bornean",threshold)
 Candidates_Human<-getTopCandidatesForSpecies("Homo",threshold)
 
-
+print(Candidates_Human)
 print(Candidates_Chimpanzee)
 print(Candidates_Bonobo)
 print(Candidates_Gorilla)
-print(Candidates_Orangutan)
-print(Candidates_Human)
+print(Candidates_Sumatran)
+print(Candidates_Bornean)
 
-top_candidates_uniq<-unique(c(as.vector(Candidates_Chimpanzee$unit),as.vector(Candidates_Bonobo$unit),as.vector(Candidates_Gorilla$unit),as.vector(Candidates_Orangutan$unit)))
-#print(top_candidates_uniq)
+top_candidates_uniq<-unique(c(as.vector(Candidates_Human$unit),c(as.vector(Candidates_Chimpanzee$unit),as.vector(Candidates_Bonobo$unit),as.vector(Candidates_Gorilla$unit),as.vector(Candidates_Sumatran$unit),Candidates_Bornean$unit)))
+print(top_candidates_uniq)
 @
 
 <<male-biased candidates, their abundance and frequency>>=
+match(as.character(unlist(most_abundant_for_each_species["Homo"])),Candidates_Human$unit)
 match(as.character(unlist(most_abundant_for_each_species["Chimpanzee"])),Candidates_Chimpanzee$unit)
 match(as.character(unlist(most_abundant_for_each_species["Bonobo"])),Candidates_Bonobo$unit)
 match(as.character(unlist(most_abundant_for_each_species["Gorilla"])),Candidates_Gorilla$unit)
-match(as.character(unlist(most_abundant_for_each_species["Orangutan"])),Candidates_Orangutan$unit)
+match(as.character(unlist(most_abundant_for_each_species["Sumatran"])),Candidates_Sumatran$unit)
+match(as.character(unlist(most_abundant_for_each_species["Bornean"])),Candidates_Bornean$unit)
 
+print(binary[Candidates_Homo$unit,])
 print(binary[Candidates_Chimpanzee$unit,])
 print(binary[Candidates_Bonobo$unit,])
 print(binary[Candidates_Gorilla$unit,])
-print(binary[Candidates_Orangutan$unit,])
+print(binary[Candidates_Sumatran$unit,])
+print(binary[Candidates_Bornean$unit,])
 @
 
 
