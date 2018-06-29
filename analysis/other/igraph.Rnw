@@ -5,11 +5,14 @@
 
 <<>>=
 library(igraph)
+library("RColorBrewer")
 setwd("/Users/polly/Desktop/projects/heterochromatin/homology")
 #nodes <- read.csv("Dataset1-Media-Example-NODES.csv", header=T, as.is=T)
 #links <- read.csv("Dataset1-Media-Example-EDGES.csv", header=T, as.is=T)
 
-nodes <- read.csv("toymatrix.csv", header=T, as.is=T)
+range01 <- function(x){(x-min(x))/(max(x)-min(x))}
+
+nodes <- read.csv("matrix.csv", header=T, as.is=T)
 links <- read.csv("distance_column_NAout.csv", header=T, as.is=T)
 
 net <- graph_from_data_frame(d=links, vertices=nodes, directed=T) 
@@ -18,27 +21,62 @@ class(net)
 
 nchars<-as.factor(V(net)$repeat.nchar)
 colrs <- rainbow(length(nchars)) #c("gold", "tomato", "gray50")
+colors_needed<-max(links$distance)+1
+
+#colrs_edges <- brewer.pal(n = 9, name = "YlOrRd")
+#colrs_edges<-c(colrs_edges,rep("darkgray",colors_needed-9))
+colrs_edges<-c("gold","orange","tomato")
 
 V(net)$color <- colrs[nchars]
-V(net)$size <- V(net)$repeat.density*10
+
+densities<-V(net)$median_density_across_species
+
+V(net)$size <- range01(densities)*20+4
+#V(net)$size <- range01(log(densities))*10 #log(densities)
+
 V(net)$label.color <- "black"
 V(net)$label.cex <- 1
 V(net)$label <-nchar(V(net)$sequence) 
 #V(net)$label <-V(net)$sequence
-E(net)$width <- E(net)$weight/6
+#E(net)$width <- E(net)$weight/6
 
 E(net)$arrow.size <- .2
-E(net)$edge.color <- "gray80"
-E(net)$width <- E(net)$weight/17
 
-plot(net)
+E(net)$edge.color <- colrs_edges[E(net)$distance+1] #"gray80"
 
-cut.off <- quantile(links$weight,probs=c(0.8)) 
-net.sp <- delete_edges(net, E(net)[weight<cut.off])
+#edge.start <- ends(net, es=E(net), names=F)[,1]
+#edge.col <- V(net)$color[edge.start]
 
-plot(net.sp) 
+edge.col <- colrs_edges[E(net)$distance+1]
 
 
+E(net)$width <- 2 #0.01+E(net)$weight/17
+
+
+plot(net, edge.color=edge.col, edge.curved=.1)
+#cut.off <- 1 #quantile(links$distance,probs=c(0.75)) 
+net.sp <- delete_edges(net, E(net)[links$distance > 2])
+
+plot(1:18,rep(1,18),col=colrs_edges,pch=19,cex=4)
+plot(net.sp,edge.color=edge.col, edge.curved=.1) 
+
+
+@
+
+<<>>=
+library(RColorBrewer)
+#paircolors<-c("black","lightgray","darkgreen","darkolivegreen4","blue","lightblue","red","salmon","orange2","peachpuff","gold2","lightyellow")
+paircolors<-c("black","white","darkgreen","white","blue","white","red","white","orange2","white","gold2","white")
+# Pie Chart with Percentages
+slices_partial<-c(1, 0.95, 1, 0.93, 0, 0) 
+slices_inverted<-1-slices_partial
+slices <- c(rbind(slices_partial,slices_inverted)) #c(1, 0, 0.95, 0.05, 1, 0, 0.93, 0.07, 0, 1, 0, 1) 
+lbls <- c("Human", "-", "Chimpanzee", "-", "Bonobo", "-", "Gorilla", "-", "Sumatran", "-", "Bornean", "-")
+pct <- round(slices*100)
+eo<-seq(1,length(lbls),2)
+lbls[eo] <- paste(pct[eo],"% ",lbls[eo]," individuals",sep="")
+print(lbls)
+pie(slices,labels = lbls,main="Pie Chart of Countries",col=paircolors)
 @
 
 
