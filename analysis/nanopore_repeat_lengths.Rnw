@@ -116,8 +116,8 @@ for (sp in 1:6) {
   }
   print(rep_data)
   rep_data<-lapply(rep_data, `length<-`, max(lengths(rep_data)))
-  longest<-max(c(unlist(rep_data),65000),na.rm=TRUE)
-  boxplot(rep_data,col=rainbow(length(repeat_types)),ylim=c(0,longest),names=motif,las=2,main=speciesType(sp))
+  longest<-max(c(unlist(rep_data[2:length(rep_data)]),65000),na.rm=TRUE)
+  boxplot(rep_data,col=rainbow(length(repeat_types)),ylim=c(0,longest),names=motif,las=2,main=speciesType(sp),outline=TRUE)
   plot.new()
 }
 
@@ -155,6 +155,20 @@ multiplot(plotlist = p[c(6,7,29)], layout=matrix(seq(1,3,1), nrow=1, byrow=TRUE)
 #multiplot(plotlist = p[28:36], layout=matrix(seq(1,9,1), nrow=3, byrow=TRUE))
 #multiplot(plotlist = p[37:39], layout=matrix(seq(1,9,1), nrow=3, byrow=TRUE))
 
+@
+
+
+<<How far are satellite arrays from the read extremity>>=
+starts<-scan(file="/Users/polly/Desktop/projects/heterochromatin/nanopore/repeat.starts")
+ends<-scan(file="/Users/polly/Desktop/projects/heterochromatin/nanopore/repeat.ends")
+par(mfrow=c(2,1))
+hist(starts)
+hist(ends)
+quantile(starts,probs = seq(0, 1, 0.05))
+quantile(ends,probs = seq(0, 1, 0.05))
+
+table(starts<32)/length(starts)*100
+table(ends<32)/length(ends)*100
 @
 
 \end{document}
