@@ -3,6 +3,139 @@
 \begin{document}
 \SweaveOpts{concordance=TRUE}
 
+<<>>=
+print(colnames(density[,305:310]))
+families<-density[,305:310]
+colnames(families)<-c("Son","Father","Mother","Daughter2","Father2","Mother2")
+families$ulength<-nchar(as.character(rownames(families)))
+families<-as.data.frame(families) #convert to dataframe from data table
+families<-families[rowSums(families[,1:6]) != 0,] #remove 0 counts and keep only repeated motifs present in human
+
+families<-families[order(rowSums(families[,2:(ncol(families)-1)]),decreasing=T),]
+
+#families<-families[2:nrow(families),] #remove first repeat
+print(head(families))
+heatmap.2(as.matrix(families[,1:6]))
+
+rquery.cormat(families[,1:6], type="upper")
+
+#dist<-as.dist(1-cor(families[,1:6],method="pearson")) #distance based on correlation
+#hcSingle <- hclust(dist,method="ward.D2") 
+#dendSingle <- as.dendrogram(hcSingle)
+#plot(dendSingle, main = "Clustering using linkage function 'complete'",cex=0.3)
+
+
+ggplot(data_long, aes(rep(1:(nrow(data_long)/length(filenames)),times=length(filenames)),density, col=member)) + 
+  xlab("index") + 
+  scale_y_continuous() +
+  labs(title=paste("Using ",(nrow(data_long)/length(filenames)),"repeat motifs"),y="repeat motif density") + 
+  theme_bw() + 
+  stat_smooth() 
+
+library(RColorBrewer)
+par(cex=2)
+myColors<-c("#A6CEE3","#FB9A99","#B2DF8A","#1F78B4","#E31A1C","#33A02C")
+barplot(apply(families[2:nrow(families),c("Father","Mother","Son","Father2","Mother2","Daughter2")],2,sum),col=myColors,ylab="sum of repeat densities",main=paste("Total repeat content for",nrow(families)-1,"human repeats, excluding GGAAT"))
+
+families_long <- gather(families, member, density, Son:Mother2, factor_key=TRUE)
+families_long<-as.data.frame(families_long)
+sum_by_ulength<-aggregate(density ~ ., data = families_long, sum)
+ggplot(sum_by_ulength, aes(rep(1:(nrow(sum_by_ulength)/length(filenames)),times=length(filenames)),density, col=member)) + 
+  geom_line() +
+  geom_point() +
+  xlab("unit length")
+
+ggplot(families_long, aes(rep(1:(nrow(families_long)/length(filenames)),times=length(filenames)),density, col=member)) + 
+  xlab("index") + 
+  scale_y_continuous() +
+  labs(title=paste("Using ",(nrow(families_long)/length(filenames)),"repeat motifs"),y="repeat motif density") + 
+  theme_bw() + 
+  scale_x_continuous(limits = c(0, 500)) +
+  geom_point() +
+  geom_line()
+@
+
+
+<<>>=
+par(cex=1.5)
+scaled_families<-families
+
+log_families<-families[2:nrow(families),]
+GGAAT_only<-families[1,c("Father","Mother","Son","Father2","Mother2","Daughter2")]
+barplot(as.vector(as.matrix(GGAAT_only))/100,col=myColors,main="GGAAT",ylab="repeat density",names.arg=c("Father","Mother","Son","Father2","Mother2","Daughter2"))
+#log_families<-log(families[,c("Father","Mother","Son","Father2","Mother2","Daughter2")]+0.0001)
+
+smooth<-function(data_points) {
+  spline<-smooth.spline(1:length(data_points), data_points/100, spar=0.05)
+  return(spline)
+}
+
+lw<-3 #line width
+
+plot(smooth(log_families$Father),type="l",xlab="repeated motif",ylab="repeat density",col=myColors[1],xlim=c(0,100),lwd=lw,main="100 most abundant repeated motifs (excluding GGAAT)")
+lines(smooth(log_families$Mother),col=myColors[2],lwd=lw)
+lines(smooth(log_families$Son),col=myColors[3],lwd=lw)
+lines(smooth(log_families$Father2),col=myColors[4],lwd=lw)
+lines(smooth(log_families$Mother2),col=myColors[5],lwd=lw)
+lines(smooth(log_families$Daughter2),col=myColors[6],lwd=lw)
+
+    legend("topright", 
+         legend = c("Father","Mother","Son","Father2","Mother2","Daughter2"),
+         col = myColors, 
+         pch = c(20),
+         bty = "n"
+        )
+
+
+ @
+      
+<<>>=
+family1<-scaled_families[,c("Father","Mother","Son")]
+colnames(family1)<-c("Father","Mother","Child")
+family2<-scaled_families[,c("Father2","Mother2","Daughter2")]
+colnames(family2)<-c("Father","Mother","Child")
+
+plotForTrio <- function(trio_frame,family_id){
+  trio_frame$Father<-(trio_frame$Father-trio_frame$Child)
+  trio_frame$Mother<-(trio_frame$Mother-trio_frame$Child)
+  trio_frame$Child<-(trio_frame$Child-trio_frame$Child)
+  print(head(trio_frame))
+  
+    n=nrow(trio_frame)
+    
+    xmin<-min(trio_frame$Mother,trio_frame$Father)
+    xmax<-max(trio_frame$Mother,trio_frame$Father)
+    
+    plot(head(trio_frame$Father,n=n),n:1,col="blue",pch=20,xlab="Difference from Child",ylab="Repeated motifs",yaxs="i",ylim=c(0,500),xlim=c(xmin,xmax),main=family_id) #father
+    abline(v=0) 
+    points(head(trio_frame$Mother,n=n),n:1,col="red",pch=20) #add mother
+    segments(head(trio_frame$Father,n=n),n:1,head(trio_frame$Mother,n=n),n:1,col="gray")
+  
+    #text(1:n,head(r$Father,n=n),labels=head(r$V1,n=n),cex=0.4,srt=90,col="black")
+    mtext(head(trio_frame$Father,n=n),cex=0.25,srt=90,col="black",side=4,at=n:1,las=1)
+    legend("bottomleft", 
+         legend = c("mother","father"),
+         col = c("red","blue"), 
+         pch = c(20),
+         bty = "n"
+        )
+}
+
+plotForTrio(family1,"family1")
+plotForTrio(family2,"family2")
+
+
+
+
+#scaled_families_long <- gather(scaled_families, member, density, Son:Mother2, factor_key=TRUE)
+
+#ggplot(data=subset(scaled_families_long,member %in% c("Father" , "Mother")), aes(x=ulength,y=member)) +
+#  geom_bar(position="dodge",stat="identity") + 
+#  coord_flip() +
+#  ggtitle("Strategies for Using Homework Solution and Mini-Lecture Screencasts")
+@
+
+
 <<Ashkenazim>>=
 require(data.table)
 require(plyr)
@@ -13,7 +146,7 @@ rep.row<-function(x,n){
 }
 
 read_and_normalize <-function(input_file) {
-  input<-read.table(input_file,col.names=c("unit","count"))
+  input<-read.table(input_file,col.names=c("unit","density"))
   #input$count<-input$count/sum(input$count)*1000000
   #input$count<-input$count<-log(input$count+0.01)
   name<-basename(input_file)
@@ -21,7 +154,7 @@ read_and_normalize <-function(input_file) {
   return(as.data.frame(input))
 }
 
-setwd("/Volumes/disk/projects_backup/projects/heterochromatin/human_heterochromatin/densities")
+setwd("/Users/polly/Desktop/projects/heterochromatin/human_heterochromatin/densities")
 motherAshkenazim <- read_and_normalize("HG004_Homo_sapiens_Mother_F_1.fastq.dat_Header.txt.rawlengths.sortedFilt")
 fatherAshkenazim <- read_and_normalize("HG003_Homo_sapiens_Father_M_1.fastq.dat_Header.txt.rawlengths.sortedFilt")
 sonAshkenazim <- read_and_normalize("HG002_Homo_sapiens_Son_M_1.fastq.dat_Header.txt.rawlengths.sortedFilt")
@@ -50,24 +183,27 @@ colnames(data)<-c("unit",filenames)
 data$ulength<-nchar(as.character(data$unit))
 data<-as.data.frame(data) #convert to dataframe from data table
 
-normalization_factor=1000000
+normalization_factor=10000
 normalization_matrix<-rep.row(read_counts,nrow(data))
 data<-as.data.frame(data) #convert to dataframe from data table
 data[,2:(ncol(data)-1)]<-(data[,2:(ncol(data)-1)]/normalization_matrix)*normalization_factor #normalization of data by read counts
+data<-data[order(rowSums(data[,2:(ncol(data)-1)]),decreasing=T),]
+print(head(data))
+
 #data[,2:(ncol(data)-1)]<-log(data[,2:(ncol(data)-1)]+0.01)
 #data<-data[rowSums(data[,2:(ncol(data)-1)])>(log(600)),] #keep only rows where all six libraries have at least 300 repeats total
 
-data<-data[order(rowSums(data[,2:(ncol(data)-1)]),decreasing=T),]
+
 #data<-data[order(data$son,decreasing=T),]
 #data<-head(data,n=1000) #set more meaningful threshold based on replicates
 
 subset<-head(data,n=1000)
 
-barplot(apply(subset[,2:(ncol(data)-1)],2,sum),col=rainbow(3),ylab="sum of repeat densities",main=paste("Total repeat content for ",nrow(subset),"repeats"))
+#barplot(apply(subset[,2:(ncol(data)-1)],2,sum),col=rainbow(3),ylab="sum of repeat densities",main=paste("Total repeat content for ",nrow(subset),"repeats"))
 
 cor(subset[,2:(ncol(data)-1)])
 source("http://www.sthda.com/upload/rquery_cormat.r")
-rquery.cormat(subset[,2:(ncol(data)-1)], type="upper")
+#rquery.cormat(subset[,2:(ncol(data)-1)], type="upper")
 
 dist<-as.dist(1-cor((head(data[,2:(ncol(data)-1)],n=1000)),method="spearman")) #distance based on correlation
 hcSingle <- hclust(dist,method="ward.D2") 
@@ -75,26 +211,26 @@ dendSingle <- as.dendrogram(hcSingle)
 #plot(dendSingle, main = "Clustering using linkage function 'complete'",cex=0.3)
 
 
-#plot(subset[,2:(ncol(subset)-1)])
+plot(subset[,2:(ncol(subset)-1)])
 
 #from wide to long format
 library(tidyr)
 library(ggplot2)
 library(Rmisc) 
-library(scales)
-data_long <- gather(subset, member, count, mother:daughter2, factor_key=TRUE)
+data_long <- gather(subset, member, density, mother:daughter2, factor_key=TRUE)
+data_long<-as.data.frame(data_long)
 
-ggplot(data_long, aes(rep(1:(nrow(data_long)/length(filenames)),times=length(filenames)),count, col=member)) + 
+ggplot(data_long, aes(rep(1:(nrow(data_long)/length(filenames)),times=length(filenames)),density, col=member)) + 
   xlab("index") + 
-  scale_y_continuous(labels = comma) +
+  scale_y_continuous() +
   labs(title=paste("Using ",(nrow(data_long)/length(filenames)),"repeat motifs"),y="repeat motif density") + 
   theme_bw() + 
-  stat_smooth() 
+  #stat_smooth() 
 
-tgc <- summarySE(data_long, measurevar="count", groupvars=c("ulength","member"))
+tgc <- summarySE(data=data_long[,2:4], measurevar="density", groupvars="member")
 #
-ggplot(tgc, aes(x=ulength, y=count, colour=member)) +
-    geom_errorbar(aes(ymin=count-se, ymax=count+se), width=.1) +
+ggplot(tgc, aes(x=ulength, y=density, colour=member)) +
+    geom_errorbar(aes(ymin=density-se, ymax=density+se), width=.1) +
     geom_line() +
     geom_point() 
 
@@ -102,6 +238,7 @@ ggplot(tgc, aes(x=ulength, y=count, colour=member)) +
 @
 
 <<>>=
+
 ## Gives count, mean, standard deviation, standard error of the mean, and confidence interval (default 95%).
 ##   data: a data frame.
 ##   measurevar: the name of a column that contains the variable to be summariezed
