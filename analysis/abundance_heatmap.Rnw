@@ -5,22 +5,31 @@
 
 <<abundance heatmap>>=
 library(gplots) 
-at<-t(as.data.frame(read.table("/Users/alice/Desktop/projects/heterochromatin/abundance_heatmap/species.table.txt.with.header.txt",sep=" ",header=TRUE,row.names=1)))
-atsorted<-at[,order(colSums(at,na.rm=TRUE),decreasing=T)]
+#Illumina
+#at<-t(as.data.frame(read.table("/Users/polly/Desktop/projects/heterochromatin/abundance_heatmap/species.table.txt.with.header.txt",sep=" ",header=TRUE,row.names=1))) #THESE ARE TANDEMNESS DATA
+
+#Nanopore
+at<-as.data.frame(read.table("/Users/polly/Desktop/projects/heterochromatin/nanopore/nanopore_lengths/species.density.calculation",sep=" ",header=TRUE,row.names=1))[,1:39]
+
+at[at == 0] <- NA
+  
+atsorted<-at[,order(colSums(at,na.rm=TRUE),-colSums(is.na(at)),decreasing=T)]
 atm<-as.matrix(atsorted)
-mycol<-colorRampPalette(c("#bdcce5","blue","darkblue"), bias=1)
+mycol<-colorRampPalette(rev(heat.colors(6)), bias=3) # 
+my_palette <- colorRampPalette(c("lightsalmon", "firebrick2"))(n = 1000)
+rev(heat.colors(6)) c("#bdcce5","blue","darkblue")
 
 lmat = rbind(c(4,3),c(2,1),c(0,0))
 lwid = c(1.5,6)
 lhei = c(1.5,2,4)
-heatmap.2(atm,col=mycol, dendrogram="none", Rowv=TRUE,Colv=FALSE, trace='none',lmat = lmat, lwid = lwid, lhei = lhei)
+heatmap.2(t(atm),col=my_palette, dendrogram="none", Rowv=FALSE,Colv=FALSE, trace='none',lmat = lmat, lwid = lwid, lhei = lhei)
 @
 
 <<length_profiles>>=
 par(mfrow=c(2,3))
 files <- list.files(path="/Users/alice/Desktop/projects/heterochromatin/figures/NoRF_lengths/subsets", pattern="*.table", full.names=T, recursive=FALSE)
 
-querybp<-list()
+querybp<-list()    
 rlengths<-list()
 
 for (f in files) {
