@@ -15,14 +15,35 @@ at[at == 0] <- NA
   
 atsorted<-at[,order(colSums(at,na.rm=TRUE),-colSums(is.na(at)),decreasing=T)]
 atm<-as.matrix(atsorted)
-mycol<-colorRampPalette(rev(heat.colors(6)), bias=3) # 
 my_palette <- colorRampPalette(c("lightsalmon", "firebrick2"))(n = 1000)
-rev(heat.colors(6)) c("#bdcce5","blue","darkblue")
 
-lmat = rbind(c(4,3),c(2,1),c(0,0))
-lwid = c(1.5,6)
-lhei = c(1.5,2,4)
-heatmap.2(t(atm),col=my_palette, dendrogram="none", Rowv=FALSE,Colv=FALSE, trace='none',lmat = lmat, lwid = lwid, lhei = lhei)
+repeat_order<-c("AATGG","ACTCC","AAAG","AATGGAGTGG","AATGGAATGGAGTGG","AATGGAGTGGAGTGG","AAGTGGAATGG","AATGGAATGTG","AAAGTGGAATGG","AACGTGGAATGG","AATGGAATGTGG","AATGGAATGGAATGTGG","AATGGAATGGAATGGAATGTGG","AAATGGACTCGAATGGAATCATC","AATCGAATGGAATGG","AAATGGAATCGAATGGAATCATC","AATCATCGAATGGAATCGAATGG","AATCATCGAATGGACTCGAATGG","AATCATCATGAATGGAATCGAATGG","AAATGGAATCGAATGGAATCATCATC","AAATGGAATCGAATGTAATCATCATC","AATCATCATCGAATGGAATCGAATGG","AAACATGTAAATATTTACACAGAATCTGTAT","AAATATCTACACCGCTATCTGTATGAACATGG","AAATATCTACACCGCCATCTGTATGAACATGG","AAACATGGAAATATCTACACAGCCATCTGTAT","AAACATGGAAATATCTACACCACCATCTGTAT","AAACATGGAAATATCTACACCACTATCTGTAT","AAACATGGAAATATCTACACCGCCATCTGTAT","AAACATGGAAATATCTACACCGCTATCTGTAT","AAACATGGAAATATCTACACCGCTATCTGTGT","AAACATGGAAATATCTACACTGCCATCTGTAT","AAACATGGAAATATCTACACTGCTATCTGTAT","AAACATGGAAATATCTACACCGCGATCTGTAT","AAACATGGAAATATCTACACCGCCATCTCTAT","AAACATGGAAATATCTACACCGCTATCTCTAT","AAATATCTACACAGCTATCTGTATGAACATGG","AAATATCTACACCACTATCTGTATGAACATGG","AAATATCTACACCGCTATCTGCATGAACATGG")
+
+#check that loaded repeat names match those from the dataframe
+original_names<-sort(as.character(colnames(atm)))
+loaded_names<-sort(as.character(repeat_order))
+stopifnot(original_names==loaded_names)
+
+species_order<-c("Gorilla02","Chimpanzee03","Bonobo06","Human05","SumatranOrangutan04","BorneanOrangutan01")
+stopifnot(sort(species_order)==sort(rownames(atm)))
+atm<-atm[species_order,repeat_order] #REORDER REPEAT ORDER
+
+cell_values<-t(atm) 
+print(apply(cell_values,2,function(x) {sum(x,na.rm=TRUE)/100000})) #total repeat density of 39 most abundant repeats only
+
+roundedStr <- function(arg1){
+  rounded<-round(as.numeric(as.character(arg1)))/100000
+  formatted<-as.numeric(format(rounded,format="f", big.mark=",", nsmall = 2, digits=0))
+  #print(paste("formatted",formatted))
+  small_numbers_correction<-as.character(paste(ifelse(formatted<0.01, "<0.01", formatted),""))
+  #print(paste("small_numbers_correction",small_numbers_correction))
+return(small_numbers_correction)
+}
+
+cell_labels=data.frame(lapply(as.data.frame(cell_values),roundedStr), stringsAsFactors=FALSE)
+
+plot.new()
+heatmap.2(t(atm),cellnote=cell_labels,notecol="white",dendrogram="none", Colv=FALSE, Rowv=FALSE, trace='none',col=my_palette,main=paste("nanopore list of ",length(repeat_order),"repeats with highest repeat density; log"))
 @
 
 <<length_profiles>>=
