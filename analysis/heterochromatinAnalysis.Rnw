@@ -3,6 +3,7 @@ require(dendextend)
 require(reshape)
 require(hexbin)
 require(gplots)
+require(ggplot2)
 require(e1071)
 require(rgl)
 require(ggfortify)
@@ -15,6 +16,7 @@ require(corrr)
 require(robustbase)
 require(ICC)
 require(VennDiagram)
+require(corrplot)
 library(VennDiagram)
 source("http://www.sthda.com/upload/rquery_cormat.r")
 @
@@ -66,6 +68,27 @@ print(table(rownames(abundantSpeciesVsRepeats)))
 @
 
 
+<<calculate intraclass variation; how tight are technical replicates?>>=
+require("ICC")
+require("tidyr")
+top_long<-as.data.frame(t(head(top,n=100)))
+top_long$individual<-rownames(top_long)
+top_long <- gather(top_long, repeated_motif, density, AATGG:AAATATCTACACCGCCATCTGTATTAACATGG, factor_key=TRUE)
+
+ICC_for_motif <- function(motif){
+    ICCbare(x = individual, y = density, data = filter(top_long,repeated_motif==motif))
+}  
+ICC_values<-lapply(unique(top_long$repeated_motif),ICC_for_motif)
+
+print(median(unlist(ICC_values),na.rm=TRUE)) #INTRACLASS VARIATION
+
+boxplot(unlist(ICC_values),na.rm=TRUE,outline=FALSE,col="gold",main="The Intraclass Correlation Coefficient
+using ICCbare",sub=paste("First",length(unique(top_long$repeated_motif)),"repeated motifs"))
+
+
+@
+
+
 <<FIGURE1>>=
 par(cex=0.5)
 par(mar=c(10,4,4,2))
@@ -93,7 +116,8 @@ stopifnot(sum(sample_sizes)==length(rownames(abundantSpeciesVsRepeats)))
 stopifnot(ncol(binary)==length(unique_species))
 
 binary<-sweep(binary, 2, sample_sizes, `/`)
-mycol<-colorRampPalette(c("white","red" ), bias=1)(n=1000) 
+mycol<-colorRampPalette(c("white","#a31527" ), bias=1)(n=1000) 
+#mycol<-colorRampPalette(c("#fde0dd","#fa9fb5","#c51b8a"), bias=1)(n=1000) 
 
 heatmap.2(binary[,c("Homo","Chimpanzee","Bonobo","Gorilla","Sumatran","Bornean")],dendrogram="none", Colv=FALSE, trace='none',col=mycol,cexRow=0.1,cexCol=0.75)
 binary<-as.data.frame(binary)
@@ -119,6 +143,34 @@ Bornean_specific<-length(rownames((binary[binary$Homo==0 & binary$Chimpanzee==0 
 print(table(rowSums(binary==1)))
 @
 
+<<FIGURE3>>=
+par(mfrow=c(1,1),cex=1,mai = c(5, 1, 0.3, 0.1))
+myList<-c("Homo","Chimpanzee","Bonobo","Gorilla","Sumatran","Bornean")
+
+most_abundant_for_each_species<-NULL
+nrepeats_subset<-12
+
+for (ape in myList) {
+  print(ape)
+  subset<-abundantSpeciesVsRepeats[grepl(ape,rownames(abundantSpeciesVsRepeats))==TRUE,]
+  print(dim(subset))
+  reordered<-subset[,order(colMeans(-subset,na.rm=TRUE))]
+  #print(colnames(reordered)[1:10])
+  print(binary[colnames(reordered)[1:nrepeats_subset],])
+  
+  #use only unit length as a label for repeats with long units
+  #rnames <- colnames(reordered)
+  #rnames[nchar(rnames) > 5] <-
+  #  paste0(nchar(colnames(reordered)), "mer")[nchar(rnames) > 5]
+  #colnames(reordered) <- rnames
+  
+  #=boxplot(reordered[,1:12]/100,col="gold",las=2,main=paste(ape,"most abundant"))
+  boxplot(reordered[,1:nrepeats_subset]/100000,col="gold",las=2,main=paste(ape,"most abundant"),ylab="repeat density in kb/Mb") #logs
+  #ylim=c(6,16)
+  most_abundant_for_each_species[ape]<-list(colnames(log(reordered[,1:500])))
+}
+
+@
 
 <<binary_subsampling>>=
 #Do we get consistent result for 5 individuals per species?
@@ -186,7 +238,7 @@ ind = TRUE
 @
 
 <<FIGURE2>>=
-par(mfrow=c(2,1))
+#par(mfrow=c(2,1))
 library("e1071")
 
 #I think we should  first exclude zero counts for each species separately (only there where _all_ individuals have zero counts) and only then calculate variability/density
@@ -212,9 +264,9 @@ uniq_names_subspecies<-c("Homo_sapiens","Pan_troglodytes_schweinfurthii","Pan_tr
 repVariability<-lapply(uniq_names_subspecies, function(x) rowSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,colSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,])!=0],na.rm = TRUE))
 repVariability<-lapply(repVariability,divideBy100) #normalize 100bp reads into bps
 
-yellow_group_GGAAT_related<-c("AATGG","AATGGAGTGG","AAGTGGAATGG","AATGGAATGTG","AAAGTGGAATGG","AACGTGGAATGG","AATGGAATGTGG","AATGGAATGGAGTGG","AATGGAGTGGAGTGG","AATCGAATGGAATGG","AATGGAATGGAATGTGG","AATGGAATGGAATGGAATGTGG","AAATGGACTCGAATGGAATCATC","AAATGGAATCGAATGGAATCATC","AATCATCGAATGGAATCGAATGG","AATCATCGAATGGACTCGAATGG","AATCATCATGAATGGAATCGAATGG","AAATGGAATCGAATGGAATCATCATC","AAATGGAATCGAATGTAATCATCATC","AATCATCATCGAATGGAATCGAATGG")
-green_group_32mers<-c("AAACATGGAAATATCTACACAGCCATCTGTAT","AAACATGGAAATATCTACACCACCATCTGTAT","AAACATGGAAATATCTACACCACTATCTGTAT","AAACATGGAAATATCTACACCGCCATCTGTAT","AAACATGGAAATATCTACACCGCTATCTGTAT","AAACATGGAAATATCTACACCGCTATCTGTGT","AAACATGGAAATATCTACACTGCCATCTGTAT","AAACATGGAAATATCTACACTGCTATCTGTAT","AAACATGGAAATATCTACACCGCGATCTGTAT","AAACATGGAAATATCTACACCGCCATCTCTAT","AAACATGGAAATATCTACACCGCTATCTCTAT","AAATATCTACACAGCTATCTGTATGAACATGG","AAATATCTACACCACTATCTGTATGAACATGG","AAATATCTACACCGCTATCTGTATGAACATGG","AAATATCTACACCGCCATCTGTATGAACATGG","AAATATCTACACCGCTATCTGCATGAACATGG")
-white_group<-c("AAAG","ACTCC","AAACATGTAAATATTTACACAGAATCTGTAT")
+yellow_group_GGAAT_related<-c("AATGG","ACTCC","AATGGAGTGG","AAGTGGAATGG","AATGGAATGTG","AAAGTGGAATGG","AACGTGGAATGG","AATGGAATGTGG","AATGGAATGGAGTGG","AATGGAGTGGAGTGG","AATCGAATGGAATGG","AATGGAATGGAATGTGG","AATGGAATGGAATGGAATGTGG","AAATGGACTCGAATGGAATCATC","AAATGGAATCGAATGGAATCATC","AATCATCGAATGGAATCGAATGG","AATCATCGAATGGACTCGAATGG","AATCATCATGAATGGAATCGAATGG","AAATGGAATCGAATGGAATCATCATC","AAATGGAATCGAATGTAATCATCATC","AATCATCATCGAATGGAATCGAATGG")
+green_group_32mers<-c("AAACATGTAAATATTTACACAGAATCTGTAT","AAACATGGAAATATCTACACAGCCATCTGTAT","AAACATGGAAATATCTACACCACCATCTGTAT","AAACATGGAAATATCTACACCACTATCTGTAT","AAACATGGAAATATCTACACCGCCATCTGTAT","AAACATGGAAATATCTACACCGCTATCTGTAT","AAACATGGAAATATCTACACCGCTATCTGTGT","AAACATGGAAATATCTACACTGCCATCTGTAT","AAACATGGAAATATCTACACTGCTATCTGTAT","AAACATGGAAATATCTACACCGCGATCTGTAT","AAACATGGAAATATCTACACCGCCATCTCTAT","AAACATGGAAATATCTACACCGCTATCTCTAT","AAATATCTACACAGCTATCTGTATGAACATGG","AAATATCTACACCACTATCTGTATGAACATGG","AAATATCTACACCGCTATCTGTATGAACATGG","AAATATCTACACCGCCATCTGTATGAACATGG","AAATATCTACACCGCTATCTGCATGAACATGG")
+white_group<-c("AAAG")
 
 repeatDensityForAMotifSpecies <- function(motif){
   rd<-paste(uniq_names_species,lapply(uniq_names_species, function(x) round(mean(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,motif],na.rm = TRUE)/100000,2))) #todo, change normalization coefficients
@@ -295,6 +347,75 @@ boxplot(repVariabilityBig,names=paste(uniq_names_species,lengths(repVariabilityB
 print("MEAN OF REPEAT DENSITIES FOR ALL REPEATED MOTIFS")
 print(paste(uniq_names_species,lapply(repVariabilityBig,mean)))
 
+#SPECIES AND SUBSPECIES COMBINED
+#HUMAN      1
+#CHIMPANZEE 2,3,4,5
+#BONOBO     6
+#GORILLA    7,8
+#BORNEAN    9
+#SUMATRAN   10
+
+par(mfrow=c(2,1))
+repVariabilityBoth<-c(repVariabilityBig[1],repVariabilityBig[2],repVariability[2],repVariability[3],repVariability[4],repVariability[5],repVariabilityBig[3],repVariabilityBig[4],repVariability[7],repVariability[8],repVariabilityBig[5],repVariabilityBig[6])
+names_both<-c("Human","Chimpanzee","Eastern chimpanzee","Central chimpanzee","Cameroon chimpanzee","Western chimpanzee","Bonobo","Gorilla","Western lowland gorilla","Eastern lowland gorilla","Bornean orangutan","Sumatran orangutan")
+myColorsBoth<-c(rep("gray30",1),rep("darkgreen",5),rep("dodgerblue",1),rep("firebrick1",3),rep("gold",2))
+
+boxplot(repVariabilityBoth,names=paste(names_both,lengths(repVariabilityBoth)),las=2,col=sapply(myColorsBoth,adjustcolor,alpha=0.4),outline=FALSE)
+stripchart(repVariabilityBoth, vertical = TRUE, 
+    method = "overplot", add = TRUE, pch = 20, col = 'blue')
+
+ddd=matrix(sample(1:30,15) , nrow=3)
+
+List <- list()
+
+List[[1]] <- c(mean(as.numeric(unlist(repVariabilityBig[1])),na.rm=TRUE),mean(as.numeric(unlist(repVariabilityBig[2])),na.rm=TRUE),mean(as.numeric(unlist(repVariabilityBig[3])),na.rm=TRUE),mean(as.numeric(unlist(repVariabilityBig[4])),na.rm=TRUE),mean(as.numeric(unlist(repVariabilityBig[5])),na.rm=TRUE),mean(as.numeric(unlist(repVariabilityBig[6])),na.rm=TRUE)) #GROUP1
+
+List[[2]] <- c(NA,mean(as.numeric(unlist(repVariability[2])),na.rm=TRUE),NA,mean(as.numeric(unlist(repVariability[7])),na.rm=TRUE),NA,NA) #GROUP2
+
+List[[3]] <- c(NA,mean(as.numeric(unlist(repVariability[3])),na.rm=TRUE),NA,mean(as.numeric(unlist(repVariability[8])),na.rm=TRUE),NA,NA) #GROUP3
+
+List[[4]] <- c(NA,mean(as.numeric(unlist(repVariability[4])),na.rm=TRUE),NA,NA,NA,NA) #GROUP4
+
+List[[5]] <- c(NA,mean(as.numeric(unlist(repVariability[5])),na.rm=TRUE),NA,NA,NA,NA) #GROUP5
+
+Matrix = do.call(rbind, List)
+colnames(Matrix)=c("Human","Chimpanzee","Bonobo","Gorilla","Sumatran","Bornean")
+qualitative_colors<-rep("white",30)
+qualitative_colors[1]<-"gray"
+qualitative_colors[6]<-"darkgreen"
+qualitative_colors[7]<-"darkolivegreen1"
+qualitative_colors[8]<-"darkolivegreen2"
+qualitative_colors[9]<-"darkolivegreen3"
+qualitative_colors[10]<-"darkolivegreen4"
+qualitative_colors[11]<-"blue"
+qualitative_colors[16]<-"red"
+qualitative_colors[17]<-"indianred2"
+qualitative_colors[18]<-"indianred3"
+qualitative_colors[21]<-"gold"
+qualitative_colors[26]<-"orange"
+
+df.bar <- barplot(Matrix, col=qualitative_colors, border="white", font.axis=2, beside=T, xlab="group", font.lab=2, ylim=c(0,180000))
+
+#SPECIES
+points(x = rep(df.bar[1,1],length(unlist(repVariabilityBig[1]))), y =unlist(repVariabilityBig[1]),pch=20,col="black")
+points(x = rep(df.bar[1,2],length(unlist(repVariabilityBig[2]))), y =unlist(repVariabilityBig[2]),pch=20,col="black")
+points(x = rep(df.bar[1,3],length(unlist(repVariabilityBig[3]))), y =unlist(repVariabilityBig[3]),pch=20,col="black")
+points(x = rep(df.bar[1,4],length(unlist(repVariabilityBig[4]))), y =unlist(repVariabilityBig[4]),pch=20,col="black")
+points(x = rep(df.bar[1,5],length(unlist(repVariabilityBig[5]))), y =unlist(repVariabilityBig[5]),pch=20,col="black")
+points(x = rep(df.bar[1,6],length(unlist(repVariabilityBig[6]))), y =unlist(repVariabilityBig[6]),pch=20,col="black")
+
+#SUBSPECIES CHIMPANZEE
+points(x = rep(df.bar[2,2],length(unlist(repVariability[2]))), y =unlist(repVariability[2]),pch=20,col="black")
+points(x = rep(df.bar[3,2],length(unlist(repVariability[3]))), y =unlist(repVariability[3]),pch=20,col="black")
+points(x = rep(df.bar[4,2],length(unlist(repVariability[4]))), y =unlist(repVariability[4]),pch=20,col="black")
+points(x = rep(df.bar[5,2],length(unlist(repVariability[5]))), y =unlist(repVariability[5]),pch=20,col="black")
+
+#SUBSPECIES GORILLA
+points(x = rep(df.bar[2,4],length(unlist(repVariability[7]))), y =unlist(repVariability[7]),pch=20,col="black")
+points(x = rep(df.bar[3,4],length(unlist(repVariability[8]))), y =unlist(repVariability[8]),pch=20,col="black")
+@
+
+<<>>=
 
 #LESS ABUNDANT REPEATED MOTIFS
 all_repeated_motifs<-colnames(abundantIndividualsVsRepeats)
@@ -324,6 +445,9 @@ getMeanFoldDif <- function(list_to_pick_pairs_from) {
   return(mean(apply(combn(list_to_pick_pairs_from,2),2, myDivision)))
 }
 
+#variability of AATGG in human
+getMeanFoldDif(abundantIndividualsVsRepeats[grepl("Homo",rownames(abundantIndividualsVsRepeats)),"AATGG"])
+
 getTuples <- function(full_set,subsetn) {
   tuple_df<-apply(combn(full_set,subsetn),2,getMeanFoldDif) #e.g. if n=5, we are picking 5 individuals to calculate mean pairwise fold difference
   tuple_df<-as.vector(tuple_df)
@@ -342,34 +466,6 @@ lapply(repVariabilityBig,function(x) getTuples(x,5))
 
 @
 
-<<FIGURE3>>=
-par(mfrow=c(1,1),cex=1.01,mai = c(5, 1, 0.3, 0.1))
-myList<-c("Homo","Chimpanzee","Bonobo","Gorilla","Sumatran","Bornean")
-
-most_abundant_for_each_species<-NULL
-nrepeats_subset<-12
-
-for (ape in myList) {
-  print(ape)
-  subset<-abundantSpeciesVsRepeats[grepl(ape,rownames(abundantSpeciesVsRepeats))==TRUE,]
-  print(dim(subset))
-  reordered<-subset[,order(colMeans(-subset,na.rm=TRUE))]
-  #print(colnames(reordered)[1:10])
-  print(binary[colnames(reordered)[1:nrepeats_subset],])
-  
-  #use only unit length as a label for repeats with long units
-  #rnames <- colnames(reordered)
-  #rnames[nchar(rnames) > 5] <-
-  #  paste0(nchar(colnames(reordered)), "mer")[nchar(rnames) > 5]
-  #colnames(reordered) <- rnames
-  
-  #=boxplot(reordered[,1:12]/100,col="gold",las=2,main=paste(ape,"most abundant"))
-  boxplot(reordered[,1:nrepeats_subset],col="gold",las=2,main=paste(ape,"most abundant")) #logs
-  #ylim=c(6,16)
-  most_abundant_for_each_species[ape]<-list(colnames(log(reordered[,1:500])))
-}
-
-@
 
 <<most abundant>>=
 par(cex=0.5)
@@ -386,7 +482,12 @@ data_for_heatmap<-as.data.frame(data_for_heatmap)
 print(colnames(data_for_heatmap))
 
 
-my_palette <- colorRampPalette(c("lightsalmon", "firebrick2"))(n = 1000)
+#my_palette <- colorRampPalette(c("lightsalmon", "firebrick2"))(n = 1000)
+my_palette <- colorRampPalette(c("#e0ecf4", "#9ebcda","#8856a7"))(n = 1000)
+
+#dark blue palette inspired by corr package
+my_palette <- colorRampPalette(c("#56a0ca","#053061"))(n = 1000)
+
 
 heatmap.2(t(log(data_for_heatmap)),dendrogram="none", Colv=TRUE, Rowv=FALSE, trace='none',col=my_palette,cexCol=0.5,keysize=0.75,main=paste("unique list of ",length(unique_list_of_most_abundant_for_each_species),"repeats with highest repeat density; log")) #,cexRow=0.1,cexCol=0.75
 
@@ -401,6 +502,7 @@ lwid = c(1.5,4)
 lhei = c(1.5,2,1)
 layout(mat = lmat, widths = lwid, heights = lhei)
 
+library(stringr)
 roundedStr <- function(arg1){
   rounded<-round(as.numeric(as.character(arg1)))/100000
   formatted<-as.numeric(format(rounded,format="f", big.mark=",", nsmall = 2, digits=0))
@@ -423,6 +525,13 @@ cell_values<-cell_values[repeat_order,] #REORDER REPEAT ORDER
 print(apply(cell_values,2,function(x) {sum(x,na.rm=TRUE)/100000})) #total repeat density of 39 most abundant repeats only
 
 cell_labels=data.frame(lapply(as.data.frame(cell_values),roundedStr), stringsAsFactors=FALSE)
+
+padding_function <- function(str_to_pad){
+  return(as.character(str_pad(str_to_pad,6,side="left",pad = " ")))
+}
+
+cell_labels<-lapply(cell_labels,padding_function)
+cell_labels<-do.call(cbind, cell_labels)
 
 plot.new()
 heatmap.2(log(cell_values),cellnote=cell_labels,notecol="white",dendrogram="none", Colv=TRUE, Rowv=FALSE, trace='none',col=my_palette,cexCol=0.5,keysize=0.75,main=paste("unique list of ",length(unique_list_of_most_abundant_for_each_species),"repeats with highest repeat density; log"))
@@ -471,19 +580,23 @@ pca_data$species<-factor(pca_data$species)
 sex<-paste(lapply(strsplit(rownames(abundantIndividualsVsRepeats)," "), function(x) x[3]))
 pca_data$sex<-sex
 pca_data<-pca_data[with(pca_data, order(species)), ]
+#pca_data<-pca_data[grepl("Homo",rownames(pca_data)),] #SUBSET TO HUMAN ONLY
+
 #View(pca_data[,(ncol(pca_data)-1):(ncol(pca_data))])
 
 #Human (black), bonobo (blue), chimpanzee (green), gorilla (red) and orangutan (gold and orange) are plotted in the 3D space defined by first three principal components
 
 #unique(gsub("\\..*","",rownames(pca_data[,1:(ncol(pca_data)-2)])))
 #         "Bonobo" "Chimpanzee" "Gorilla" "Homo" "Orangutan" 
-palette(c("blue","gold","darkgreen","red","black","orange")) #pick color scheme
+palette(c("blue","gold","darkgreen","red","gray24","orange")) #pick color scheme
 
 stopifnot(exists("unique_list_of_most_abundant_for_each_species"))
 
 #plot first two principal components in 2D space
+pca_sex_colors<-c("deeppink","black")
+pca_species_shapes<-c("blue","gold","darkgreen","red","black","orange")
 pca_calculation<-prcomp(pca_data[,unique_list_of_most_abundant_for_each_species])
-a<-autoplot(pca_calculation,label=FALSE,colour=as.numeric(as.factor(pca_data$species)),shape=as.numeric(as.factor(pca_data$sex))+15,size=3)
+a<-autoplot(pca_calculation,x=1,y=2,label=FALSE,colour=pca_sex_colors[as.numeric(as.factor(pca_data$sex))],shape=as.numeric(as.factor(pca_data$species))-1,size=8,label.size = 10)
 a + theme_linedraw()
 print(summary(pca_calculation))
 
@@ -543,7 +656,6 @@ print(rf)
 
 <<chimpanzee_bonobo_geography>>=
 library(ggfortify)
-library(as.color)
 chimpbono<-abundantIndividualsVsRepeats
 l<-rownames(chimpbono)
 l[grepl("Pan",rownames(chimpbono))==FALSE]<-"other" #exclude all non-Pan species
@@ -569,10 +681,14 @@ pca_chimpbono$species<-l
 pca_chimpbono_data<-prcomp(pca_chimpbono[,unique_list_of_most_abundant_for_each_species])
 print(dim(pca_chimpbono[,unique_list_of_most_abundant_for_each_species]))
 
-a<-NULL
-a<-autoplot(pca_chimpbono_data,label=TRUE,size=2,shape=FALSE,colour=as.color(pca_chimpbono$species,alpha=1,seed=423017885))
-a + theme_linedraw()
 
+a<-NULL
+points_to_draw<-as.numeric(as.factor(pca_chimpbono$species))
+a<-autoplot(pca_chimpbono_data,label=FALSE,size=4,col=palette()[points_to_draw],cex=2)
+a + theme_linedraw()
+plot.new()
+legend("topleft", legend=levels(as.factor(pca_chimpbono$species)),
+       col=palette()[1:6], pch=19, cex=1.5)
 
 @
 
@@ -750,57 +866,61 @@ for (ape in unique(Fsp)) {
 @
 
 <<FIGURE7,eval=FALSE>>=
-par(mfrow=c(2,3))
+par(mfrow=c(1,1))
 #DIVIDE BY SPECIES
 setwd("/Users/polly/Desktop/projects/heterochromatin/phylogeny")
 
-#myList = c("Homo", "Pan_paniscus", "Pan_troglodytes", "Gorilla", "Pongo")
-myList = c("Homo","Chimpanzee","Bonobo","Gorilla","Orangutan")
+myList = c("Homo", "Pan_paniscus", "Pan_troglodytes", "Gorilla", "Pongo_abelii", "Pongo_pygmaeus")
+#myList = c("Homo","Chimpanzee","Bonobo","Gorilla","Sumatran","Bornean")
 
-returnCorrelationVector <- function(vector) {
+returnCorrelationMatrix <- function(vector,correlation_method) {
   #identify data for which correlation cannot be calculated
-  x <- correlate(vector,method="spearman",diagonal = NA)
-  #tolerated <- length(colnames(x)) - 1
-  #NAcounts <-
-  #  apply(x, 1, function(x)
-  #    as.numeric(table(is.na(x))["TRUE"]))
-  #keep <- NAcounts < (tolerated)
+  x <- correlate(vector,method=correlation_method,use="complete.obs")
+  tolerated <- length(colnames(x)) - 1
+  NAcounts <-
+    apply(x, 1, function(x)
+      as.numeric(table(is.na(x))["TRUE"]))
+  keep <- NAcounts < (tolerated)
   
   #keep only data for which correlation CAN be calculated
-  #subset <- vector[, keep]
-  #x <- correlate(subset)
+  subset <- vector[, keep]
+  x <- correlate(subset,method=correlation_method)
   x <- shave(x)
-  corValues <- as.vector(as.numeric(unlist(x)))
-  corValues <- corValues[!is.na(corValues)]
-  return(sort(corValues))
+  return(x)
 }
 
-
+returnCorrelationVector <- function(cormatrix) {
+  corVector <- as.vector(as.numeric(unlist(cormatrix)))
+  corVector <- corVector[!is.na(corVector)]
+  return(sort(corVector))
+}
 
 for (ape in myList) {
   print(ape)
   
   #get most abundant repeats for each species
   corData <- sampleToCluster
-  repeat_motifs_to_use<-as.character(unlist(most_abundant_for_each_species[ape]))
-  corData<-corData[grepl(ape, rownames(corData)) == TRUE,repeat_motifs_to_use[1:500]] #subsample first n repeats
+  repeat_motifs_to_use<-repeat_order #as.character(unlist(most_abundant_for_each_species[ape]))
+  corData<-corData[grepl(ape, rownames(corData)) == TRUE,repeat_motifs_to_use] #subsample first n repeats
   print(dim(corData))
   
-  source("http://www.sthda.com/upload/rquery_cormat.r")
-  #correlation plot
-  corTable<-t(corData)
-  corTable<-as.matrix(corTable)
-  class(corTable) <- "numeric"
-  colnames(corTable)<-make.names(colnames(corTable),unique=TRUE)
-  rquery.cormat(t(corTable)[,1:500], type="upper",graphType="heatmap")
-  
   #get vector of all correlation coefficients that could be calculated
-  corValues<-returnCorrelationVector(corData)
+  correlation_method="spearman" #CHANGE HERE
+  corValues<-returnCorrelationMatrix(corData,correlation_method)
+  corVector<-returnCorrelationVector(corValues)
+  
+  #source("http://www.sthda.com/upload/rquery_cormat.r")
+  #correlation plot
+  corTable<-t(corValues)
+  corTable<-as.matrix(corTable,rownames.force=TRUE)
+  class(corTable) <- "numeric"
+  colnames(corTable)<-rownames(corTable[2:nrow(corTable),])
+  corrplot(corTable[2:nrow(corTable),],diag=TRUE,type="upper",na.label="-")
   
   #todo: rewrite reshuffling
   permutations<- list()
   for (perm in 1:10){ 
-    permutations[[perm]] <-returnCorrelationVector(apply(corData,2,sample))
+    permutations[[perm]] <-returnCorrelationVector(returnCorrelationMatrix(apply(corData,2,sample),correlation_method))
   }
   
   #permutations<-lapply(permutations,sort)
@@ -814,7 +934,7 @@ for (ape in myList) {
   #df<-df[with(df, order(F)),] #sort by F column that denotes means
   df$x<-seq(1,length(df$F),1)
   
-  plot(df$x, df$F,ylim=c(-1,1),type='l',col="red",main=ape,ylab = "correlation coefficient",cex.axis=1.8,cex.lab=1.8,xlab="repeat motifs")
+  plot(df$x, df$F,ylim=c(-1,1),type='l',col="red",main=ape,ylab = "correlation coefficient",cex.axis=1.8,cex.lab=1.8,xlab="index for number of repeat comparisons")
   
   #make polygon where coordinates start with lower limit and 
   # then upper limit in reverse order
@@ -822,16 +942,16 @@ for (ape in myList) {
   lines(df$x, df$F, lwd = 2)
   
     points(
-    corValues,
+    corVector, #plot actually calculated correlation coefficients
     ylab = "correlation coefficient",
     ylim = c(-1, 1),
     pch = 20,
     main = ape,
     xlim = c(0, length(corValues)),
-    col = adjustcolor("red", alpha.f = 0.1)
+    col = adjustcolor(ifelse(corVector>0, "blue", "red"), alpha.f = 0.5)
   )
     
-    abline(h = 0, col = "red")
+    abline(h = 0, col = "black")
   #add red lines on borders of polygon
   #lines(df$x, df$U, col="red",lty=2)
   #lines(df$x, df$L, col="red",lty=2)
