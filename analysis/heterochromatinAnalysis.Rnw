@@ -141,6 +141,10 @@ Bornean_specific<-length(rownames((binary[binary$Homo==0 & binary$Chimpanzee==0 
 
 
 print(table(rowSums(binary==1)))
+
+#proportion of repeated motifs that is not present in all individuals of a given species
+print(100-apply(binary,2,function(x) {table((x==1) | (x==0))})[2,]/nrow(binary)*100)
+print(apply(binary[repeat_order,],2,function(x) {table((x==1) | (x==0))}))
 @
 
 <<FIGURE3>>=
@@ -394,13 +398,13 @@ qualitative_colors[18]<-"indianred3"
 qualitative_colors[21]<-"gold"
 qualitative_colors[26]<-"orange"
 
-df.bar <- barplot(Matrix, col=qualitative_colors, border="white", font.axis=2, beside=T, xlab="group", font.lab=2, ylim=c(0,180000))
+df.bar <- barplot(Matrix, col=qualitative_colors, border="white", font.axis=2, beside=T, xlab="group", font.lab=2, ylim=c(0,200000),space=c(0,1))
 
 #SPECIES
 points(x = rep(df.bar[1,1],length(unlist(repVariabilityBig[1]))), y =unlist(repVariabilityBig[1]),pch=20,col="black")
-points(x = rep(df.bar[1,2],length(unlist(repVariabilityBig[2]))), y =unlist(repVariabilityBig[2]),pch=20,col="black")
+#points(x = rep(df.bar[1,2],length(unlist(repVariabilityBig[2]))), y =unlist(repVariabilityBig[2]),pch=20,col="black")
 points(x = rep(df.bar[1,3],length(unlist(repVariabilityBig[3]))), y =unlist(repVariabilityBig[3]),pch=20,col="black")
-points(x = rep(df.bar[1,4],length(unlist(repVariabilityBig[4]))), y =unlist(repVariabilityBig[4]),pch=20,col="black")
+#points(x = rep(df.bar[1,4],length(unlist(repVariabilityBig[4]))), y =unlist(repVariabilityBig[4]),pch=20,col="black")
 points(x = rep(df.bar[1,5],length(unlist(repVariabilityBig[5]))), y =unlist(repVariabilityBig[5]),pch=20,col="black")
 points(x = rep(df.bar[1,6],length(unlist(repVariabilityBig[6]))), y =unlist(repVariabilityBig[6]),pch=20,col="black")
 
@@ -1118,4 +1122,47 @@ plot(density_vs_count$rCount,density_vs_count$density,main ="Number of reads in 
 cor(density_vs_count$rCount,density_vs_count$density,method="spearman")
 
 @
+
+<<comparison with pacbio/nanopore; ranges of densities>>=
+illuminadata<-abundantSpeciesVsRepeats[,repeat_order]/100000
+nextgendata<-plotDensityFile("/Users/polly/Desktop/projects/heterochromatin/nanopore/nanopore_lengths/nanopore.v3_filtered_100.species.density.calculation")/1000
+
+nextgenlabels<-rownames(nextgendata)
+nextgenlabels[grepl("SumatranOrangutan",nextgenlabels)==TRUE]<-"Sumatran"
+nextgenlabels[grepl("BorneanOrangutan",nextgenlabels)==TRUE]<-"Bornean"
+nextgenlabels[grepl("Human",nextgenlabels)==TRUE]<-"Homo"
+rownames(nextgendata)<-nextgenlabels
+
+subset_to_compare<-rbind(illuminadata,nextgendata) #last rows originate in nextgen dataset
+stopifnot((nrow(illuminadata)+nrow(nextgendata))==nrow(subset_to_compare)) #the numbers of observations after merging must match
+
+plot.new()
+par(mfrow=c(2,3),cex.lab=2,cex.axis=0.3)
+for (spcs in unique(sort(rownames(subset_to_compare)))) {
+  print(spcs)
+  spcs_subset_to_compare<-subset_to_compare[rownames(subset_to_compare)==spcs,]
+  spcs_subset_to_compare<-scale(spcs_subset_to_compare,center=TRUE,scale=FALSE)
+  
+  boxplot(spcs_subset_to_compare[-1,],col=rainbow(39),main=spcs,las=2)
+  abline(h=0,col="gray")
+  points(1:ncol(spcs_subset_to_compare), spcs_subset_to_compare[nrow(spcs_subset_to_compare),], pch=18, col="red",cex=2) 
+}
+@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
