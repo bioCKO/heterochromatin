@@ -1125,7 +1125,11 @@ cor(density_vs_count$rCount,density_vs_count$density,method="spearman")
 
 <<comparison with pacbio/nanopore; ranges of densities>>=
 illuminadata<-abundantSpeciesVsRepeats[,repeat_order]/100000
-nextgendata<-plotDensityFile("/Users/polly/Desktop/projects/heterochromatin/nanopore/nanopore_lengths/nanopore.v3_filtered_100.species.density.calculation")/1000
+
+nextgenfile<-"/Users/polly/Desktop/projects/heterochromatin/nanopore/nanopore_lengths/pacbio_filtered_100.species.density.calculation"
+#nextgenfile<-"/Users/polly/Desktop/projects/heterochromatin/nanopore/nanopore_lengths/nanopore.v3_filtered_100.species.density.calculation"
+
+nextgendata<-plotDensityFile(nextgenfile)/1000
 
 nextgenlabels<-rownames(nextgendata)
 nextgenlabels[grepl("SumatranOrangutan",nextgenlabels)==TRUE]<-"Sumatran"
@@ -1143,7 +1147,7 @@ for (spcs in unique(sort(rownames(subset_to_compare)))) {
   spcs_subset_to_compare<-subset_to_compare[rownames(subset_to_compare)==spcs,]
   spcs_subset_to_compare<-scale(spcs_subset_to_compare,center=TRUE,scale=FALSE)
   
-  boxplot(spcs_subset_to_compare[-1,],col=rainbow(39),main=spcs,las=2)
+  boxplot(spcs_subset_to_compare[-1,],col=rainbow(39),main=paste(spcs,basename(nextgenfile)),las=2)
   abline(h=0,col="gray")
   points(1:ncol(spcs_subset_to_compare), spcs_subset_to_compare[nrow(spcs_subset_to_compare),], pch=18, col="red",cex=2) 
 }
