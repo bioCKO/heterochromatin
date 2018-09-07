@@ -84,15 +84,15 @@ ggplot(data_long, aes(rep(1:(nrow(data_long)/length(filenames)),times=length(fil
 par(cex=1.5)
 
 isBetweenRange<-function(row) {
-  child<-row[1]
-  parent1<-row[2]
-  parent2<-row[3]
+  parent1<-row[1]
+  parent2<-row[2]
+  child<-row[3]
   isWithin<-between(child,parent1,parent2) || between(child,parent2,parent1)
   return(isWithin)
 }
 
-print(table(apply(families[,c("Son","Father","Mother")],1,isBetweenRange)))
-print(table(apply(families[,c("Daughter2","Father2","Mother2")],1,isBetweenRange)))
+print(table(apply(families[,c("Father","Mother","Son")],1,isBetweenRange)))
+print(table(apply(families[,c("Father2","Mother2","Daughter2")],1,isBetweenRange)))
 
 scaled_families<-families
 
@@ -134,32 +134,6 @@ family1<-scaled_families[,c("Father","Mother","Son")]
 colnames(family1)<-c("Father","Mother","Child")
 family2<-scaled_families[,c("Father2","Mother2","Daughter2")]
 colnames(family2)<-c("Father","Mother","Child")
-
-plotForTrio <- function(trio_frame,family_id){
-  trio_frame$Father<-(trio_frame$Father-trio_frame$Child)
-  trio_frame$Mother<-(trio_frame$Mother-trio_frame$Child)
-  trio_frame$Child<-(trio_frame$Child-trio_frame$Child)
-  print(head(trio_frame))
-  
-    n=nrow(trio_frame)
-    
-    xmin<-min(trio_frame$Mother,trio_frame$Father)
-    xmax<-max(trio_frame$Mother,trio_frame$Father)
-    
-    plot(head(trio_frame$Father,n=n),n:1,col=adjustcolor("blue", alpha.f = 0.5),pch=20,xlab="Difference from Child",ylab="Repeated motifs",yaxs="i",ylim=c(0,500),xlim=c(xmin,xmax),main=family_id) #father
-    abline(v=0) 
-    points(head(trio_frame$Mother,n=n),n:1,col=adjustcolor("red", alpha.f = 0.5),pch=20) #add mother
-    segments(head(trio_frame$Father,n=n),n:1,head(trio_frame$Mother,n=n),n:1,col="gray")
-  
-    #text(1:n,head(r$Father,n=n),labels=head(r$V1,n=n),cex=0.4,srt=90,col="black")
-    mtext(head(trio_frame$Father,n=n),cex=0.25,srt=90,col="black",side=4,at=n:1,las=1)
-    legend("bottomleft", 
-         legend = c("mother","father"),
-         col = c("red","blue"), 
-         pch = c(20),
-         bty = "n"
-        )
-}
 
 plotForTrio(family1,"Ashkenazim")
 plotForTrio(family2,"family id:1492 from 1,000 Human Genome Project")
@@ -321,5 +295,137 @@ summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE,
     return(datac)
 }
 @
+
+<<>>=
+plotForTrio <- function(trio_frame,family_id){ #Father #Mother #Child
+  trio_frame$Father<-(trio_frame[,1]-trio_frame[,3])
+  trio_frame$Mother<-(trio_frame[,2]-trio_frame[,3])
+  trio_frame$Child<-(trio_frame[,3]-trio_frame[,3])
+  print(head(trio_frame))
+  
+    n=nrow(trio_frame)
+    
+    xmin<-min(trio_frame$Mother,trio_frame$Father,na.RM=TRUE)
+    xmax<-max(trio_frame$Mother,trio_frame$Father,na.RM=TRUE)
+    
+    plot(head(trio_frame$Father,n=n),n:1,col=adjustcolor("blue", alpha.f = 0.5),pch=20,xlab="Difference from Child",ylab="Repeated motifs",yaxs="i",ylim=c(0,n+1),xlim=c(xmin,xmax),main=family_id) #father
+    abline(v=0) 
+    points(head(trio_frame$Mother,n=n),n:1,col=adjustcolor("red", alpha.f = 0.5),pch=20) #add mother
+    segments(head(trio_frame$Father,n=n),n:1,head(trio_frame$Mother,n=n),n:1,col="gray")
+  
+    #text(1:n,head(trio_frame$Father,n=n),labels=head(rownames(trio_frame),n=n),cex=0.4,srt=90,col="black")
+    mtext(head(rownames(trio_frame),n=n),cex=0.5,srt=90,col="black",side=4,at=n:1,las=1)
+    legend("bottomleft", 
+         legend = c("father","mother"),
+         col = c("blue","red"), 
+         pch = c(20),
+         bty = "n"
+        )
+}
+@
+
+
+<<>>=
+setwd("/Users/polly/Desktop/projects/heterochromatin/human_heterochromatin/trios")
+
+tmptrios<-read.table("/Users/polly/Desktop/projects/heterochromatin/human_heterochromatin/trios/big.table.with.header.rawlengths.sortedFilt.txt",header=TRUE,row.names=1)
+tmptrios<-tmptrios[,seq(1,12,2)]
+
+rep.row<-function(x,n){
+   matrix(rep(x,each=n),nrow=n) #transforms normalization vector into matrix
+}
+
+#817170969 518689731 NA12877 R1 101
+#817847839 533866070 NA12877 R2 101
+#791312694 568928977 NA12878 R1 101
+#791458320 562199634 NA12878 R2 101
+#864350456 462751808 NA12889 R1 101
+#865209746 584621471 NA12889 R2 101
+#712391750 510549569 NA12890 R1 101
+#712848048 504681228 NA12890 R2 101
+#785026638 589779127 NA12891 R1 101
+#783988624 553461904 NA12891 R2 101
+#849529002 637566972 NA12892 R1 101
+#849362784 614659327 NA12892 R2 101
+
+#father89_of_son77
+#mother90_of_son77
+#son77
+
+#father91_of_daughter78
+#mother92_of_daughter78
+#daughter78
+
+#NORMALIZE BY READ COUNTS
+normalization_factor=1000000
+trios_rcounts<-c(518689731,568928977,462751808,510549569,589779127,637566972)
+normalization_matrix<-rep.row(trios_rcounts,nrow(tmptrios))
+tmptrios<-as.data.frame(tmptrios) #convert to dataframe from data table
+tmptrios[is.na(tmptrios)] <- 0
+
+tmptrios<-tmptrios/normalization_matrix*normalization_factor #normalization of data by read counts
+trios<-tmptrios[order(-rowSums(tmptrios[1:ncol(tmptrios)],na.rm=TRUE)),c("father89_of_son77","mother90_of_son77","son77","father91_of_daughter78","mother92_of_daughter78","daughter78")]
+
+par(mar=c(5.1,4.1,4.1,20))
+plotForTrio(trios[1:10,c("father89_of_son77","mother90_of_son77","son77")],"son77 family")
+plotForTrio(trios[1:10,c("father91_of_daughter78","mother92_of_daughter78","daughter78")],"daughter78 family")
+
+print(table(apply(trios[1:10,c("father89_of_son77","mother90_of_son77","son77")],1,isBetweenRange)))
+print(table(apply(trios[1:10,c("father91_of_daughter78","mother92_of_daughter78","daughter78")],1,isBetweenRange)))
+
+
+@
+
+<<>>=
+smooth<-function(data_points) {
+  spline<-smooth.spline(1:length(data_points), data_points, spar=0.01)
+  #spline<-data_points/100
+  return(spline)
+}
+
+lw<-3 #line width
+
+trios_to_plot<-trios[2:100,]
+
+myColors<-c("#2171b5","#6baed6","#bdd7e7","#d94701","#fd8d3c","#fdbe85")
+family_labels<-c("father89_of_son77","mother90_of_son77","son77","father91_of_daughter78","mother92_of_daughter78","daughter78")
+
+plot(smooth(trios_to_plot$father89_of_son77),type="l",xlab="index of repeated motif",ylab="smoothed repeat density in kb/Mb",col=myColors[1],xlim=c(0,100),lwd=lw,main="most abundant repeated motifs,except GGAAT")
+lines(smooth(trios_to_plot$mother90_of_son77),col=myColors[2],lwd=lw)
+lines(smooth(trios_to_plot$son77),col=myColors[3],lwd=lw)
+lines(smooth(trios_to_plot$father91_of_daughter78),col=myColors[4],lwd=lw)
+lines(smooth(trios_to_plot$mother92_of_daughter78),col=myColors[5],lwd=lw)
+lines(smooth(trios_to_plot$daughter78),col=myColors[6],lwd=lw)
+
+
+density_sums<-apply(trios[1:nrow(trios),family_labels],2,sum)
+density_sums_withoutGGAAT<-apply(trios[2:nrow(trios),family_labels],2,sum)
+GGAAT_only<-trios[1,]
+
+par(mfrow=c(2,3),cex=1.075)
+barplot(density_sums_withoutGGAAT,col=myColors,ylab="sum of repeat densities",main=paste("Total repeat content for",nrow(trios)-1,"human repeats, excluding GGAAT"),yaxt="n") 
+axis(2, axTicks(2), format(axTicks(2), scientific = F, big.mark=",")) 
+plot.new()
+    legend("topright", 
+         legend = family_labels,
+         col = myColors, 
+         pch = c(20),
+         bty = "n"
+        )
+
+data=matrix(sample(1:30,15) , nrow=3)
+colnames(data)=c("A","B","C","D","E")
+rownames(data)=c("var1","var2","var3")
+ 
+# Get the stacked barplot
+stacked_density<-as.matrix(rbind(density_sums_withoutGGAAT,GGAAT_only))
+barplot(stacked_density, col=c("#8dd3c7","#bebada") , border="white", space=0.04, font.axis=2, xlab="group",yaxt="n") 
+axis(2, axTicks(2), format(axTicks(2), scientific = F, big.mark=",")) 
+    
+    
+@
+
+
+
 
 \end{document}
