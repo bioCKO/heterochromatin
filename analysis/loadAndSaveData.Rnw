@@ -180,11 +180,20 @@ filtered_files<-dropFamilyRelatedFiles(filtered_files)
 #d<-read.table("/Users/polly/Desktop/projects/heterochromatin/great_ape_diversity/counts75/threshold100/sort/big.table.with.header.txt",sep=" ",header=TRUE,row.names=1,na.strings=NA,fill=TRUE)
   
 d<-read.table("/Users/polly/Desktop/projects/heterochromatin/refactored/big.table.with.header.rawcounts.sortedFilt.txt",sep=" ",header=TRUE,row.names=1,na.strings=NA,fill=TRUE,check.names=FALSE)
+
+extra_human_d<-read.table("/Users/polly/Desktop/projects/heterochromatin/refactored/human.table.with.header.rawcounts.sortedFilt.txt",sep=" ",header=TRUE,row.names=1,na.strings=NA,fill=TRUE,check.names=FALSE)
+
+#d<-as.data.frame(merge(d,extra_human_d,by="row.names",all.x=TRUE)) #convert to dataframe
+d<-merge(d,extra_human_d,by="row.names",all.x=TRUE)
+print(tail(colnames(d),3))
+rownames(d)<-d[,"Row.names"]
+d<-d[,-which(names(d) == "Row.names")] 
 d<-as.data.frame(d) #convert to dataframe
-#d[is.na(d)] <- 0
+d[is.na(d)] <- 0
 
 columns_to_select<-paste0(gsub( "\\|", "_",filtered_files),".dat_Header.txt.rawcounts.sortedFilt")
-data<-d[order(-rowSums(d)),columns_to_select] 
+data<-d[,columns_to_select] 
+data<-data[order(-rowSums(data)),]
 print(dim(data))
 
 rc_by_sample<-readC_afterF
@@ -244,12 +253,21 @@ plot(table(nchar(as.character(rownames(frequency)))),ylab="number of distinct re
 @
 
 <<DENSITY>>=
-d<-read.table("/Users/polly/Desktop/projects/heterochromatin/refactored/big.table.with.header.rawlengths.sortedFilt.txt",sep=" ",header=TRUE,row.names=1,na.strings=NA,fill=TRUE,check.names=FALSE)
+d<-as.data.frame(read.table("/Users/polly/Desktop/projects/heterochromatin/refactored/big.table.with.header.rawlengths.sortedFilt.txt",sep=" ",header=TRUE,row.names=1,na.strings=NA,fill=TRUE,check.names=FALSE))
+extra_human_d<-as.data.frame(read.table("human.table.with.header.rawlengths.sortedFilt.txt",sep=" ",header=TRUE,row.names=1,na.strings=NA,fill=TRUE,check.names=FALSE))
+
+#d<-as.data.frame(merge(d,extra_human_d,by="row.names",all.x=TRUE)) #convert to dataframe
+d<-merge(d,extra_human_d,by="row.names",all.x=TRUE)
+
+rownames(d)<-d[,"Row.names"]
+d<-d[,-which(names(d) == "Row.names")] 
 d<-as.data.frame(d) #convert to dataframe
+
 d[is.na(d)] <- 0
 
 columns_to_select<-paste0(gsub( "\\|", "_",filtered_files),".dat_Header.txt.rawlengths.sortedFilt")
-data<-d[order(-rowSums(d)),columns_to_select] 
+data<-d[,columns_to_select] 
+data<-data[order(-rowSums(data)),] 
 #View(d)
 
 rep.row<-function(x,n){
