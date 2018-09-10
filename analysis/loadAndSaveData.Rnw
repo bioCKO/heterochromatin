@@ -179,7 +179,7 @@ filtered_files<-dropFamilyRelatedFiles(filtered_files)
 <<FREQUENCY>>=
 #d<-read.table("/Users/polly/Desktop/projects/heterochromatin/great_ape_diversity/counts75/threshold100/sort/big.table.with.header.txt",sep=" ",header=TRUE,row.names=1,na.strings=NA,fill=TRUE)
   
-d<-read.table("/Users/polly/Desktop/projects/heterochromatin/refactored/big.table.with.header.rawcounts.sortedFilt.txt",sep=" ",header=TRUE,row.names=1,na.strings=NA,fill=TRUE)
+d<-read.table("/Users/polly/Desktop/projects/heterochromatin/refactored/big.table.with.header.rawcounts.sortedFilt.txt",sep=" ",header=TRUE,row.names=1,na.strings=NA,fill=TRUE,check.names=FALSE)
 d<-as.data.frame(d) #convert to dataframe
 #d[is.na(d)] <- 0
 
@@ -244,7 +244,7 @@ plot(table(nchar(as.character(rownames(frequency)))),ylab="number of distinct re
 @
 
 <<DENSITY>>=
-d<-read.table("/Users/polly/Desktop/projects/heterochromatin/refactored/big.table.with.header.rawlengths.sortedFilt.txt",sep=" ",header=TRUE,row.names=1,na.strings=NA,fill=TRUE)
+d<-read.table("/Users/polly/Desktop/projects/heterochromatin/refactored/big.table.with.header.rawlengths.sortedFilt.txt",sep=" ",header=TRUE,row.names=1,na.strings=NA,fill=TRUE,check.names=FALSE)
 d<-as.data.frame(d) #convert to dataframe
 d[is.na(d)] <- 0
 
