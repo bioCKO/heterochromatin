@@ -298,9 +298,9 @@ summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE,
 
 <<>>=
 plotForTrio <- function(trio_frame,family_id){ #Father #Mother #Child
-  trio_frame$Father<-(trio_frame[,1]-trio_frame[,3])
-  trio_frame$Mother<-(trio_frame[,2]-trio_frame[,3])
-  trio_frame$Child<-(trio_frame[,3]-trio_frame[,3])
+  trio_frame$Father<-(trio_frame[,1]-trio_frame[,3])/10000
+  trio_frame$Mother<-(trio_frame[,2]-trio_frame[,3])/10000
+  trio_frame$Child<-(trio_frame[,3]-trio_frame[,3])/10000
   print(head(trio_frame))
   
     n=nrow(trio_frame)
@@ -308,7 +308,7 @@ plotForTrio <- function(trio_frame,family_id){ #Father #Mother #Child
     xmin<-min(trio_frame$Mother,trio_frame$Father,na.RM=TRUE)
     xmax<-max(trio_frame$Mother,trio_frame$Father,na.RM=TRUE)
     
-    plot(head(trio_frame$Father,n=n),n:1,col=adjustcolor("blue", alpha.f = 0.5),pch=20,xlab="Difference from Child",ylab="Repeated motifs",yaxs="i",ylim=c(0,n+1),xlim=c(xmin,xmax),main=family_id) #father
+    plot(head(trio_frame$Father,n=n),n:1,col=adjustcolor("blue", alpha.f = 0.5),pch=20,xlab="Distance from the child (kb/Mb)",ylab="Most abundant repeated motifs",yaxs="i",ylim=c(0,n+1),xlim=c(xmin,xmax),main=family_id,yaxt='n') #father
     abline(v=0) 
     points(head(trio_frame$Mother,n=n),n:1,col=adjustcolor("red", alpha.f = 0.5),pch=20) #add mother
     segments(head(trio_frame$Father,n=n),n:1,head(trio_frame$Mother,n=n),n:1,col="gray")
@@ -376,34 +376,27 @@ print(table(apply(trios[1:10,c("father91_of_daughter78","mother92_of_daughter78"
 
 @
 
+<<normalized trios>>=
+normalized_trios<-density[305:313]
+colnames(normalized_trios)<-sapply(strsplit(colnames(normalized_trios),"_"), function(x) x[4])
+normalized_trios<-normalized_trios[order(-rowSums(normalized_trios, na.rm=T)),]
+@
+
+
+
 <<>>=
-smooth<-function(data_points) {
-  spline<-smooth.spline(1:length(data_points), data_points, spar=0.01)
-  #spline<-data_points/100
-  return(spline)
-}
+trios<-normalized_trios
 
-lw<-3 #line width
-
-trios_to_plot<-trios[2:100,]
-
-myColors<-c("#2171b5","#6baed6","#bdd7e7","#d94701","#fd8d3c","#fdbe85")
-family_labels<-c("father89_of_son77","mother90_of_son77","son77","father91_of_daughter78","mother92_of_daughter78","daughter78")
-
-plot(smooth(trios_to_plot$father89_of_son77),type="l",xlab="index of repeated motif",ylab="smoothed repeat density in kb/Mb",col=myColors[1],xlim=c(0,100),lwd=lw,main="most abundant repeated motifs,except GGAAT")
-lines(smooth(trios_to_plot$mother90_of_son77),col=myColors[2],lwd=lw)
-lines(smooth(trios_to_plot$son77),col=myColors[3],lwd=lw)
-lines(smooth(trios_to_plot$father91_of_daughter78),col=myColors[4],lwd=lw)
-lines(smooth(trios_to_plot$mother92_of_daughter78),col=myColors[5],lwd=lw)
-lines(smooth(trios_to_plot$daughter78),col=myColors[6],lwd=lw)
-
+myColors<-c("#2171b5","#6baed6","#bdd7e7","#d94701","#fd8d3c","#fdbe85","#238443","#78c679","#c2e699")
+family_labels<-c("father89OfSon77","mother90OfSon77","son-77","father91OfDaughter78","mother92OfDaughter78","daughter-78","Father-HG","Mother-HG","Son-HG")
+trios<-trios[,family_labels]
 
 density_sums<-apply(trios[1:nrow(trios),family_labels],2,sum)
 density_sums_withoutGGAAT<-apply(trios[2:nrow(trios),family_labels],2,sum)
 GGAAT_only<-trios[1,]
 
 par(mfrow=c(2,3),cex=1.075)
-barplot(density_sums_withoutGGAAT,col=myColors,ylab="sum of repeat densities",main=paste("Total repeat content for",nrow(trios)-1,"human repeats, excluding GGAAT"),yaxt="n") 
+barplot(density_sums_withoutGGAAT,col=myColors,ylab="sum of repeat densities",main=paste("Total repeat content for",nrow(trios)-1,"human repeats, excluding GGAAT"),yaxt="n",las=2) 
 axis(2, axTicks(2), format(axTicks(2), scientific = F, big.mark=",")) 
 plot.new()
     legend("topright", 
@@ -412,19 +405,86 @@ plot.new()
          pch = c(20),
          bty = "n"
         )
-
-data=matrix(sample(1:30,15) , nrow=3)
-colnames(data)=c("A","B","C","D","E")
-rownames(data)=c("var1","var2","var3")
  
 # Get the stacked barplot
-stacked_density<-as.matrix(rbind(density_sums_withoutGGAAT,GGAAT_only))
-barplot(stacked_density, col=c("#8dd3c7","#bebada") , border="white", space=0.04, font.axis=2, xlab="group",yaxt="n") 
+stacked_density<-as.matrix(rbind(GGAAT_only,density_sums_withoutGGAAT))
+#barplot(stacked_density, col=c("#8dd3c7","blue") , border="white", space=0.04, font.axis=2, xlab="group",yaxt="n") 
+#WORKAROUND to plot in color
+# white bars 
+barplot(stacked_density/100000, col='white', axes=F, axisnames=F, yaxp=c(0,1,2), las=2)
+
+# add coloured bars
+for (i in 1:ncol(stacked_density)){
+    xx = stacked_density/100000
+    xx[,-i] <- NA
+    colnames(xx)[-i] <- NA
+    barplot(xx,col=c('lightgray',myColors[i]), add=T, axes=F,las=2) 
+}
+
+
 axis(2, axTicks(2), format(axTicks(2), scientific = F, big.mark=",")) 
     
-    
+
 @
 
+<<>>=
+par(mar=c(5.1,4.1,4.1,12),mfrow=c(2,3),cex=1.05)
+plotForTrio(trios[1:50,c("father89OfSon77","mother90OfSon77","son-77")],"son77 family")
+plotForTrio(trios[1:50,c("father91OfDaughter78","mother92OfDaughter78","daughter-78")],"son77 family")
+plotForTrio(trios[1:50,c("Father-HG","Mother-HG","Son-HG")],"Son-HG family")
+
+@
+
+
+<<>>=
+#trios_to_plot<-trios[2:100,]
+
+smooth<-function(data_points) {
+  spline<-smooth.spline(1:length(data_points), data_points, spar=0.01)
+  #spline<-data_points/100
+  return(spline)
+}
+
+lw<-3 #line width
+
+plot(smooth(trios_to_plot$father89_of_son77),type="l",xlab="index of repeated motif",ylab="smoothed repeat density in kb/Mb",col=myColors[1],xlim=c(0,100),lwd=lw,main="most abundant repeated motifs,except GGAAT")
+lines(smooth(trios_to_plot$mother90_of_son77),col=myColors[2],lwd=lw)
+lines(smooth(trios_to_plot$son77),col=myColors[3],lwd=lw)
+lines(smooth(trios_to_plot$father91_of_daughter78),col=myColors[4],lwd=lw)
+lines(smooth(trios_to_plot$mother92_of_daughter78),col=myColors[5],lwd=lw)
+lines(smooth(trios_to_plot$daughter78),col=myColors[6],lwd=lw)
+@
+
+
+<<>>=
+# Ward Hierarchical Clustering
+
+trio_to_cluster<-scale(trios,center=FALSE,scale=FALSE)
+n<-1000
+
+#d<-as.dist(1-cor(trio_to_cluster[1:n,],method="pearson")) #distance based on correlation
+
+#NOTE: GGAAT makes women very similar to other women and men to men
+d <- dist(t(trio_to_cluster[1:n,]), method = "Euclidean") # distance matrix
+print(d)
+
+dst <- data.matrix(d)
+#dst[lower.tri(dst)] <- NA
+
+dim <- ncol(dst)
+par(mar=c(12,12,4.1,5))
+image(1:dim, 1:dim, dst, axes = FALSE, xlab="", ylab="")
+
+axis(1, 1:dim, rownames(dst), cex=0.75, las=3)
+axis(2, 1:dim, rownames(dst), cex=0.75, las=1)
+
+text(expand.grid(1:dim, 1:dim), sprintf("%5.3f", dst), cex=1)
+
+#fit <- hclust(d, method="ward.D2") 
+#plot(fit) # display dendogram
+#groups <- cutree(fit, k=2) 
+#rect.hclust(fit, k=2, border="red")
+@
 
 
 
