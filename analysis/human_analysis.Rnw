@@ -315,12 +315,12 @@ plotForTrio <- function(trio_frame,family_id){ #Father #Mother #Child
   
     #text(1:n,head(trio_frame$Father,n=n),labels=head(rownames(trio_frame),n=n),cex=0.4,srt=90,col="black")
     mtext(head(rownames(trio_frame),n=n),cex=0.5,srt=90,col="black",side=4,at=n:1,las=1)
-    legend("bottomleft", 
-         legend = c("father","mother"),
-         col = c("blue","red"), 
-         pch = c(20),
-         bty = "n"
-        )
+    #legend("bottomleft", 
+    #     legend = c("father","mother"),
+    #     col = c("blue","red"), 
+    #     pch = c(20),
+    #     bty = "n"
+    #    )
 }
 @
 
@@ -429,9 +429,10 @@ axis(2, axTicks(2), format(axTicks(2), scientific = F, big.mark=","))
 
 <<>>=
 par(mar=c(5.1,4.1,4.1,12),mfrow=c(2,3),cex=1.05)
-plotForTrio(trios[1:50,c("father89OfSon77","mother90OfSon77","son-77")],"son77 family")
-plotForTrio(trios[1:50,c("father91OfDaughter78","mother92OfDaughter78","daughter-78")],"son77 family")
-plotForTrio(trios[1:50,c("Father-HG","Mother-HG","Son-HG")],"Son-HG family")
+nmotifs<-50
+plotForTrio(trios[1:nmotifs,c("father89OfSon77","mother90OfSon77","son-77")],"son77 family")
+plotForTrio(trios[1:nmotifs,c("father91OfDaughter78","mother92OfDaughter78","daughter-78")],"daughter-78")
+plotForTrio(trios[1:nmotifs,c("Father-HG","Mother-HG","Son-HG")],"Son-HG family")
 
 @
 
