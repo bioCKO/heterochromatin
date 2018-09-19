@@ -92,30 +92,59 @@ using ICCbare",sub=paste("First",length(unique(top_long$repeated_motif)),"repeat
 <<FIGURE1>>=
 par(cex=0.5)
 par(mar=c(10,4,4,2))
-binary<-abundantSpeciesVsRepeats
-binary[binary>0]<-1
-binary<-as.data.frame(binary)
-print(dim(binary))
 
-Nsubsampled<-5
+createBinary <- function(abundantSpeciesVsRepeats,unique_species,sample_size,Nsampled=FALSE) {
+  stopifnot(sum(sample_size)==length(rownames(abundantSpeciesVsRepeats))) #initial control before subsampling takes place
+  stopifnot(exists("abundantSpeciesVsRepeats"))
+  stopifnot(exists("unique_species"))
+  stopifnot(exists("sample_size"))
+  stopifnot(exists("Nsampled"))
+  
+  print(paste("unique species:",unique_species))
+  print(paste("sample size:",sample_size))
+  print(paste("is subsampling turned on?",Nsampled)) #Nsampled is either FALSE or a number of individuals per species
+  
+  if (Nsampled!=FALSE) {
+      sample_size<-rep(Nsampled,length(unique_species)) #sample size subsampled
+  } 
+  
+  print(paste("sample size:",sample_size))
+  
+  tmp<-abundantSpeciesVsRepeats
+  tmp[tmp>0]<-1
+  tmp<-as.data.frame(tmp)
+  print(dim(tmp))
+  
+  tmp_transformed <- sapply(unique_species, function(name) {
+    subs <- tmp[rownames(tmp) == name,]
+    print(dim(subs))
+    
+    if (Nsampled!=FALSE) {
+      subs <- subs[sample(seq(1:nrow(subs)),Nsampled,replace=FALSE),] 
+    } 
+    
+    print(dim(subs))
+    if(is.data.frame(subs))
+      colSums(subs,na.rm = TRUE)
+    else
+      subs
+  })
+  
+  stopifnot(ncol(tmp_transformed)==length(unique_species))
+  stopifnot(exists("tmp_transformed"))
+  stopifnot(exists("sample_size"))
+  
+  print(paste("sample size:",sample_size))
+  tmp_transformed_sweeped<-sweep(tmp_transformed, 2, sample_size, `/`)
+  print(warnings())
+  return(tmp_transformed_sweeped)
+}
+
+sample_sizes<-c(18,19,13,27,5,5)
+
 unique_species<-c("Homo","Chimpanzee","Bonobo","Gorilla","Sumatran","Bornean")
+binary<-createBinary(abundantSpeciesVsRepeats,unique_species,c(18,19,13,27,5,5),FALSE) #sample sizes for "Homo","Chimpanzee","Bonobo","Gorilla","Sumatran","Bornean"
 
-binary <- sapply(unique_species, function(name) {
-  subs <- binary[rownames(binary) == name,]
-  #subs <- subs[sample(seq(1:nrow(subs)),5,replace=FALSE),] #print(dim(subs))
-  if(is.data.frame(subs))
-    colSums(subs,na.rm = TRUE)
-  else
-    subs
-})
-
-sample_sizes<-c(13,19,13,27,5,5) #sample sizes for "Homo","Chimpanzee","Bonobo","Gorilla","Sumatran","Bornean"
-#sample_sizes<-c(5,5,5,5,5,5) #sample sizes subsampled
-
-stopifnot(sum(sample_sizes)==length(rownames(abundantSpeciesVsRepeats)))
-stopifnot(ncol(binary)==length(unique_species))
-
-binary<-sweep(binary, 2, sample_sizes, `/`)
 mycol<-colorRampPalette(c("white","#a31527" ), bias=1)(n=1000) 
 #mycol<-colorRampPalette(c("#fde0dd","#fa9fb5","#c51b8a"), bias=1)(n=1000) 
 
@@ -126,20 +155,26 @@ binary<-as.data.frame(binary)
 dim(binary[binary$Homo>0 & binary$Chimpanzee>0 & binary$Bonobo>0 & binary$Gorilla>0 & binary$Sumatran>0 & binary$Bornean>0,])
 table(sort(nchar(rownames((binary[binary$Homo>0 & binary$Chimpanzee>0 & binary$Bonobo>0 & binary$Gorilla>0 & binary$Sumatran>0 & binary$Bornean>0,])))))
 
-#specific to human
-human_specific<-length(rownames((binary[binary$Homo>0 & binary$Chimpanzee==0 & binary$Bonobo==0 & binary$Gorilla==0 & binary$Sumatran==0 & binary$Bornean==0,])))
-#specific to chimpanzee
-chimpanzee_specific<-length(rownames((binary[binary$Homo==0 & binary$Chimpanzee>0 & binary$Bonobo==0 & binary$Gorilla==0 & binary$Sumatran==0 & binary$Bornean==0,])))
-#specific to bonobo
-bonobo_specific<-length(rownames((binary[binary$Homo==0 & binary$Chimpanzee==0 & binary$Bonobo>0 & binary$Gorilla==0 & binary$Sumatran==0 & binary$Bornean==0,])))
-#specific to gorilla
-gorilla_specific<-length(rownames((binary[binary$Homo==0 & binary$Chimpanzee==0 & binary$Bonobo==0 & binary$Gorilla>0 & binary$Sumatran==0 & binary$Bornean==0,])))
-#specific to Sumatran
-Sumatran_specific<-length(rownames((binary[binary$Homo==0 & binary$Chimpanzee==0 & binary$Bonobo==0 & binary$Gorilla==0 & binary$Sumatran>0 & binary$Bornean==0,])))
-#specific to Bornean
-Bornean_specific<-length(rownames((binary[binary$Homo==0 & binary$Chimpanzee==0 & binary$Bonobo==0 & binary$Gorilla==0 & binary$Sumatran==0 & binary$Bornean>0,])))
 
+returnSpeciesSpecificCounts <- function(binary_set) {
+  print(colnames(binary_set))
+  #specific to human
+  human_specific<-length(rownames((binary_set[binary_set$Homo>0 & binary_set$Chimpanzee==0 & binary_set$Bonobo==0 & binary_set$Gorilla==0 & binary_set$Sumatran==0 & binary_set$Bornean==0,])))
+  #specific to chimpanzee
+  chimpanzee_specific<-length(rownames((binary_set[binary_set$Homo==0 & binary_set$Chimpanzee>0 & binary_set$Bonobo==0 & binary_set$Gorilla==0 & binary_set$Sumatran==0 & binary_set$Bornean==0,])))
+  #specific to bonobo
+  bonobo_specific<-length(rownames((binary_set[binary_set$Homo==0 & binary_set$Chimpanzee==0 & binary_set$Bonobo>0 & binary_set$Gorilla==0 & binary_set$Sumatran==0 & binary_set$Bornean==0,])))
+  #specific to gorilla
+  gorilla_specific<-length(rownames((binary_set[binary_set$Homo==0 & binary_set$Chimpanzee==0 & binary_set$Bonobo==0 & binary_set$Gorilla>0 & binary_set$Sumatran==0 & binary_set$Bornean==0,])))
+  #specific to Sumatran
+  Sumatran_specific<-length(rownames((binary_set[binary_set$Homo==0 & binary_set$Chimpanzee==0 & binary_set$Bonobo==0 & binary_set$Gorilla==0 & binary_set$Sumatran>0 & binary_set$Bornean==0,])))
+  #specific to Bornean
+  Bornean_specific<-length(rownames((binary_set[binary_set$Homo==0 & binary_set$Chimpanzee==0 & binary_set$Bonobo==0 & binary_set$Gorilla==0 & binary_set$Sumatran==0 & binary_set$Bornean>0,])))
+  species_specific<-c(human_specific,chimpanzee_specific,bonobo_specific,gorilla_specific,Sumatran_specific,Bornean_specific)
+  return(species_specific)
+}
 
+print(returnSpeciesSpecificCounts(binary))
 print(table(rowSums(binary==1)))
 
 #proportion of repeated motifs that is not present in all individuals of a given species
@@ -444,6 +479,22 @@ print(paste(uniq_names_species,lapply(repVariabilityMostAbundant,mean)))
 
 @
 
+<<human densities>>=
+human_densities<-sort(unlist(repVariabilityBig[1]))
+plot(human_densities,col="white")
+
+getPopColor<-function(lbs) {
+  colors<-rep("black",length(lbs))
+  colors[grepl("78",lbs)]<-"blue"
+  colors[grepl("77",lbs)]<-"red"
+  colors[grepl("HG",lbs)]<-"brown"
+  return(colors)
+}
+
+text(x=1:length(human_densities),y=human_densities,labels=gsub("Homo_sapiens","",names(human_densities)),cex=0.75,col=getPopColor(names(human_densities)))
+@
+
+
 <<calculations with fold differencies>>=
 getMeanFoldDif <- function(list_to_pick_pairs_from) {
   return(mean(apply(combn(list_to_pick_pairs_from,2),2, myDivision)))
@@ -565,11 +616,29 @@ colors_shared<-as.factor(colSums(is.na(denshar[,2:ncol(denshar)]))>0)
 plot(1:39,log(colMeans(denshar[,2:ncol(denshar)],na.rm=TRUE)),ylab="log of average density of repeated motif across 6 species",xlab="index of repeated motif",pch=19,cex=1.5,cex.lab=1.5,main="39 most abundant repeated motifs",col=colors_shared)
 legend(22, 14, legend=c("repeated motifs in all 6 species", "repeated motifs shared among subset of species"),col=c("black", "red"), pch=19)
 
-species_specific<-c(human_specific,chimpanzee_specific,bonobo_specific,gorilla_specific,Sumatran_specific,Bornean_specific)
 mean_repeat_density_for_species<-as.numeric(lapply(repVariabilityBig,mean))
 
 plot(log(mean_repeat_density_for_species),log(species_specific),xlab="log of mean repeat density for a species",ylab="log of number of species-specific repeats",col="blue",cex.lab=1.4,cex.axis=1.4) #"Homo"       "Chimpanzee" "Bonobo"     "Gorilla"    "Sumatran"   "Bornean" 
 text(log(mean_repeat_density_for_species),log(species_specific)+0.15,labels=myList,cex=1.4)
+
+par(mfrow=c(3,3))
+myList<-c("Homo","Chimpanzee","Bonobo","Gorilla","Sumatran","Bornean")
+
+for (replicate in seq(1,9,1)){
+  print(replicate)
+  replicate_mean_repeat_density_for_species_tmp <- lapply(repVariabilityBig,function(x) {x[sample(seq(1:length(x)),5,replace=FALSE)]}) #subsample individuals in order to have equal sample size for each species
+  replicate_mean_repeat_density_for_species<-as.numeric(lapply(replicate_mean_repeat_density_for_species_tmp,mean)) #calculate mean
+  
+  
+  replicate_binary<-createBinary(abundantSpeciesVsRepeats,unique_species,c(18,19,13,27,5,5),5)
+  replicate_species_specific<-returnSpeciesSpecificCounts(as.data.frame(replicate_binary))
+  print(replicate_species_specific)
+  
+  plot(log(replicate_mean_repeat_density_for_species),log(species_specific),xlab="log of mean repeat density for a species",ylab="log of number of species-specific repeats",col="blue",cex.lab=1.2,cex.axis=1.4,main=paste("replicate",replicate),cex=1.1,xlim=c(8,12),ylim=c(0,10)) #"Homo"       "Chimpanzee" "Bonobo"     "Gorilla"    "Sumatran"   "Bornean" 
+  text(log(replicate_mean_repeat_density_for_species),log(species_specific)+0.4,labels=myList,cex=1)
+}
+
+
 @
 
 
@@ -1151,7 +1220,9 @@ for (spcs in unique(sort(rownames(subset_to_compare)))) {
   abline(h=0,col="gray")
   points(1:ncol(spcs_subset_to_compare), spcs_subset_to_compare[nrow(spcs_subset_to_compare),], pch=18, col="red",cex=2) 
 }
+
 @
+
 
 
 
