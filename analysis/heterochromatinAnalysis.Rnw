@@ -140,10 +140,10 @@ createBinary <- function(abundantSpeciesVsRepeats,unique_species,sample_size,Nsa
   return(tmp_transformed_sweeped)
 }
 
-sample_sizes<-c(18,19,13,27,5,5)
+sample_sizes<-c(9,19,13,27,5,5)
 
 unique_species<-c("Homo","Chimpanzee","Bonobo","Gorilla","Sumatran","Bornean")
-binary<-createBinary(abundantSpeciesVsRepeats,unique_species,c(18,19,13,27,5,5),FALSE) #sample sizes for "Homo","Chimpanzee","Bonobo","Gorilla","Sumatran","Bornean"
+binary<-createBinary(abundantSpeciesVsRepeats,unique_species,c(9,19,13,27,5,5),FALSE) #sample sizes for "Homo","Chimpanzee","Bonobo","Gorilla","Sumatran","Bornean"
 
 mycol<-colorRampPalette(c("white","#a31527" ), bias=1)(n=1000) 
 #mycol<-colorRampPalette(c("#fde0dd","#fa9fb5","#c51b8a"), bias=1)(n=1000) 
@@ -177,9 +177,14 @@ returnSpeciesSpecificCounts <- function(binary_set) {
 print(returnSpeciesSpecificCounts(binary))
 print(table(rowSums(binary==1)))
 
-#proportion of repeated motifs that is not present in all individuals of a given species
-print(100-apply(binary,2,function(x) {table((x==1) | (x==0))})[2,]/nrow(binary)*100)
 print(apply(binary[repeat_order,],2,function(x) {table((x==1) | (x==0))}))
+
+#proportion of repeated motifs that is not present in all individuals of a given species / present only in subset of the individuals
+print(100-apply(binary,2,function(x) {table((x==1) | (x==0))})[2,]/nrow(binary)*100)
+#same, but with the exclusion of the most abundant repeats
+indicesOfAbundantRepeats<-match(repeat_order,rownames(binary))
+print(100-apply(binary[-indicesOfAbundantRepeats,],2,function(x) {table((x==1) | (x==0))})[2,]/nrow(binary[-indicesOfAbundantRepeats,])*100)
+
 @
 
 <<FIGURE3>>=
@@ -452,6 +457,7 @@ points(x = rep(df.bar[5,2],length(unlist(repVariability[5]))), y =unlist(repVari
 #SUBSPECIES GORILLA
 points(x = rep(df.bar[2,4],length(unlist(repVariability[7]))), y =unlist(repVariability[7]),pch=20,col="black")
 points(x = rep(df.bar[3,4],length(unlist(repVariability[8]))), y =unlist(repVariability[8]),pch=20,col="black")
+
 @
 
 <<>>=
@@ -1050,6 +1056,12 @@ library("gsubfn")
 
 getCandidatesForSpecies <- function(colName,species,threshold) {
     transposed<-pca_data[c(colName,"species","sex")]
+    
+    #mergeOrangutans<-gsub ("Bornean", "Orangutan", transposed$species) #ANALYZE BOTH ORANGUTAN SPECIES TOGETHER
+    #mergeOrangutans<-gsub ("Sumatran", "Orangutan", mergeOrangutans)
+    #transposed$species<-make.unique(mergeOrangutans)
+    #rownames(transposed)<-transposed$species
+    
     transposed<-transposed[grep(species, rownames(transposed)),]
     colnames(transposed)<-c("counts","species","sex")
     transposed<-transform(transposed,counts = as.numeric(counts))
@@ -1103,6 +1115,8 @@ threshold<-50000 #minimum density for a repeat to be considered
 Candidates_Chimpanzee<-getTopCandidatesForSpecies("Chimpanzee",threshold)
 Candidates_Bonobo<-getTopCandidatesForSpecies("Bonobo",threshold)
 Candidates_Gorilla<-getTopCandidatesForSpecies("Gorilla",threshold)
+
+#Candidates_Orangutan<-getTopCandidatesForSpecies("Orangutan",threshold)
 Candidates_Sumatran<-getTopCandidatesForSpecies("Sumatran",threshold)
 Candidates_Bornean<-getTopCandidatesForSpecies("Bornean",threshold)
 Candidates_Human<-getTopCandidatesForSpecies("Homo",threshold)
@@ -1111,6 +1125,7 @@ print(Candidates_Human)
 print(Candidates_Chimpanzee)
 print(Candidates_Bonobo)
 print(Candidates_Gorilla)
+#print(Candidates_Orangutan)
 print(Candidates_Sumatran)
 print(Candidates_Bornean)
 
