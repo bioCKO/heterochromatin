@@ -174,7 +174,13 @@ returnSpeciesSpecificCounts <- function(binary_set) {
   return(species_specific)
 }
 
-print(returnSpeciesSpecificCounts(binary))
+#get indices of the most abundant repeated motifs
+indicesOfAbundantRepeats<-match(repeat_order,rownames(binary))
+
+#calculation of the species-specific repeated motifs
+print(returnSpeciesSpecificCounts(binary)) #including the most abundant repeated motifs
+print(returnSpeciesSpecificCounts(binary[-indicesOfAbundantRepeats,])) #excluding the most abundant repeated motifs
+
 print(table(rowSums(binary==1)))
 
 print(apply(binary[repeat_order,],2,function(x) {table((x==1) | (x==0))}))
@@ -182,7 +188,6 @@ print(apply(binary[repeat_order,],2,function(x) {table((x==1) | (x==0))}))
 #proportion of repeated motifs that is not present in all individuals of a given species / present only in subset of the individuals
 print(100-apply(binary,2,function(x) {table((x==1) | (x==0))})[2,]/nrow(binary)*100)
 #same, but with the exclusion of the most abundant repeats
-indicesOfAbundantRepeats<-match(repeat_order,rownames(binary))
 print(100-apply(binary[-indicesOfAbundantRepeats,],2,function(x) {table((x==1) | (x==0))})[2,]/nrow(binary[-indicesOfAbundantRepeats,])*100)
 
 @
