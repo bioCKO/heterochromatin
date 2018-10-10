@@ -45,7 +45,7 @@ with open(filepath) as fp:
         row, motif, seq, start, end, strand, seqLen, querybp, mRatio, m, mm, i, d = array
         #print(line)
 
-        if (int(start)==0) and (int(end)==int(seqLen))::
+        if (int(start)==0) and (int(end)==int(seqLen)):
           #print("heterochromatic")
           heterochromatic_file.write(line)
         else:
