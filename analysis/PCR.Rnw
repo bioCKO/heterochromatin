@@ -75,7 +75,7 @@ for (threshold in 1:10) {
   #abline(v=0,col="red",lw=3)
   #hist(subset$plus2-subset$minus,breaks=10,col="gold")
   #abline(v=0,col="red",lw=3)
-  cor(subset,method="spearman")
+  print(cor(subset,method="spearman"))
   
   dist<-as.dist(1-cor(subset,method="spearman")) #distance based on correlation
   hcSingle <- hclust(dist,method="single") 
@@ -90,11 +90,18 @@ for (threshold in 1:10) {
 
 <<>>=
 par(mfrow=c(2,3))
-plot(subset$plus1,subset$plus2,xlab="PCR+, replicate 1",ylab="PCR+, replicate 2",xlim=c(-10,14000),ylim=c(-10,14000),main="linear relationship between PCR+")
+print(dim(subset))
+#subset<-log(subset+0.0001)
+#subset<-subset[3:342,]
+limits<-c(-10,14000)
+#limits<-c(0,10)
+
+
+plot(subset$plus1,subset$plus2,xlab="PCR+, replicate 1",ylab="PCR+, replicate 2",xlim=limits,ylim=limits,main="linear relationship between PCR+")
 abline(a=c(0,0),b=(1),col="red")
-plot(subset$plus1,subset$minus,xlab="PCR+, replicate 1",ylab="PCR-",xlim=c(-10,14000),ylim=c(-10,14000),main="PCR+ counts of rep1 are overrepresented")
+plot(subset$plus1,subset$minus,xlab="PCR+, replicate 1",ylab="PCR-",xlim=limits,ylim=limits,main="PCR+ counts of rep1 are overrepresented")
 abline(a=c(0,0),b=(1),col="red")
-plot(subset$plus2,subset$minus,xlab="PCR+, replicate 2",ylab="PCR-",xlim=c(-10,14000),ylim=c(-10,14000),main="PCR+ counts of rep2 are overrepresented")
+plot(subset$plus2,subset$minus,xlab="PCR+, replicate 2",ylab="PCR-",xlim=limits,ylim=limits,main="PCR+ counts of rep2 are overrepresented")
 abline(a=c(0,0),b=(1),col="red")
 
 plus2_plus1<-lm(subset$plus2-subset$plus1 ~ 0)
@@ -111,8 +118,12 @@ res_vs_counts<-lm(resid(plus1_minus)~subset$plus1)
 abline(a=c(0,0),b=(1),col="red")
 abline(res_vs_counts,col="blue")
 
-plot(subset$plus1-0.3806946*subset$plus1,subset$minus,xlim=c(-10,14000),ylim=c(-10,14000),main="linear relationship after correction",xlab="CORRECTED PCR+, replicate 1",ylab="PCR-")
+slope<-as.numeric(coef(res_vs_counts)[2])
+plot(subset$plus1-slope*subset$plus1,subset$minus,xlim=limits,ylim=limits,main="linear relationship after correction",xlab="CORRECTED PCR+, replicate 1",ylab="PCR-")
 abline(a=c(0,0),b=(1),col="red")
+
+print(summary(lm(resid(plus1_minus)~subset$plus1)))
+print(summary(lm(resid(plus2_minus)~subset$plus2)))
 
 @
 
