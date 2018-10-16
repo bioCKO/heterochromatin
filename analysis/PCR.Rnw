@@ -3,6 +3,66 @@
 \begin{document}
 \SweaveOpts{concordance=TRUE}
 
+
+<<analyze merged table>>=
+library(plyr)
+par(mfrow=c(2,2))
+
+rep.row <- function(r, n){
+  colwise(function(x) rep(x, n))(r)
+}
+
+PCRcounts<-as.data.frame(read.table("/Users/polly/Desktop/projects/heterochromatin/PCR/big.table.with.header.rawcounts.sortedFilt.txt",header=TRUE,row.names=1))
+PCRlengths<-as.data.frame(read.table("/Users/polly/Desktop/projects/heterochromatin/PCR/big.table.with.header.rawlengths.sortedFilt.txt",header=TRUE,row.names=1))
+
+#PCRcounts<-PCRcounts[complete.cases(PCRcounts), ]
+#PCRlengths<-PCRlengths[complete.cases(PCRlengths), ] #transform into repeat density
+PCRcounts[is.na(PCRcounts)] <- 0
+PCRlengths[is.na(PCRlengths)] <- 0
+
+colnames(PCRcounts)<-c("PCRminus","PCRplus2","PCRplus1")
+colnames(PCRlengths)<-c("PCRminus","PCRplus2","PCRplus1")
+
+#normalize by read count
+counts<-as.data.frame(cbind(94110593,3587652,28278372))
+
+#PCRcounts<-normalize(PCRcounts,counts)
+#PCRlengths<-normalize(PCRlengths,counts)
+
+normalization_factor=1000000
+
+normalization_matrix<-rep.row(counts,nrow(PCRcounts))
+PCRcounts<-PCRcounts/normalization_matrix*normalization_factor #normalization of data by read counts
+
+normalization_matrix<-rep.row(counts,nrow(PCRlengths))
+PCRlengths<-PCRlengths/normalization_matrix*normalization_factor #normalization of data by read counts
+
+PCRcounts<-PCRcounts[order(rowSums(PCRcounts),decreasing=T),]
+PCRlengths<-PCRlengths[order(rowSums(PCRlengths),decreasing=T),]
+
+#PCRlengths<-PCRlengths/150 #originally bp per 1 million reads; since 1 million reads is 150,000,000 bps, after read length adjustment, bp per Mb
+#PCRlengths<-PCRlengths/1000 #report in kb/Mb
+print(head(PCRcounts))
+print(head(PCRlengths))
+
+plot(PCRcounts$PCRplus1,PCRcounts$PCRplus2,main="counts per 1 million reads",col="red")
+abline(a=c(0,0),b=(1),col="red")
+
+plot(PCRcounts$PCRminus,PCRcounts$PCRplus1,main="counts per 1 million reads",col="red")
+abline(a=c(0,0),b=(1),col="red")
+
+plot(PCRlengths$PCRminus,PCRlengths$PCRplus1,main="repeat density",col="blue")
+abline(a=c(0,0),b=(1),col="red")
+
+plot(PCRcounts$PCRminus,PCRcounts$PCRplus2,main="counts per 1 million reads",col="red")
+abline(a=c(0,0),b=(1),col="red")
+
+plot(PCRlengths$PCRminus,PCRlengths$PCRplus2,main="repeat density",col="blue")
+abline(a=c(0,0),b=(1),col="red")
+
+@
+
+
 <<PCR>>=
 par(mfrow=c(2,2))
 require(data.table)
