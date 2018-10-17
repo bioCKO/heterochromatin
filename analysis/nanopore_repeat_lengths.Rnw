@@ -5,11 +5,15 @@
 
 <<#nanopore repeats>>=
 
+original_order<-c("AATGGAGTGGAGTGG","AATGGAATGGAGTGG","AATGGAGTGG","ACTCC","AAAG","AATGG","AATCGAATGGAATGG","AATCATCATCGAATGGAATCGAATGG","AATCATCGAATGGAATCGAATGG","AAATGGAATCGAATGGAATCATC","AAACATGGAAATATCTACACCGCTATCTGTAT","AAACATGGAAATATCTACACCGCCATCTGTAT","AAACATGGAAATATCTACACTGCCATCTGTAT","AAACATGGAAATATCTACACCGCGATCTGTAT","AAACATGGAAATATCTACACAGCCATCTGTAT","AAACATGGAAATATCTACACCGCTATCTCTAT","AAACATGGAAATATCTACACCACCATCTGTAT","AAACATGGAAATATCTACACCACTATCTGTAT","AAACATGGAAATATCTACACCGCTATCTGTGT","AAACATGGAAATATCTACACTGCTATCTGTAT","AAACATGGAAATATCTACACCGCCATCTCTAT","AAATATCTACACCGCTATCTGTATGAACATGG","AAATATCTACACCGCCATCTGTATGAACATGG","AAATGGAATCGAATGGAATCATCATC","AATCATCGAATGGACTCGAATGG","AAATGGACTCGAATGGAATCATC","AAACATGTAAATATTTACACAGAATCTGTAT","AAGTGGAATGG","AAATATCTACACAGCTATCTGTATGAACATGG","AAATATCTACACCACTATCTGTATGAACATGG","AAATATCTACACCGCTATCTGCATGAACATGG","AATCATCATGAATGGAATCGAATGG","AATGGAATGTGG","AAATGGAATCGAATGTAATCATCATC","AATGGAATGGAATGGAATGTGG","AATGGAATGGAATGTGG","AACGTGGAATGG","AATGGAATGTG","AAAGTGGAATGG")
+
+repeat_order<-c("AATGG","ACTCC","AAAG","AATGGAGTGG","AATGGAATGGAGTGG","AATGGAGTGGAGTGG","AAGTGGAATGG","AATGGAATGTG","AAAGTGGAATGG","AACGTGGAATGG","AATGGAATGTGG","AATGGAATGGAATGTGG","AATGGAATGGAATGGAATGTGG","AAATGGACTCGAATGGAATCATC","AATCGAATGGAATGG","AAATGGAATCGAATGGAATCATC","AATCATCGAATGGAATCGAATGG","AATCATCGAATGGACTCGAATGG","AATCATCATGAATGGAATCGAATGG","AAATGGAATCGAATGGAATCATCATC","AAATGGAATCGAATGTAATCATCATC","AATCATCATCGAATGGAATCGAATGG","AAACATGTAAATATTTACACAGAATCTGTAT","AAATATCTACACCGCTATCTGTATGAACATGG","AAATATCTACACCGCCATCTGTATGAACATGG","AAACATGGAAATATCTACACAGCCATCTGTAT","AAACATGGAAATATCTACACCACCATCTGTAT","AAACATGGAAATATCTACACCACTATCTGTAT","AAACATGGAAATATCTACACCGCCATCTGTAT","AAACATGGAAATATCTACACCGCTATCTGTAT","AAACATGGAAATATCTACACCGCTATCTGTGT","AAACATGGAAATATCTACACTGCCATCTGTAT","AAACATGGAAATATCTACACTGCTATCTGTAT","AAACATGGAAATATCTACACCGCGATCTGTAT","AAACATGGAAATATCTACACCGCCATCTCTAT","AAACATGGAAATATCTACACCGCTATCTCTAT","AAATATCTACACAGCTATCTGTATGAACATGG","AAATATCTACACCACTATCTGTATGAACATGG","AAATATCTACACCGCTATCTGCATGAACATGG")
+
 #setwd("/Users/polly/Desktop/projects/heterochromatin/nanopore/run_March20_2018/barcoded")
 #setwd("/Users/polly/Desktop/projects/heterochromatin/nanopore/run_April26_2018/barcoded")
-#setwd("/Users/polly/Desktop/projects/heterochromatin/long_read/nanopore/filtered")
+setwd("/Users/polly/Desktop/projects/heterochromatin/long_read/nanopore/filtered")
 #setwd("/Users/polly/Desktop/projects/heterochromatin/long_read/nanopore/unfiltered")
-setwd("/Users/polly/Desktop/projects/heterochromatin/long_read/pacbio/filtered")
+#setwd("/Users/polly/Desktop/projects/heterochromatin/long_read/pacbio/filtered")
 #setwd("/Users/polly/Desktop/projects/heterochromatin/long_read/pacbio/unfiltered")
 
 #directories<-c("barcode07","barcode12","barcode10","barcode08","barcode11","barcode09")
@@ -94,7 +98,7 @@ par(mfrow=c(2,1))
 p <- list()
 medians_df<-NULL
 
-for (sp in c(2,3,4,5)) {
+for (sp in c(1,2,3,4,5,6)) {
   print(paste("species",speciesType(sp)))
   rep_names<-paste0("barcode0",sp,".fasta.rep",seq(from=0,to=39,by=1))
   
@@ -124,7 +128,8 @@ for (sp in c(2,3,4,5)) {
   #print(rep_data) #
   rep_data<-lapply(rep_data, `length<-`, max(lengths(rep_data)))
   longest<-max(c(log(unlist(rep_data[2:length(rep_data)])),12),na.rm=TRUE)
-  boxplot(lapply(rep_data,log),col=rainbow(length(repeat_types)),ylim=c(0,longest),names=motif,las=2,main=speciesType(sp),outline=TRUE,yaxt='n')
+  reordered_repCol<-c(1,1+match(repeat_order,original_order))
+  boxplot(lapply(rep_data[reordered_repCol],log),col=rainbow(length(repeat_types)),ylim=c(0,longest),names=paste0("(",0:39,") ",motif[reordered_repCol]),las=2,main=speciesType(sp),outline=TRUE,yaxt='n')
   medians<-unlist(lapply(rep_data,function(x) {median(x,na.rm=TRUE)}))
   medians_df<-rbind(medians_df,medians)
   
@@ -132,6 +137,8 @@ for (sp in c(2,3,4,5)) {
   lab.y <- tickp
   at.y <- log(tickp)
   axis(2, at=at.y, labels=lab.y, las=1)
+  
+  plot.new()
   
   #print("mean")
   #print(sort(as.numeric(lapply(rep_data[2:40],function(x) {mean(x,na.rm=TRUE)})))) #MEAN LENGTH for each repeated motif in a species
@@ -147,28 +154,47 @@ for (sp in c(2,3,4,5)) {
 
 <<>>=
 #REWRITE TO WORK WITH PACBIO DATA
+
+#pacbio
+#rownames(medians_df)[1]<-speciesType(2)
+#rownames(medians_df)[2]<-speciesType(3)
+#rownames(medians_df)[3]<-speciesType(4)
+#rownames(medians_df)[4]<-speciesType(5)
+
+#nanopore
 for (sp in c(1,2,3,4,5,6)) { 
 rownames(medians_df)[sp]<-speciesType(sp)
 }
+
 colnames(medians_df)<-motif #proper colnames
 medians_df<-as.data.frame(medians_df)
-#species_order<-c("Human","Chimp","Bonobo","Gorilla","Sorang","Borang")
-species_order<-c("Human","Chimp","Gorilla","Sorang")
-medians_df<-medians_df[species_order,repeat_order] #REORDER REPEAT ORDER
+
+species_order_nanopore<-c("Human","Chimp","Bonobo","Gorilla","Sorang","Borang")
+species_order_pacbio<-c("Human","Chimp","Gorilla","Sorang")
+
+medians_df<-medians_df[species_order_nanopore,2:40] #REORDER SPECIES ORDER, remove read-lenth column
+#medians_df<-medians_df[species_order_pacbio,2:40] #REORDER SPECIES ORDER, remove read-lenth column
 @
 
 <<>>=
 par(mfrow=c(2,1))
 plot(1, type="n", xlab="", xlim=c(0, 40), ylim=c(0, 300),xaxt='n',ylab="median length of a repeat array")
 
+medians_df_to_plot<-medians_df[,match(repeat_order,original_order)] #REORDER COLUMNS to match correct repeat order
+
+myColors_nanopore <- c("black","blue","darkgreen","red","orange","gold")
+myColors_pacbio <- c("black","blue","red","orange")
+
 for (sp in c(1,2,3,4,5,6)) { 
-  rownames(medians_df)[sp]
-  myColors <- c("black","blue","darkgreen","red","orange","gold")
-  points(1:39,medians_df[sp,1:39],col=rainbow(length(repeat_types)),las=2,main=speciesType(sp),pch=19,xaxt='n')
-  lines(1:39,medians_df[sp,1:39],col=myColors[sp],las=2,main=speciesType(sp),pch=19,lw=3,xaxt='n')
+  rownames(medians_df_to_plot)[sp]
+  points(1:39,medians_df_to_plot[sp,1:39],col=rainbow(length(repeat_types)),las=2,main=speciesType(sp),pch=19,xaxt='n')
+  lines(1:39,medians_df_to_plot[sp,1:39],col=myColors_nanopore[sp],las=2,main=speciesType(sp),pch=19,lw=3,xaxt='n')
   Sys.sleep(0.5)
 }
-axis(1, at=1:39, labels=colnames(medians_df), las=2)
+axis(1, at=1:39, labels=paste0("(",1:39,") ",repeat_order), las=2)
+
+legend(5,300, legend=gsub("Chimp","Chimpanzee",gsub("Sorang","Sumatran orangutan",species_order_nanopore)),col=myColors_nanopore, lty=1, lw=3, bty='n',cex=1)
+#legend(5,300, legend=gsub("Chimp","Chimpanzee",gsub("Sorang","Sumatran orangutan",species_order_pacbio)),col=myColors_pacbio, lty=1, lw=3, bty='n',cex=1)
 @
 
 
