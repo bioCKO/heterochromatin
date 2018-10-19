@@ -1,0 +1,169 @@
+\documentclass{article}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+<<>>=
+library(reshape)
+m <- read.table("/Users/polly/Desktop/projects/heterochromatin/homology/network_files/Distance_data_from_megaOctober11",sep="\t",fill=TRUE,header=TRUE,row.names = 1)
+m<-as.matrix(m)
+print(dim(m))
+m2 <- as.data.frame(melt(m))
+print(dim(m2))
+names(m2) <- c("from", "to", "distance")
+m2<-as.data.frame(m2[complete.cases(m2),])
+row.names(m2) <- 1:nrow(m2) #renumber rows
+print(dim(m2))
+
+m2$type<-"mutation"
+m2$weight<-max(m2$distance)-m2$distance
+print(head(m2))
+
+old_order<-c(6, 5, 4, 2, 3, 1, 15, 22, 17, 16, 30, 29, 32, 34, 26, 36, 27, 28, 31, 33, 35, 24, 25, 20, 18, 14, 23, 7, 37, 38, 39, 19, 11, 21, 13, 12, 10, 8, 9)
+
+m2[, c(1:2)] <- sapply(m2[, c(1:2)], as.character)
+
+m3<-as.data.frame(m2)
+print(dim(m3))
+print(head(m3))
+
+for (rmotif_index in 1:39) { 
+  rmotif<-paste0("r",rmotif_index)
+  motif_to_replace<-paste0("s",which(old_order==rmotif_index))
+  print(paste(motif_to_replace,"should be replaced by",rmotif))
+  
+  #replace from
+  rows_to_replace<-which(m3$from == motif_to_replace)
+  if (!is.null(length(rows_to_replace))) {
+    m3$from[rows_to_replace]<-rep(rmotif,length(rows_to_replace))
+  }
+}
+
+print(head(m3))
+
+for (rmotif_index in 1:39) { 
+  rmotif<-paste0("r",rmotif_index)
+  motif_to_replace<-paste0("s",which(old_order==rmotif_index))
+  print(paste(motif_to_replace,"should be replaced by",rmotif))
+  
+  #replace to
+  rows_to_replace<-which(m3$to == motif_to_replace)
+  if (!is.null(length(rows_to_replace))) {
+    m3$to[rows_to_replace]<-rep(rmotif,length(rows_to_replace))
+  }
+}
+
+print(head(m3))
+
+@
+
+
+<<>>=
+library(igraph)
+library("RColorBrewer")
+
+par(mar=c(8,8,8,8))
+
+setwd("/Users/polly/Desktop/projects/heterochromatin/homology/network_files")
+#nodes <- read.csv("Dataset1-Media-Example-NODES.csv", header=T, as.is=T)
+#links <- read.csv("Dataset1-Media-Example-EDGES.csv", header=T, as.is=T)
+
+range01 <- function(x) {
+  (x - min(x)) / (max(x) - min(x))
+}
+
+#nodes <- read.csv("matrix.csv", header = T, as.is = T)
+nodes <- read.csv("matrix_October11.csv", header = T, as.is = T)
+
+#links <- read.csv("distance_column_NAout.csv", header = T, as.is = T)
+
+#alternative distance calculations
+links<-m3
+
+net <- graph_from_data_frame(d = links,
+                             vertices = nodes,
+                             directed = T)
+
+class(net)
+
+nchars <- as.factor(V(net)$repeat.nchar)
+#colrs <- rainbow(length(nchars)) #c("gold", "tomato", "gray50")
+colrs <- c("gold", "green")
+#color vertices based on the unit length
+#32-mers and related (e.g. 21 bps) should be green, everything else yellow
+V(net)$color <- colrs[as.numeric(((nchars==32) | (nchars==31)))+1]
+
+#colors_needed <- max(links$distance) + 1
+
+#colrs_edges <- brewer.pal(n = 9, name = "YlOrRd")
+#colrs_edges<-c(colrs_edges,rep("darkgray",colors_needed-9))
+colrs_edges <- c("gold", "orange", "tomato")
+
+densities <- V(net)$mean_density_across_species #or median
+
+V(net)$size <- range01(densities) * 30 + 12
+#V(net)$size <- range01(log(densities))*10 #log(densities)
+
+V(net)$label.color <- "black"
+V(net)$label.cex <- 1
+
+#label based on the repeat type
+#V(net)$label <-gsub("r","",nodes$id)
+#paste(nchar(V(net)$sequence),"\n",nodes$id)
+#V(net)$label <- nchar(V(net)$sequence) 
+
+#V(net)$label <-V(net)$sequence
+#E(net)$width <- E(net)$weight/6
+
+E(net)$arrow.size <- .2
+
+E(net)$edge.color <- colrs_edges[E(net)$distance + 1] #"gray80"
+
+#edge.start <- ends(net, es=E(net), names=F)[,1]
+#edge.col <- V(net)$color[edge.start]
+
+edge.col <- colrs_edges[E(net)$distance + 1]
+
+
+E(net)$width <- 2 #0.01+E(net)$weight/17
+
+
+#plot(net, edge.color = edge.col, edge.curved = .1)
+#cut.off <- 1 #quantile(links$distance,probs=c(0.75))
+#net.sp <- delete_edges(net, E(net)[links$distance > 3])
+
+#plot(1:18,
+#     rep(1, 18),
+#     col = colrs_edges,
+#     pch = 19,
+#     cex = 4)
+
+l <- layout_with_fr(net)
+l <- norm_coords(l, ymin=-1, ymax=1, xmin=-1, xmax=1)
+
+plot(net, edge.color = edge.col, edge.curved = .2,rescale=F, layout=l*1.2)
+
+
+
+
+@
+
+<<>>=
+library(RColorBrewer)
+#paircolors<-c("black","lightgray","darkgreen","darkolivegreen4","blue","lightblue","red","salmon","orange2","peachpuff","gold2","lightyellow")
+paircolors<-c("black","white","darkgreen","white","blue","white","red","white","orange2","white","gold2","white")
+# Pie Chart with Percentages
+slices_partial<-c(1, 0.95, 1, 0.93, 0, 0) 
+slices_inverted<-1-slices_partial
+slices <- c(rbind(slices_partial,slices_inverted)) #c(1, 0, 0.95, 0.05, 1, 0, 0.93, 0.07, 0, 1, 0, 1) 
+lbls <- c("Human", "-", "Chimpanzee", "-", "Bonobo", "-", "Gorilla", "-", "Sumatran", "-", "Bornean", "-")
+pct <- round(slices*100)
+eo<-seq(1,length(lbls),2)
+lbls[eo] <- paste(pct[eo],"% ",lbls[eo]," individuals",sep="")
+print(lbls)
+pie(slices,labels = lbls,main="Pie Chart of Countries",col=paircolors)
+@
+
+
+
+\end{document}
