@@ -3,86 +3,82 @@
 \begin{document}
 \SweaveOpts{concordance=TRUE}
 
-<<>>=
-print(colnames(density[,305:310]))
-families<-density[,305:310]
-colnames(families)<-c("Son","Father","Mother","Daughter2","Father2","Mother2")
-families$ulength<-nchar(as.character(rownames(families)))
-families<-as.data.frame(families) #convert to dataframe from data table
-families<-families[rowSums(families[,1:6]) != 0,] #remove 0 counts and keep only repeated motifs present in human
+<<load data for trio analysis>>=
+normalized_trios<-density[305:313]
+colnames(normalized_trios)<-sapply(strsplit(colnames(normalized_trios),"_"), function(x) x[4])
+normalized_trios<-normalized_trios[order(-rowSums(normalized_trios, na.rm=T)),]
+print(dim(normalized_trios))
+normalized_trios<-normalized_trios[rowSums(normalized_trios)>0, ]
+print(dim(normalized_trios))
 
-families<-families[order(rowSums(families[,2:(ncol(families)-1)]),decreasing=T),]
+family_labels<-c("father89OfSon77","mother90OfSon77","son-77","father91OfDaughter78","mother92OfDaughter78","daughter-78","Father-HG","Mother-HG","Son-HG")
+normalized_trios<-normalized_trios[,family_labels]
+@
 
-#families<-families[2:nrow(families),] #remove first repeat
-print(head(families))
+<<print relationship>>=
+par(mfrow=c(1,3),cex=1.2)
+myColors<-c("#2171b5","#6baed6","#bdd7e7","#d94701","#fd8d3c","#fdbe85","#238443","#78c679","#c2e699")
 
-library(RColorBrewer)
-par(cex=2)
-family_labels<-c("Father","Mother","Son","Father2","Mother2","Daughter2")
-myColors<-c("#A6CEE3","#FB9A99","#B2DF8A","#1F78B4","#E31A1C","#33A02C")
-density_sums<-apply(families[1:nrow(families),family_labels],2,sum)
-density_sums_withoutGGAAT<-apply(families[2:nrow(families),family_labels],2,sum)
+plotProportion<-function(family_members,familyColor) {
+  plot(0,xlim=c(0,nrow(normalized_trios)),ylim=c(0,100),col="white",ylab="proportion within the range")
+  
+  for (perc in seq(1,nrow(normalized_trios),1)) {
+    #print(paste(1,perc))
+    subset<-normalized_trios[1:perc,family_members]
+    #subset<-normalized_trios[perc:(perc+1),family_members]
+    subset<-subset[rowSums(subset)>0,]
+    print(nrow(subset))
 
-par(mfrow=c(1,3),cex=1.075)
-barplot(density_sums_withoutGGAAT,col=myColors,ylab="sum of repeat densities",main=paste("Total repeat content for",nrow(families)-1,"human repeats, excluding GGAAT"))
-
-GGAAT_only<-families[1,family_labels]
-par(mfrow=c(1,3),cex=1.075)
-barplot(as.vector(as.matrix(GGAAT_only))/100,col=myColors,main="GGAAT",ylab="repeat density (kb/Mb)",names.arg=c("Father","Mother","Son","Father2","Mother2","Daughter2"),las=2)
-
-slices <- GGAAT_only/density_sums*100
-
-par(mfrow=c(1,6),cex=1.075) # 1 row and 6 columns for pies
-for (member in family_labels) {
-  print(member)
-  member_value<-as.vector(t(round(slices[member],0)))
-  pie(c(member_value,100-member_value), col=grey.colors(2),labels=c("GGAAT","other"),main=member) 
+    betweenRange<-table(apply(subset[,1:3],1,isBetweenRange))
+    inside<-as.numeric(betweenRange["TRUE"])
+    outside<-as.numeric(betweenRange["FALSE"])
+    
+    if (is.na(inside)) {
+      inside<-0
+    }
+    
+    if (is.na(outside)) {
+      outside<-0
+    }
+    
+    prop<-as.numeric((inside/(inside+outside))*100) 
+    print(prop)
+    #abundance<-sum(apply(subset,1,mean))
+    
+    points(perc,prop,pch=19,col=adjustcolor(familyColor, alpha.f = 0.2))
+    
+    #points(perc,betweenRange["TRUE"],pch='.',col="black")
+    #points(perc,betweenRange["FALSE"]-1,pch='.',col="red")
+  }
+  abline(h=50)
 }
 
+plotProportion(c("father89OfSon77","mother90OfSon77","son-77"),myColors[1])
+plotProportion(c("father91OfDaughter78","mother92OfDaughter78","daughter-78"),myColors[4])
+plotProportion(c("Father-HG","Mother-HG","Son-HG"),myColors[7])
+
+tmp<-normalized_trios[,family_members]
+tmp$within<-apply(tmp,1,isBetweenRange)
+
+par(mfrow=c(2,4))
+tmpUpper<-tmp[1:(round(nrow(tmp)/2)),]
+tmpLower<-tmp[(round(nrow(tmp)/2)+1):nrow(tmp),]
+print(paste(dim(tmp),dim(tmpUpper),dim(tmpLower)))
+
+plot(as.numeric(tmpUpper$within),log(rowSums(tmpUpper[,1:3])),pch=19,col="red",main="high abundance")
+print(table(tmpUpper$within))
+plot(as.numeric(tmpLower$within),log(rowSums(tmpLower[,1:3])),pch=19,col="blue",main="low abundance")
+print(table(tmpLower$within))
+
+tmp<-tmp[order(tmp$within),]
+plot(as.numeric(tmp$within),log(rowSums(tmp[,1:3])),pch=19,col="green")
+tmpWithin<-tmp[tmp$within==TRUE,]
+tmpOutside<-tmp[tmp$within==FALSE,]
+
 @
 
 
-<<>>=
-
-families_long <- gather(families, member, density, Son:Mother2, factor_key=TRUE)
-families_long<-as.data.frame(families_long)
-sum_by_ulength<-aggregate(density ~ ., data = families_long, sum)
-ggplot(sum_by_ulength, aes(rep(1:(nrow(sum_by_ulength)/length(filenames)),times=length(filenames)),density, col=member)) + 
-  geom_line() +
-  geom_point() +
-  xlab("unit length")
-
-ggplot(families_long, aes(rep(1:(nrow(families_long)/length(filenames)),times=length(filenames)),density, col=member)) + 
-  xlab("index") + 
-  scale_y_continuous() +
-  labs(title=paste("Using ",(nrow(families_long)/length(filenames)),"repeat motifs"),y="repeat motif density") + 
-  theme_bw() + 
-  scale_x_continuous(limits = c(0, 500)) +
-  geom_point() +
-  geom_line()
-
-heatmap.2(as.matrix(families[,1:6]))
-
-rquery.cormat(families[,1:6], type="upper")
-
-#dist<-as.dist(1-cor(families[,1:6],method="pearson")) #distance based on correlation
-#hcSingle <- hclust(dist,method="ward.D2") 
-#dendSingle <- as.dendrogram(hcSingle)
-#plot(dendSingle, main = "Clustering using linkage function 'complete'",cex=0.3)
-
-
-ggplot(data_long, aes(rep(1:(nrow(data_long)/length(filenames)),times=length(filenames)),density, col=member)) + 
-  xlab("index") + 
-  scale_y_continuous() +
-  labs(title=paste("Using ",(nrow(data_long)/length(filenames)),"repeat motifs"),y="repeat motif density") + 
-  theme_bw() + 
-  stat_smooth() 
-@
-
-
-<<>>=
-par(cex=1.5)
-
+<<load functions>>=
 isBetweenRange<-function(row) {
   parent1<-row[1]
   parent2<-row[2]
@@ -91,216 +87,10 @@ isBetweenRange<-function(row) {
   return(isWithin)
 }
 
-print(table(apply(families[,c("Father","Mother","Son")],1,isBetweenRange)))
-print(table(apply(families[,c("Father2","Mother2","Daughter2")],1,isBetweenRange)))
-
-scaled_families<-families
-
-log_families<-families[2:nrow(families),]
-
-#log_families<-log(families[,c("Father","Mother","Son","Father2","Mother2","Daughter2")]+0.0001)
-
-smooth<-function(data_points) {
-  spline<-smooth.spline(1:length(data_points), data_points/100, spar=0.01)
-  #spline<-data_points/100
-  return(spline)
-}
-
-lw<-3 #line width
-
-par(mfrow=c(2,2),cex=1.5)
-plot(smooth(log_families$Father),type="l",xlab="index of repeated motif",ylab="smoothed repeat density in kb/Mb",col=myColors[1],xlim=c(0,100),lwd=lw,main="100 most abundant repeated motifs (excluding GGAAT)")
-lines(smooth(log_families$Mother),col=myColors[2],lwd=lw)
-lines(smooth(log_families$Son),col=myColors[3],lwd=lw)
-lines(smooth(log_families$Father2),col=myColors[4],lwd=lw)
-lines(smooth(log_families$Mother2),col=myColors[5],lwd=lw)
-lines(smooth(log_families$Daughter2),col=myColors[6],lwd=lw)
-
-    legend("topright", 
-         legend = c("Father","Mother","Son","Father2","Mother2","Daughter2"),
-         col = myColors, 
-         pch = c(20),
-         bty = "n"
-        )
-
-#is within parental range?
-    
-    
- @
-      
-<<>>=
-par(cex=1.5)
-family1<-scaled_families[,c("Father","Mother","Son")]
-colnames(family1)<-c("Father","Mother","Child")
-family2<-scaled_families[,c("Father2","Mother2","Daughter2")]
-colnames(family2)<-c("Father","Mother","Child")
-
-plotForTrio(family1,"Ashkenazim")
-plotForTrio(family2,"family id:1492 from 1,000 Human Genome Project")
-
-
-
-
-#scaled_families_long <- gather(scaled_families, member, density, Son:Mother2, factor_key=TRUE)
-
-#ggplot(data=subset(scaled_families_long,member %in% c("Father" , "Mother")), aes(x=ulength,y=member)) +
-#  geom_bar(position="dodge",stat="identity") + 
-#  coord_flip() +
-#  ggtitle("Strategies for Using Homework Solution and Mini-Lecture Screencasts")
-@
-
-
-<<Ashkenazim>>=
-require(data.table)
-require(plyr)
-require(dplyr)
-options(scipen=10)
-rep.row<-function(x,n){
-   matrix(rep(x,each=n),nrow=n) #from https://ctszkin.com/2011/09/02/a-quick-way-to-do-rep-row-and-rep-col/
-}
-
-read_and_normalize <-function(input_file) {
-  input<-read.table(input_file,col.names=c("unit","density"))
-  #input$count<-input$count/sum(input$count)*1000000
-  #input$count<-input$count<-log(input$count+0.01)
-  name<-basename(input_file)
-  colnames(input)<-c("unit",name)
-  return(as.data.frame(input))
-}
-
-setwd("/Users/polly/Desktop/projects/heterochromatin/human_heterochromatin/densities")
-motherAshkenazim <- read_and_normalize("HG004_Homo_sapiens_Mother_F_1.fastq.dat_Header.txt.rawlengths.sortedFilt")
-fatherAshkenazim <- read_and_normalize("HG003_Homo_sapiens_Father_M_1.fastq.dat_Header.txt.rawlengths.sortedFilt")
-sonAshkenazim <- read_and_normalize("HG002_Homo_sapiens_Son_M_1.fastq.dat_Header.txt.rawlengths.sortedFilt")
-mother1463 <- read_and_normalize("NA12890_Homo_sapiens_Mother2_F_1.fastq.dat_Header.txt.rawlengths.sortedFilt")
-father1463 <- read_and_normalize("NA12889_Homo_sapiens_Father2_M_1.fastq.dat_Header.txt.rawlengths.sortedFilt")
-daughter1463 <- read_and_normalize("NA12878_Homo_sapiens_Daughter2_F_1.fastq.dat_Header.txt.rawlengths.sortedFilt")
-
-#LOAD REPEAT COUNTS FOR ALL DATASETS
-filenames<-c("mother","father","son","mother2","father2","daughter2")
-read_counts<-c(50131591,40459116,50312390,72528212,75062767,59671707)
-
-files<-list(motherAshkenazim,fatherAshkenazim,sonAshkenazim,mother1463,father1463,daughter1463)
-
-dt_list <- lapply(files, function(x) {
-  out <- as.data.table(x)
-  setkey(out, "unit")
-  out
-})
-
-#MERGE ALL DATASETS INTO SINGLE TABLE
-mydt <- function(...) merge(..., by="unit", all=T,suffixes=filenames)
-data <- Reduce(mydt, dt_list)
-
-data[is.na(data)] <- 0
-colnames(data)<-c("unit",filenames)
-data$ulength<-nchar(as.character(data$unit))
-data<-as.data.frame(data) #convert to dataframe from data table
-
-normalization_factor=10000
-normalization_matrix<-rep.row(read_counts,nrow(data))
-data<-as.data.frame(data) #convert to dataframe from data table
-data[,2:(ncol(data)-1)]<-(data[,2:(ncol(data)-1)]/normalization_matrix)*normalization_factor #normalization of data by read counts
-data<-data[order(rowSums(data[,2:(ncol(data)-1)]),decreasing=T),]
-print(head(data))
-
-#data[,2:(ncol(data)-1)]<-log(data[,2:(ncol(data)-1)]+0.01)
-#data<-data[rowSums(data[,2:(ncol(data)-1)])>(log(600)),] #keep only rows where all six libraries have at least 300 repeats total
-
-
-#data<-data[order(data$son,decreasing=T),]
-#data<-head(data,n=1000) #set more meaningful threshold based on replicates
-
-subset<-head(data,n=1000)
-
-#barplot(apply(subset[,2:(ncol(data)-1)],2,sum),col=rainbow(3),ylab="sum of repeat densities",main=paste("Total repeat content for ",nrow(subset),"repeats"))
-
-cor(subset[,2:(ncol(data)-1)])
-source("http://www.sthda.com/upload/rquery_cormat.r")
-#rquery.cormat(subset[,2:(ncol(data)-1)], type="upper")
-
-dist<-as.dist(1-cor((head(data[,2:(ncol(data)-1)],n=1000)),method="spearman")) #distance based on correlation
-hcSingle <- hclust(dist,method="ward.D2") 
-dendSingle <- as.dendrogram(hcSingle)
-#plot(dendSingle, main = "Clustering using linkage function 'complete'",cex=0.3)
-
-
-plot(subset[,2:(ncol(subset)-1)])
-
-#from wide to long format
-library(tidyr)
-library(ggplot2)
-library(Rmisc) 
-data_long <- gather(subset, member, density, mother:daughter2, factor_key=TRUE)
-data_long<-as.data.frame(data_long)
-
-ggplot(data_long, aes(rep(1:(nrow(data_long)/length(filenames)),times=length(filenames)),density, col=member)) + 
-  xlab("index") + 
-  scale_y_continuous() +
-  labs(title=paste("Using ",(nrow(data_long)/length(filenames)),"repeat motifs"),y="repeat motif density") + 
-  theme_bw() + 
-  #stat_smooth() 
-
-tgc <- summarySE(data=data_long[,2:4], measurevar="density", groupvars="member")
-#
-ggplot(tgc, aes(x=ulength, y=density, colour=member)) +
-    geom_errorbar(aes(ymin=density-se, ymax=density+se), width=.1) +
-    geom_line() +
-    geom_point() 
-
-#  
-@
-
-<<>>=
-
-## Gives count, mean, standard deviation, standard error of the mean, and confidence interval (default 95%).
-##   data: a data frame.
-##   measurevar: the name of a column that contains the variable to be summariezed
-##   groupvars: a vector containing names of columns that contain grouping variables
-##   na.rm: a boolean that indicates whether to ignore NA's
-##   conf.interval: the percent range of the confidence interval (default is 95%)
-summarySE <- function(data=NULL, measurevar, groupvars=NULL, na.rm=FALSE,
-                      conf.interval=.95, .drop=TRUE) {
-    library(plyr)
-
-    # New version of length which can handle NA's: if na.rm==T, don't count them
-    length2 <- function (x, na.rm=FALSE) {
-        if (na.rm) sum(!is.na(x))
-        else       length(x)
-    }
-
-    # This does the summary. For each group's data frame, return a vector with
-    # N, mean, and sd
-    datac <- ddply(data, groupvars, .drop=.drop,
-      .fun = function(xx, col) {
-        c(N    = length2(xx[[col]], na.rm=na.rm),
-          mean = mean   (xx[[col]], na.rm=na.rm),
-          sd   = sd     (xx[[col]], na.rm=na.rm)
-        )
-      },
-      measurevar
-    )
-
-    # Rename the "mean" column    
-    datac <- rename(datac, c("mean" = measurevar))
-
-    datac$se <- datac$sd / sqrt(datac$N)  # Calculate standard error of the mean
-
-    # Confidence interval multiplier for standard error
-    # Calculate t-statistic for confidence interval: 
-    # e.g., if conf.interval is .95, use .975 (above/below), and use df=N-1
-    ciMult <- qt(conf.interval/2 + .5, datac$N-1)
-    datac$ci <- datac$se * ciMult
-
-    return(datac)
-}
-@
-
-<<>>=
 plotForTrio <- function(trio_frame,family_id){ #Father #Mother #Child
-  trio_frame$Father<-(trio_frame[,1]-trio_frame[,3])/10000
-  trio_frame$Mother<-(trio_frame[,2]-trio_frame[,3])/10000
-  trio_frame$Child<-(trio_frame[,3]-trio_frame[,3])/10000
+  trio_frame$Father<-(trio_frame[,1]-trio_frame[,3])
+  trio_frame$Mother<-(trio_frame[,2]-trio_frame[,3])
+  trio_frame$Child<-(trio_frame[,3]-trio_frame[,3])
   print(head(trio_frame))
   
     n=nrow(trio_frame)
@@ -324,79 +114,37 @@ plotForTrio <- function(trio_frame,family_id){ #Father #Mother #Child
 }
 @
 
+<<difference between parents and a child 1of2>>=
+par(mar=c(5.1,4.1,4.1,12),mfrow=c(2,3),cex=1.2)
 
-<<>>=
-setwd("/Users/polly/Desktop/projects/heterochromatin/human_heterochromatin/trios")
+trios_subset<-normalized_trios[sapply(c(1:6,14:22),function(x) {repeat_order[x]}),]
+nmotifs<-nrow(trios_subset)
 
-tmptrios<-read.table("/Users/polly/Desktop/projects/heterochromatin/human_heterochromatin/trios/big.table.with.header.rawlengths.sortedFilt.txt",header=TRUE,row.names=1)
-tmptrios<-tmptrios[,seq(1,12,2)]
+plotForTrio(trios_subset[1:nmotifs,c("father89OfSon77","mother90OfSon77","son-77")],"son77 family")
+plotForTrio(trios_subset[1:nmotifs,c("father91OfDaughter78","mother92OfDaughter78","daughter-78")],"daughter-78")
+plotForTrio(trios_subset[1:nmotifs,c("Father-HG","Mother-HG","Son-HG")],"Son-HG family")
 
-rep.row<-function(x,n){
-   matrix(rep(x,each=n),nrow=n) #transforms normalization vector into matrix
-}
+combinations_for_AATGG_fold_change<-as.data.frame(rbind(c("son-77","father89OfSon77"),c("son-77","mother90OfSon77"),c("daughter-78","father91OfDaughter78"),c("daughter-78","mother92OfDaughter78"),c("Son-HG","Father-HG"),c("Son-HG","Mother-HG")))
+colnames(combinations_for_AATGG_fold_change)<-c("child","parent")
 
-#817170969 518689731 NA12877 R1 101
-#817847839 533866070 NA12877 R2 101
-#791312694 568928977 NA12878 R1 101
-#791458320 562199634 NA12878 R2 101
-#864350456 462751808 NA12889 R1 101
-#865209746 584621471 NA12889 R2 101
-#712391750 510549569 NA12890 R1 101
-#712848048 504681228 NA12890 R2 101
-#785026638 589779127 NA12891 R1 101
-#783988624 553461904 NA12891 R2 101
-#849529002 637566972 NA12892 R1 101
-#849362784 614659327 NA12892 R2 101
-
-#father89_of_son77
-#mother90_of_son77
-#son77
-
-#father91_of_daughter78
-#mother92_of_daughter78
-#daughter78
-
-#NORMALIZE BY READ COUNTS
-normalization_factor=1000000
-trios_rcounts<-c(518689731,568928977,462751808,510549569,589779127,637566972)
-normalization_matrix<-rep.row(trios_rcounts,nrow(tmptrios))
-tmptrios<-as.data.frame(tmptrios) #convert to dataframe from data table
-tmptrios[is.na(tmptrios)] <- 0
-
-tmptrios<-tmptrios/normalization_matrix*normalization_factor #normalization of data by read counts
-trios<-tmptrios[order(-rowSums(tmptrios[1:ncol(tmptrios)],na.rm=TRUE)),c("father89_of_son77","mother90_of_son77","son77","father91_of_daughter78","mother92_of_daughter78","daughter78")]
-
-par(mar=c(5.1,4.1,4.1,20))
-plotForTrio(trios[1:10,c("father89_of_son77","mother90_of_son77","son77")],"son77 family")
-plotForTrio(trios[1:10,c("father91_of_daughter78","mother92_of_daughter78","daughter78")],"daughter78 family")
-
-print(table(apply(trios[1:10,c("father89_of_son77","mother90_of_son77","son77")],1,isBetweenRange)))
-print(table(apply(trios[1:10,c("father91_of_daughter78","mother92_of_daughter78","daughter78")],1,isBetweenRange)))
-
-
-@
-
-<<normalized trios>>=
-normalized_trios<-density[305:313]
-colnames(normalized_trios)<-sapply(strsplit(colnames(normalized_trios),"_"), function(x) x[4])
-normalized_trios<-normalized_trios[order(-rowSums(normalized_trios, na.rm=T)),]
+generational_AATGG_fold_change <-
+  apply(combinations_for_AATGG_fold_change, 1, function(x) {
+  max(trios_subset["AATGG", x["child"]] / trios_subset["AATGG", x["parent"]],
+  trios_subset["AATGG",x["parent"]] / trios_subset["AATGG", x["child"]])
+  })
+print(cbind(combinations_for_AATGG_fold_change,generational_AATGG_fold_change))
 @
 
 
-
-<<>>=
-trios<-normalized_trios
-
+<<stacked barplot>>=
 myColors<-c("#2171b5","#6baed6","#bdd7e7","#d94701","#fd8d3c","#fdbe85","#238443","#78c679","#c2e699")
-family_labels<-c("father89OfSon77","mother90OfSon77","son-77","father91OfDaughter78","mother92OfDaughter78","daughter-78","Father-HG","Mother-HG","Son-HG")
-trios<-trios[,family_labels]
 
-density_sums<-apply(trios[1:nrow(trios),family_labels],2,sum)
-density_sums_withoutGGAAT<-apply(trios[2:nrow(trios),family_labels],2,sum)
-GGAAT_only<-trios[1,]
+density_sums<-apply(normalized_trios[1:nrow(normalized_trios),family_labels],2,sum)
+density_sums_withoutGGAAT<-apply(normalized_trios[2:nrow(normalized_trios),family_labels],2,sum)
+GGAAT_only<-normalized_trios[1,]
 
 par(mfrow=c(2,3),cex=1.075)
-barplot(density_sums_withoutGGAAT,col=myColors,ylab="sum of repeat densities",main=paste("Total repeat content for",nrow(trios)-1,"human repeats, excluding GGAAT"),yaxt="n",las=2) 
+barplot(density_sums_withoutGGAAT,col=myColors,ylab="sum of repeat densities",main=paste("Density of",nrow(normalized_trios)-1,"human repeats, excluding GGAAT"),yaxt="n",las=2) 
 axis(2, axTicks(2), format(axTicks(2), scientific = F, big.mark=",")) 
 plot.new()
     legend("topright", 
@@ -423,70 +171,154 @@ for (i in 1:ncol(stacked_density)){
 
 
 axis(2, axTicks(2), format(axTicks(2), scientific = F, big.mark=",")) 
-    
-
+Sys.sleep(1)
 @
 
-<<>>=
-par(mar=c(5.1,4.1,4.1,12),mfrow=c(2,3),cex=1.05)
-nmotifs<-50
-plotForTrio(trios[1:nmotifs,c("father89OfSon77","mother90OfSon77","son-77")],"son77 family")
-plotForTrio(trios[1:nmotifs,c("father91OfDaughter78","mother92OfDaughter78","daughter-78")],"daughter-78")
-plotForTrio(trios[1:nmotifs,c("Father-HG","Mother-HG","Son-HG")],"Son-HG family")
+<<difference between parents and a child 2of2>>=
+par(mfrow=c(2,4),cex=1.1)
 
-@
+nmotifs<-nrow(normalized_trios)
 
-
-<<>>=
-#trios_to_plot<-trios[2:100,]
-
-smooth<-function(data_points) {
-  spline<-smooth.spline(1:length(data_points), data_points, spar=0.01)
-  #spline<-data_points/100
-  return(spline)
+proportionBetweenRange <- function(nmotifs,family_subset){
+  betweenRange<-table(apply(normalized_trios[1:nmotifs,family_subset],1,isBetweenRange))
+  return(prop.table(betweenRange)*100)
 }
 
-lw<-3 #line width
+proportionBetweenRange(100,c("father89OfSon77","mother90OfSon77","son-77"))
+proportionBetweenRange(100,c("father91OfDaughter78","mother92OfDaughter78","daughter-78"))
+proportionBetweenRange(100,c("Father-HG","Mother-HG","Son-HG"))
 
-plot(smooth(trios_to_plot$father89_of_son77),type="l",xlab="index of repeated motif",ylab="smoothed repeat density in kb/Mb",col=myColors[1],xlim=c(0,100),lwd=lw,main="most abundant repeated motifs,except GGAAT")
-lines(smooth(trios_to_plot$mother90_of_son77),col=myColors[2],lwd=lw)
-lines(smooth(trios_to_plot$son77),col=myColors[3],lwd=lw)
-lines(smooth(trios_to_plot$father91_of_daughter78),col=myColors[4],lwd=lw)
-lines(smooth(trios_to_plot$mother92_of_daughter78),col=myColors[5],lwd=lw)
-lines(smooth(trios_to_plot$daughter78),col=myColors[6],lwd=lw)
+makeBetweenPlot<-function(labels,colToUse) {
+  plot(seq(1,nmotifs,1),sapply(seq(1,nmotifs,1),function(x) {proportionBetweenRange(x,labels)["TRUE"]}),xlab="#most abundant repeated motifs",ylab="proportion of motifs within the parental range",main=labels[3],ylim=c(0,100),yaxs='i',pch=16,col=colToUse,yaxt="n")
+axis(2, at=seq(20,100,20), lab=paste0(seq(20,100,20),"%"), las=TRUE)  
+}
+
+makeBetweenPlot(c("father89OfSon77","mother90OfSon77","son-77"),myColors[3])
+makeBetweenPlot(c("father91OfDaughter78","mother92OfDaughter78","daughter-78"),myColors[6])
+makeBetweenPlot(c("Father-HG","Mother-HG","Son-HG"),myColors[9])
+
+@
+
+<<who are the children most similar to?>>=
+
+plotCorrelations <- function(trio_to_cluster,mlabel,threshold){
+  
+  colnames(trio_to_cluster)<-gsub("_1.fastq.dat_Header.txt.rawlengths.sortedFilt","",colnames(trio_to_cluster))
+  colnames(trio_to_cluster)<-gsub("Homo_sapiens_","",colnames(trio_to_cluster))
+  
+  print(dim(trio_to_cluster))
+  trio_to_cluster<-trio_to_cluster[complete.cases(trio_to_cluster), ]
+  trio_to_cluster<-trio_to_cluster[rowSums(trio_to_cluster)>threshold,] #2000
+  print(dim(trio_to_cluster))
+  
+  n<-nrow(trio_to_cluster)
+  #n<-500
+  d<-as.dist(1-cor(trio_to_cluster[1:n,],method="spearman")) #distance based on correlation
+  
+  #NOTE: GGAAT makes women very similar to other women and men to men
+  #d <- dist((trio_to_cluster[1:n,1:6]), method = "Euclidean") # distance matrix
+  print(d)
+  
+  dst <- data.matrix(d)
+  dim <- ncol(dst)
+  par(mar=c(12,12,4.1,5),mfrow=c(1,1))
+  image(1:dim, 1:dim, dst, axes = FALSE, xlab="", ylab="",main=paste(mlabel,threshold))
+  
+  axis(1, 1:dim, rownames(dst), cex=0.75, las=3)
+  axis(2, 1:dim, rownames(dst), cex=0.75, las=1)
+  
+  text(expand.grid(1:dim, 1:dim), sprintf("%5.2f", dst), cex=1)
+
+}
+
+#trio_to_cluster<-scale(normalized_trios[,4:9],center=FALSE,scale=FALSE) #normalized_trios
+
+plotCorrelations(normalized_trios[,1:6],"all human dataset without threshold",0)
+#plotCorrelations(normalized_trios[,1:9],"all human dataset with threshold",2000) 
+#Sys.sleep(0.5)
+#plotCorrelations(normalized_trios[,1:9],"all human dataset with threshold",3000) 
+#Sys.sleep(0.5)
+#plotCorrelations(normalized_trios[,1:9],"all human dataset with threshold",4000) 
+#Sys.sleep(0.5)
+#plotCorrelations(normalized_trios[,1:9],"all human dataset with threshold",5000) 
+#Sys.sleep(0.5)
+#plotCorrelations(normalized_trios[,1:9],"all human dataset with threshold",6000) 
+#Sys.sleep(0.5)
+#plotCorrelations(normalized_trios[,1:9],"all human dataset with threshold",7000) 
+#Sys.sleep(0.5)
+#plotCorrelations(normalized_trios[,1:9],"all human dataset with threshold",8000)
+#plotCorrelations(trios,"small trio dataset")
+
+#plotCorrelations(normalized_trios[rownames(trios),4:9],"all subsampled to match small")
+#plotCorrelations(trios[rownames(normalized_trios),],"small subsampled to match all")
+
+#groups <- cutree(fit, k=3) 
+#rect.hclust(fit, k=3, border="red")
+
 @
 
 
 <<>>=
-# Ward Hierarchical Clustering
 
-trio_to_cluster<-scale(trios,center=FALSE,scale=FALSE)
-n<-1000
+plotDendrogram <- function(trio_to_cluster,mlabel,threshold){
+  colnames(trio_to_cluster)<-gsub("_1.fastq.dat_Header.txt.rawlengths.sortedFilt","",colnames(trio_to_cluster))
+  colnames(trio_to_cluster)<-gsub("Homo_sapiens_","",colnames(trio_to_cluster))
+  
+  print(dim(trio_to_cluster))
+  trio_to_cluster<-trio_to_cluster[complete.cases(trio_to_cluster), ]
+  trio_to_cluster<-trio_to_cluster[rowSums(trio_to_cluster)>threshold,] #2000
+  print(dim(trio_to_cluster))
+  
+  n<-nrow(trio_to_cluster)
+  #n<-500
+  d<-as.dist(1-cor(trio_to_cluster[1:n,],method="spearman")) #distance based on correlation
+  
+  print(d)
+  #fit <- hclust(d, method="ward.D2") 
+  fit <- hclust(d, method="complete") 
+  plot(fit,main=mlabel) # display dendogram
+}
 
-#d<-as.dist(1-cor(trio_to_cluster[1:n,],method="pearson")) #distance based on correlation
+par(mfrow=c(2,2))
+for (i in seq(1,220000,55000)) {
+  plotDendrogram(density[308:313],paste("human population; threshold",i),i)
+  #plotCorrelations(density[296:313],paste("human population; threshold",i),i)
+}
+@
 
-#NOTE: GGAAT makes women very similar to other women and men to men
-d <- dist(t(trio_to_cluster[1:n,]), method = "Euclidean") # distance matrix
-print(d)
 
-dst <- data.matrix(d)
-#dst[lower.tri(dst)] <- NA
+<<>>=
 
-dim <- ncol(dst)
-par(mar=c(12,12,4.1,5))
-image(1:dim, 1:dim, dst, axes = FALSE, xlab="", ylab="")
+funLDA<-function(lda_data,dependent_vector,threshold) {
+  lda_data<-lda_data[,colSums(lda_data)>threshold,]
+  print(paste("threshold",threshold))
+  print(dim(lda_data))
+  n<-length(unique(sort(dependent_vector)))
+  lda_data$dependent_vector<-dependent_vector
+  lda.fit=lda(lda_data$dependent_vector~.,data=lda_data,CV=TRUE,prior=rep(1,n)/n)
+  tab <- table(lda_data$dependent_vector, lda.fit$class)
+  accuracy<-sum(diag(tab))/sum(tab)*100
+  print(accuracy)
+  print(tab)
+}
+humans<-as.data.frame(t(density[1:100,296:313]))
+human_family<-c("HGDP","HGDP","HGDP","HGDP","HGDP","HGDP","HGDP","HGDP","HGDP","Ashkenazi","Ashkenazi","Ashkenazi","77","78","77","77","78","78")
+human_sex<-c("M","M","M","M","M","M","M","M","M","M","M","F","M","F","M","F","M","F")
 
-axis(1, 1:dim, rownames(dst), cex=0.75, las=3)
-axis(2, 1:dim, rownames(dst), cex=0.75, las=1)
 
-text(expand.grid(1:dim, 1:dim), sprintf("%5.3f", dst), cex=1)
-
-#fit <- hclust(d, method="ward.D2") 
-#plot(fit) # display dendogram
-#groups <- cutree(fit, k=2) 
-#rect.hclust(fit, k=2, border="red")
+for (i in seq(1,10000,5000)) {
+  funLDA(humans,human_family,i)
+  funLDA(humans,human_sex,i)
+}
+@
 @
 
 
 
 \end{document}
+
+
+
+
+
+
