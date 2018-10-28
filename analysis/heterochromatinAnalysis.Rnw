@@ -92,6 +92,8 @@ boxplot(unlist(ICC_values),na.rm=TRUE,outline=FALSE,col="gold",main="The Intracl
 par(cex=0.5)
 par(mar=c(10,4,4,2))
 
+repeat_order<-c("AATGG","ACTCC","AAAG","AATGGAGTGG","AATGGAATGGAGTGG","AATGGAGTGGAGTGG","AAGTGGAATGG","AATGGAATGTG","AAAGTGGAATGG","AACGTGGAATGG","AATGGAATGTGG","AATGGAATGGAATGTGG","AATGGAATGGAATGGAATGTGG","AAATGGACTCGAATGGAATCATC","AATCGAATGGAATGG","AAATGGAATCGAATGGAATCATC","AATCATCGAATGGAATCGAATGG","AATCATCGAATGGACTCGAATGG","AATCATCATGAATGGAATCGAATGG","AAATGGAATCGAATGGAATCATCATC","AAATGGAATCGAATGTAATCATCATC","AATCATCATCGAATGGAATCGAATGG","AAACATGTAAATATTTACACAGAATCTGTAT","AAATATCTACACCGCTATCTGTATGAACATGG","AAATATCTACACCGCCATCTGTATGAACATGG","AAACATGGAAATATCTACACAGCCATCTGTAT","AAACATGGAAATATCTACACCACCATCTGTAT","AAACATGGAAATATCTACACCACTATCTGTAT","AAACATGGAAATATCTACACCGCCATCTGTAT","AAACATGGAAATATCTACACCGCTATCTGTAT","AAACATGGAAATATCTACACCGCTATCTGTGT","AAACATGGAAATATCTACACTGCCATCTGTAT","AAACATGGAAATATCTACACTGCTATCTGTAT","AAACATGGAAATATCTACACCGCGATCTGTAT","AAACATGGAAATATCTACACCGCCATCTCTAT","AAACATGGAAATATCTACACCGCTATCTCTAT","AAATATCTACACAGCTATCTGTATGAACATGG","AAATATCTACACCACTATCTGTATGAACATGG","AAATATCTACACCGCTATCTGCATGAACATGG")
+
 createBinary <- function(abundantSpeciesVsRepeats,unique_species,sample_size,Nsampled=FALSE) {
   stopifnot(sum(sample_size)==length(rownames(abundantSpeciesVsRepeats))) #initial control before subsampling takes place
   stopifnot(exists("abundantSpeciesVsRepeats"))
@@ -190,7 +192,15 @@ print(returnSpeciesSpecificCounts(binary[-indicesOfAbundantRepeats,])) #excludin
 
 print(table(rowSums(binary==1)))
 
-print(apply(binary[repeat_order,],2,function(x) {table((x==1) | (x==0))}))
+print(apply(binary[repeat_order,],2,function(x) {table((x==1))})) #repeat present in all individuals of a species
+print(apply(binary[repeat_order,],2,function(x) {table((x==1) | (x>0))})) #repeat present in a species
+
+present_length<-sapply(1:ncol(binary), function(x) {table(binary[repeat_order,x]>0)["TRUE"]})
+print(apply(binary[repeat_order,],2,function(x) {table((x==1))})[2,]/present_length*100)
+
+present_length<-sapply(1:ncol(binary), function(x) {table(binary[-indicesOfAbundantRepeats,x]>0)["TRUE"]})
+print(apply(binary[-indicesOfAbundantRepeats,],2,function(x) {table((x==1))})[2,]/present_length*100)
+
 
 #proportion of repeated motifs that is not present in all individuals of a given species / present only in subset of the individuals
 print(100-apply(binary,2,function(x) {table((x==1) | (x==0))})[2,]/nrow(binary)*100)
@@ -491,7 +501,8 @@ print(paste(uniq_names_species,lapply(repVariabilityLessAbundant,mean)))
 #MOST ABUNDANT REPEATED MOTIFS
 repVariabilityMostAbundant<-lapply(uniq_names_species, function(x) rowSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,colSums(abundantIndividualsVsRepeats[grepl(x,rownames(abundantIndividualsVsRepeats))==TRUE,unique_list_of_most_abundant_for_each_species])!=0],na.rm = TRUE))
 repVariabilityMostAbundant<-lapply(repVariabilityMostAbundant,divideBy100) #normalize 100bp reads into bps
-print("MOST ABUNDANT REPEATED MOTIFS")
+
+print("MEAN DENSITY OF MOST ABUNDANT REPEATED MOTIFS")
 print(paste(uniq_names_species,lapply(repVariabilityMostAbundant,mean)))
 
 
@@ -520,6 +531,11 @@ getMeanFoldDif <- function(list_to_pick_pairs_from) {
 
 #variability of AATGG in human
 getMeanFoldDif(abundantIndividualsVsRepeats[grepl("Homo",rownames(abundantIndividualsVsRepeats)),"AATGG"])
+
+grep_species<-grepl("Homo_sapiens",rownames(abundantIndividualsVsRepeats))
+grep_sex<-grepl(" F",rownames(abundantIndividualsVsRepeats))
+print(length(abundantIndividualsVsRepeats[grep_species & grep_sex,"AATGG"]))
+getMeanFoldDif(abundantIndividualsVsRepeats[grep_species & grep_sex,"AATGG"])
 
 getTuples <- function(full_set,subsetn) {
   tuple_df<-apply(combn(full_set,subsetn),2,getMeanFoldDif) #e.g. if n=5, we are picking 5 individuals to calculate mean pairwise fold difference
@@ -586,7 +602,6 @@ return(small_numbers_correction)
 }
 
 #repeat_order <- c(yellow_group_GGAAT_related,green_group_32mers,white_group)
-repeat_order<-c("AATGG","ACTCC","AAAG","AATGGAGTGG","AATGGAATGGAGTGG","AATGGAGTGGAGTGG","AAGTGGAATGG","AATGGAATGTG","AAAGTGGAATGG","AACGTGGAATGG","AATGGAATGTGG","AATGGAATGGAATGTGG","AATGGAATGGAATGGAATGTGG","AAATGGACTCGAATGGAATCATC","AATCGAATGGAATGG","AAATGGAATCGAATGGAATCATC","AATCATCGAATGGAATCGAATGG","AATCATCGAATGGACTCGAATGG","AATCATCATGAATGGAATCGAATGG","AAATGGAATCGAATGGAATCATCATC","AAATGGAATCGAATGTAATCATCATC","AATCATCATCGAATGGAATCGAATGG","AAACATGTAAATATTTACACAGAATCTGTAT","AAATATCTACACCGCTATCTGTATGAACATGG","AAATATCTACACCGCCATCTGTATGAACATGG","AAACATGGAAATATCTACACAGCCATCTGTAT","AAACATGGAAATATCTACACCACCATCTGTAT","AAACATGGAAATATCTACACCACTATCTGTAT","AAACATGGAAATATCTACACCGCCATCTGTAT","AAACATGGAAATATCTACACCGCTATCTGTAT","AAACATGGAAATATCTACACCGCTATCTGTGT","AAACATGGAAATATCTACACTGCCATCTGTAT","AAACATGGAAATATCTACACTGCTATCTGTAT","AAACATGGAAATATCTACACCGCGATCTGTAT","AAACATGGAAATATCTACACCGCCATCTCTAT","AAACATGGAAATATCTACACCGCTATCTCTAT","AAATATCTACACAGCTATCTGTATGAACATGG","AAATATCTACACCACTATCTGTATGAACATGG","AAATATCTACACCGCTATCTGCATGAACATGG")
 
 #check that loaded repeat names match those from the dataframe
 original_names<-sort(as.character(colnames(density_mean_per_species[2:ncol(density_mean_per_species)])))
@@ -728,6 +743,44 @@ plot.new()
 legend(x="topleft", legend = unique(sex), col = unique(as.numeric(as.factor(sex)))+1,lty=1,bty = "n")
 
 @
+
+<<run PCA by species>>=
+par(mfrow=c(2,3))
+for (pca_sp in (unique(sort(pca_data$species)))) {
+  print(pca_sp)
+  calculation_subset<-pca_data[pca_data$species==pca_sp,] #only one species
+  pca_subset_sex<-as.factor(calculation_subset$sex) #get sex
+  pca_subset_colors<-pca_sex_colors[as.numeric(as.factor(calculation_subset$sex))]
+  #calculation_subset<-calculation_subset[,c(repeat_order,"sex")]
+  
+  calculation_subset<-calculation_subset[,repeat_order] #from now on only numeric
+  
+  calculation_subset<-calculation_subset[,order(-colSums(calculation_subset))]
+  #print(dim(calculation_subset))
+  calculation_subset<-calculation_subset[,colSums(calculation_subset[,1:(ncol(calculation_subset))])>0]
+  #print(dim(calculation_subset))
+  #print(tail(colnames(calculation_subset)))
+  
+  pca_cal<-prcomp(calculation_subset) #do not include sex into the calculation of principal components
+  
+  a<-autoplot(pca_cal,x=1,y=2,label=TRUE,shape="",size=8,label.size = 8,main=pca_sp,col=pca_subset_colors)
+  a + theme_linedraw()
+  print(a)
+  
+  lda_data<-calculation_subset
+  #print(dim(lda_data))
+  lda_data$dependent_vector<-pca_subset_sex
+  lda.fit=lda(lda_data$dependent_vector~.,data=lda_data,CV=TRUE,prior=c(0.5,0.5))
+  tab <- table(lda_data$dependent_vector, lda.fit$class)
+  accuracy<-sum(diag(tab))/sum(tab)*100
+  print(accuracy)
+  #print(tab)
+}
+
+
+
+@
+
 
 <<lda,eval=TRUE>>=
 ##################################################
@@ -1032,8 +1085,11 @@ for (ape in myList) {
   corTable<-t(corValues)
   corTable<-as.matrix(corTable,rownames.force=TRUE)
   class(corTable) <- "numeric"
-  colnames(corTable)<-rownames(corTable[2:nrow(corTable),])
-  corrplot(corTable[2:nrow(corTable),],diag=TRUE,type="upper",na.label="-")
+  colnames(corTable)<-paste0("(",match(rownames(corTable[2:nrow(corTable),]),repeat_order),") ",rownames(corTable[2:nrow(corTable),])) #combine repeat name with repeat index
+  
+  col2 <- colorRampPalette(rev(c("#67001F","#B2182B","#D6604D","#F4A582","#FDDBC7","#FFFFFF","#D1E5F0","#92C5DE","#4393C3","#2166AC","#053061")))(200)
+  
+  corrplot(corTable[2:nrow(corTable),],diag=TRUE,type="upper",na.label="-",col = col2,tl.col="black")
   
   #todo: rewrite reshuffling
   permutations<- list()
@@ -1052,7 +1108,8 @@ for (ape in myList) {
   #df<-df[with(df, order(F)),] #sort by F column that denotes means
   df$x<-seq(1,length(df$F),1)
   
-  plot(df$x, df$F,ylim=c(-1,1),type='l',col="red",main=ape,ylab = "correlation coefficient",cex.axis=1.8,cex.lab=1.8,xlab="index for number of repeat comparisons")
+  simple_ape_name<-gsub("Pan_troglodytes","Chimpanzee",gsub("Pongo_pygmaeus","Bornean orangutan",gsub("Pongo_abelii","Sumatran orangutan",gsub("Pan_paniscus","Bonobo",gsub("Homo","Human",ape)))))
+  plot(df$x, df$F,ylim=c(-1,1),type='l',col="red",main=simple_ape_name,ylab = "correlation coefficient",cex.axis=1.8,cex.lab=1.8,xlab="index for number of repeat comparisons")
   
   #make polygon where coordinates start with lower limit and 
   # then upper limit in reverse order
@@ -1064,12 +1121,15 @@ for (ape in myList) {
     ylab = "correlation coefficient",
     ylim = c(-1, 1),
     pch = 20,
+    cex=2,
     main = ape,
     xlim = c(0, length(corValues)),
-    col = adjustcolor(ifelse(corVector>0, "blue", "red"), alpha.f = 0.5)
+    col = adjustcolor(ifelse(corVector>0, "#B2182B", "#2166AC"), alpha.f = 0.5)
   )
     
-    abline(h = 0, col = "black")
+    abline(h = 0, col = "gray")
+    abline(h = min(df$L), col = "gray")
+    abline(h = max(df$U), col = "gray")
   #add red lines on borders of polygon
   #lines(df$x, df$U, col="red",lty=2)
   #lines(df$x, df$L, col="red",lty=2)
@@ -1179,6 +1239,8 @@ match(as.character(unlist(most_abundant_for_each_species["Bonobo"])),Candidates_
 match(as.character(unlist(most_abundant_for_each_species["Gorilla"])),Candidates_Gorilla$unit)
 match(as.character(unlist(most_abundant_for_each_species["Sumatran"])),Candidates_Sumatran$unit)
 match(as.character(unlist(most_abundant_for_each_species["Bornean"])),Candidates_Bornean$unit)
+
+View(as.data.frame(do.call(rbind,(apply(matrix_of_most_abundant,2,function(y) {sapply(top_candidates_uniq,function(x) {which(y==x)})}))))) #dataframe
 
 print(binary[Candidates_Homo$unit,])
 print(binary[Candidates_Chimpanzee$unit,])
