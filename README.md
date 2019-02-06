@@ -36,7 +36,7 @@ R libraries needed:
 
 ### Pipeline ###
 
-####1. Download the files and name them accordingly
+#### 1. Download the files and name them accordingly
 	scripts: download_run.sh and rename.py
 	
 *Input*: SRR run id
@@ -45,7 +45,7 @@ R libraries needed:
 
 *Requirements*: sratoolkit.2.5.7-ubuntu64/bin/fastq-dump
 
-####2. Identify the repeats 
+#### 2. Identify the repeats 
 	scripts:  run_jobs.sh, analyze_raw_fastq.sh, parseTRFngsKeepHeader.py
 	
 *Input*: fastq file
@@ -54,7 +54,7 @@ R libraries needed:
 
 *Requirements*: fastx, seqtk, trf409.legacylinux64 
 
-####3. Filter repeat arrays shorter than 75bps and parse repeats into repeat frequency (.rawcounts) and repeat density (.rawlengths)
+#### 3. Filter repeat arrays shorter than 75bps and parse repeats into repeat frequency (.rawcounts) and repeat density (.rawlengths)
 	scripts: parse_headers.sh
 	
 *Input*: .dat_Header.txt
@@ -65,7 +65,7 @@ R libraries needed:
 
 Use datasets trimmed to 100bp reads if available.
 
-####4. Filter repeat motifs based on minimum frequency
+#### 4. Filter repeat motifs based on minimum frequency
 	scripts: filter_raw_files.sh
 	
 	for file in *.rawcounts; do echo $file; sbatch filter_raw_files.sh $file; sleep 0.1; done;
@@ -76,7 +76,7 @@ Use datasets trimmed to 100bp reads if available.
 
 *Requirements*: none
 
-####5. Merge identified repeat motifs into single table
+#### 5. Merge identified repeat motifs into single table
 	scripts: run_merging.sh
 	 ./run_merging.sh rawcounts.sortedFilt; ./run_merging.sh rawlengths.sortedFilt;
 	
@@ -86,7 +86,7 @@ Use datasets trimmed to 100bp reads if available.
 
 *Requirements*: none
 
-####6. Load the table into R and do more filtering
+#### 6. Load the table into R and do more filtering
 Filters: the cummulative repeat frequency per million reads needs to be at least 15 across all datasets
 	scripts: loadAndSaveData.Rnw
 	
