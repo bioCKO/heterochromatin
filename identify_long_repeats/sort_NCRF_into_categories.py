@@ -43,13 +43,14 @@ with open(filepath) as fp:
        array=line.split("\t")
        if (len(array)==13):
         row, motif, seq, start, end, strand, seqLen, querybp, mRatio, m, mm, i, d = array
+        wiggle_room=int(100)
         #print(line)
 
-        if (int(start)==0) and (int(end)==int(seqLen)):
+        if ((int(start)-wiggle_room)<=0) and ((int(seqLen)-int(end))<=wiggle_room):
           #print("heterochromatic")
           heterochromatic_file.write(line)
         else:
-          if (int(start)>0) and (int(end)<int(seqLen)):
+          if ((int(start)-wiggle_room)>0) and ((int(seqLen)-int(end))>wiggle_room):
               #print("nested")
               nested_file.write(line)
           else:
