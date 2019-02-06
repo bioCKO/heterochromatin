@@ -1,1 +1,0 @@
-echo "Hi. I am good."
