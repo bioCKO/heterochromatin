@@ -1,0 +1,169 @@
+\documentclass{article}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+
+<<>>=
+library(ape)
+library(adegenet)
+library(msa)
+library(scales)
+
+getIlluminaCorrelationCoefficient<-function(seq1,seq2,sp) {
+  #print(seq1,seq2,sp)
+  subsetToCorrelate<-abundantSpeciesVsRepeats[rownames(abundantSpeciesVsRepeats)==sp,c(seq1,seq2)]
+  subsetThatCanBeCorrelated<-as.matrix(Filter(function(x) sd(x) != 0, as.data.frame(subsetToCorrelate)))
+  if(ncol(subsetThatCanBeCorrelated) < 2) {
+    return(NA) #standard deviation is zero in at least one column, no correlation can be computer
+  } else {
+    subsetToCorrelate<-cor(subsetToCorrelate,method="spearman",use="complete.obs")
+    diag(subsetToCorrelate)=NA
+    corOfSubset<-min(as.vector(subsetToCorrelate),na.rm=TRUE)
+    return(corOfSubset) #e.g. getIlluminaCorrelationCoefficient("AATGG","AAATGGACTCGAATGGAATCATC","Chimpanzee")
+  }
+}
+
+rotate <- function(seqToRotate, nrotations) {
+  if (nrotations <= 1) {
+  return(seqToRotate)
+  } else {
+  suffix <- substr(seqToRotate, 2, nchar(seqToRotate))
+  prefix <- substr(seqToRotate, 1, 1)
+  result <- paste0(suffix, prefix)
+  rotate(result, nrotations - 1)
+  }
+}
+
+generateAllShifts<-function(seqSmall) { #all rotations of a sequence
+  listOfRotations<-list()
+  for (rot in 1:nchar(seqSmall)) {
+    listOfRotations[[rot]]<-rotate(seqSmall,rot)
+  }
+  return(listOfRotations)
+}
+
+calculateNucleotideDifferencies<-function(seq1,seq2) { #calculate number of nucleotide differencies between two sequences
+  mySeqs <- DNAStringSet(c(seq1,seq2))
+  ## perform multiple alignment
+  myAlignment <- msa(mySeqs)
+  #print(myAlignment)
+  alignmentBin<-as.DNAbin(myAlignment) 
+  seqdistm<-invisible(dist.dna(alignmentBin, model = "N", variance = FALSE, gamma = FALSE, pairwise.deletion = TRUE, base.freq = NULL, as.matrix = TRUE)) #invisible to supress the print
+  diag(seqdistm)=NA
+  return(min(as.vector(seqdistm),na.rm=TRUE))
+}
+
+calculateMinimalDistance<-function(seq1,seq2) { #out of all rotations and reverse complements, what's the minimum number of mutations between these two sequences?
+  
+  if (nchar(seq1)<nchar(seq2)) { #shorter sequence should be aligned to the longer sequence
+    sequenceToCompare<-seq1
+    reference<-seq2
+  } else {
+    sequenceToCompare<-seq2
+    reference<-seq1
+    }
+  
+  listOfRotDistances<-list()
+  lrd<-1
+  for (sqtc in generateAllShifts(sequenceToCompare)) { #ORIGINAL SEQUENCE AND ITS ROTATIONS
+    #print(sqtc)
+    #print(calculateNucleotideDifferencies(sqtc,reference))
+    listOfRotDistances[[lrd]]<-calculateNucleotideDifferencies(sqtc,reference)
+    lrd<-lrd+1 #increment the counter
+  }
+  
+  for (sqtc in generateAllShifts(chartr("acgtACGT", "tgcaTGCA", sequenceToCompare))) { #REVERSE COMPLEMENT OF THE SEQUENCE AND ITS ROTATIONS
+    #print(sqtc)
+    #print(calculateNucleotideDifferencies(sqtc,reference))
+    listOfRotDistances[[lrd]]<-calculateNucleotideDifferencies(sqtc,reference)
+    lrd<-lrd+1 #increment the counter
+  }
+  #print(listOfRotDistances)
+  return(min(unlist(listOfRotDistances))) #return the minimal distance out of all distances (all rotations and the original/reverse complement)
+}
+
+print(calculateMinimalDistance("AATGGGG","AAATGGACTCGAATGGAATCATC"))
+@
+
+<<>>=
+library(readr)
+set.seed(1)
+par(mfrow=c(4,2),cex=1.1)
+
+setwd("/Users/polly/Desktop/projects/heterochromatin/seq_sim_and_cooccurence/Nanopore") #USE FOR NANOPORE
+#setwd("/Users/polly/Desktop/projects/heterochromatin/seq_sim_and_cooccurence/PacBio") #USE FOR PACBIO
+fileNames<-c("Bonobo.ABstat.txt","Bornean.ABstat.txt","Chimpanzee.ABstat.txt","Gorilla.ABstat.txt","Homo.ABstat.txt","Sumatran.ABstat.txt") #USE FOR NANOPORE
+#fileNames<-c("Chimpanzee.ABstat.txt","Gorilla.ABstat.txt","Homo.ABstat.txt","Sumatran.ABstat.txt") #USE FOR PACBIO
+
+old_order<-c(6, 5, 4, 2, 3, 1, 15, 22, 17, 16, 30, 29, 32, 34, 26, 36, 27, 28, 31, 33, 35, 24, 25, 20, 18, 14, 23, 7, 37, 38, 39, 19, 11, 21, 13, 12, 10, 8, 9)
+repeat_order<-c("AATGG","ACTCC","AAAG","AATGGAGTGG","AATGGAATGGAGTGG","AATGGAGTGGAGTGG","AAGTGGAATGG","AATGGAATGTG","AAAGTGGAATGG","AACGTGGAATGG","AATGGAATGTGG","AATGGAATGGAATGTGG","AATGGAATGGAATGGAATGTGG","AAATGGACTCGAATGGAATCATC","AATCGAATGGAATGG","AAATGGAATCGAATGGAATCATC","AATCATCGAATGGAATCGAATGG","AATCATCGAATGGACTCGAATGG","AATCATCATGAATGGAATCGAATGG","AAATGGAATCGAATGGAATCATCATC","AAATGGAATCGAATGTAATCATCATC","AATCATCATCGAATGGAATCGAATGG","AAACATGTAAATATTTACACAGAATCTGTAT","AAATATCTACACCGCTATCTGTATGAACATGG","AAATATCTACACCGCCATCTGTATGAACATGG","AAACATGGAAATATCTACACAGCCATCTGTAT","AAACATGGAAATATCTACACCACCATCTGTAT","AAACATGGAAATATCTACACCACTATCTGTAT","AAACATGGAAATATCTACACCGCCATCTGTAT","AAACATGGAAATATCTACACCGCTATCTGTAT","AAACATGGAAATATCTACACCGCTATCTGTGT","AAACATGGAAATATCTACACTGCCATCTGTAT","AAACATGGAAATATCTACACTGCTATCTGTAT","AAACATGGAAATATCTACACCGCGATCTGTAT","AAACATGGAAATATCTACACCGCCATCTCTAT","AAACATGGAAATATCTACACCGCTATCTCTAT","AAATATCTACACAGCTATCTGTATGAACATGG","AAATATCTACACCACTATCTGTATGAACATGG","AAATATCTACACCGCTATCTGCATGAACATGG")
+
+oldOrderToNewSequence<-function(oldNumber) {
+  newNumber<-match(oldNumber,old_order) #transform old numbering into new numbering system
+  return(repeat_order[newNumber]) #look up the DNA sequence
+}
+
+for (fileName in fileNames) {
+  print(fileName)
+  cooccurence_data<-as.data.frame(read.table(fileName,header=TRUE))
+  cooccurence_data<-cooccurence_data[cooccurence_data$total_number_of_AB_hitting_reads!=0,] #drop those that do not co-occur
+  cooccurence_data<-cooccurence_data[cooccurence_data$motifA!=cooccurence_data$motifB,] #drop self-comparisons
+  
+  #remove mirrored rows, e.g. AB and BA should be represented just by one row
+  cols = c(1,2)
+  newdf = cooccurence_data[,cols]
+  for (i in 1:nrow(cooccurence_data)){
+    newdf[i, ] = sort(cooccurence_data[i,cols])
+  }
+  cooccurence_data<-cooccurence_data[!duplicated(newdf),] #remove duplicated rows
+  
+  cooccurence_data$joint_perc<-cooccurence_data$total_number_of_AB_hitting_reads/cooccurence_data$total_number_of_unique_reads*100
+  cooccurence_data$joint_perc_relative<-cooccurence_data$total_number_of_AB_hitting_reads/pmin(cooccurence_data$total_number_of_A_hitting_reads,cooccurence_data$total_number_of_B_hitting_reads)*100
+  cooccurence_data<-cooccurence_data[order(-cooccurence_data$joint_perc),]
+  print(dim(cooccurence_data))
+  #View(cooccurence_data)
+  
+  vlength<-nrow(cooccurence_data)
+  A_occurence<-cooccurence_data$total_number_of_A_hitting_reads
+  B_occurence<-cooccurence_data$total_number_of_B_hitting_reads
+  joint_occurence<-cooccurence_data$total_number_of_AB_hitting_reads
+
+  
+  isEmpty <- function(x) {
+    return(length(x)==0)
+  }
+  
+  getDistance<-function(a,b) {
+    seq1<-oldOrderToNewSequence(a) #retrieve the new sequence based on the old order
+    seq2<-oldOrderToNewSequence(b) #retrieve the new sequence based on the old order
+    return(calculateMinimalDistance(seq1,seq2))
+  }
+  
+  
+  A<-gsub(".*.fasta.rep","",cooccurence_data$motifA)
+  A<-parse_number(as.character(A))
+  B<-gsub(".*.fasta.rep","",cooccurence_data$motifB)
+  B<-parse_number(as.character(B))
+  
+  sink("tp.txt") #divert undesired print messages to a file
+  list_of_distances<-sapply(1:vlength,function(x) {getDistance(A[x],B[x])})
+  sink()
+  closeAllConnections()
+  
+  fileSpecies<-sub("\\..*", "", fileName)
+  list_of_corCoef<-sapply(1:vlength,function(x) {getIlluminaCorrelationCoefficient(oldOrderToNewSequence(A[x]),oldOrderToNewSequence(B[x]),fileSpecies)})
+  
+  hamming_distance<-unlist(list_of_distances) 
+  
+  #regression analysis
+  exploratory<-cooccurence_data
+  exploratory$correlations<-list_of_corCoef
+  exploratory$distance<-hamming_distance
+  hexplom(exploratory[,3:ncol(exploratory)])
+  linearMod <- lm(correlations ~ distance + joint_perc_relative, data=exploratory[,3:ncol(exploratory)])  # build linear regression model on full data
+  #print(paste(fileName,linearMod))
+  plot(linearMod)
+  print(summary(linearMod))
+}
+
+@
